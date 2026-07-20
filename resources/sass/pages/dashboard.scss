@@ -1,0 +1,30 @@
+.mobility-cards-container {
+	overflow: auto;
+}
+.mobility-image {
+	width: 60px !important;
+}
+.mobility-card-body {
+	height: 260px;
+    overflow: auto;
+    padding: 0px 5px;
+}
+.location-element {
+    background-color: #e5d95e;
+    padding: 5px;
+    border-radius: 5px;
+}
+h2#swal2-title {
+    font-size: large;
+}
+.btn-hidden {
+    display: none;
+}
+.btn {
+    font-size:x-small;
+}
+.category-color {
+    width: 32px;
+    height: 32px;
+    border-radius:20px;
+}
