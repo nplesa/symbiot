@@ -7,9 +7,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
+
 class AuthController extends Controller
 {
-    public function login(Request $request)
+    public function login(Request $request):JsonResponse
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
@@ -37,7 +40,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request):JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
 

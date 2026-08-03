@@ -13,7 +13,7 @@ class TrackProcessingService
     {
         return [
             'distance' => $this->calculateDistance($points),
-            'geojson'  => $this->buildGeoJson($points),
+            'geojson' => $this->buildGeoJson($points),
         ];
     }
 

@@ -22,6 +22,7 @@ class LocationController extends Controller
             'tracking' => $user->tracking,
         ]);
     }
+
     public function update(Request $request)
     {
         $user = auth()->user();
@@ -33,13 +34,13 @@ class LocationController extends Controller
                 'lon' => $request->lon,
                 'heading' => $request->heading,
                 'active' => $request->active,
-                'updated_at' => now()
+                'updated_at' => now(),
             ],
             now()->addMinutes(5)
         );
 
         return response()->json([
-            'success' => true
+            'success' => true,
         ]);
     }
 }

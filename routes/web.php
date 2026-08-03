@@ -1,20 +1,17 @@
 <?php
 
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LocationController;
+use App\Http\Controllers\TrackingController;
+use App\Http\Controllers\TransportPoiController;
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\LocationController;
-use App\Http\Controllers\TransportPoiController;
-use App\Http\Controllers\TrackingController;
-
-
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', fn() => view('welcome'));
 
 Auth::routes();
 
 Route::name('app.')->middleware(['auth'])->group(function () {
-    Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+    Route::get('/home', [HomeController::class, 'index'])->name('home');
     Route::post('/location/update', [LocationController::class, 'update']);
     Route::get('/api/transport-nearby', [TransportPoiController::class, 'nearby']);
 

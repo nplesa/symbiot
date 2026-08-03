@@ -1,10 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\TrackingController;
+use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
 

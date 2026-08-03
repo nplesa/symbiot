@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TrackingSession extends Model
 {
@@ -19,17 +21,23 @@ class TrackingSession extends Model
         'ended_at' => 'datetime',
     ];
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function device()
+    /**
+     * @return BelongsTo<Device, self>
+     */
+    public function device(): BelongsTo
     {
         return $this->belongsTo(Device::class);
     }
 
-    public function trackings()
+    /**
+     * @return HasMany<Tracking, self>
+     */
+    public function trackings(): HasMany
     {
         return $this->hasMany(Tracking::class);
     }

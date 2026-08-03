@@ -9,8 +9,8 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Models\Tracking;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['name', 'email', 'password', 'tracking'])]
 #[Hidden(['password', 'remember_token'])]
@@ -24,6 +24,7 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
+    #[\Override]
     protected function casts(): array
     {
         return [
@@ -32,19 +33,18 @@ class User extends Authenticatable
         ];
     }
 
-    public function tracking()
+    public function tracking():HasMany
     {
         return $this->hasMany(Tracking::class);
     }
 
-    public function devices()
+    public function devices():HasMany
     {
         return $this->hasMany(Device::class);
     }
 
-    public function trackingSessions()
+    public function trackingSessions():HasMany
     {
         return $this->hasMany(TrackingSession::class);
     }
-    
 }

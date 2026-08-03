@@ -50,7 +50,7 @@ class Device extends Model
     {
         $this->last_seen = now();
 
-        if (!is_null($battery)) {
+        if (! is_null($battery)) {
             $this->battery = $battery;
         }
 

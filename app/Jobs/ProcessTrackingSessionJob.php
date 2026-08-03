@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\TrackingSession;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use App\Services\TrackProcessingService;
 
 class ProcessTrackingSessionJob implements ShouldQueue
 {
@@ -12,19 +13,19 @@ class ProcessTrackingSessionJob implements ShouldQueue
 
     public function __construct(
         public int $sessionId
-    ) {
-    }
+    ): void {}
 
     public function handle(TrackProcessingService $trackingService): void
     {
         $session = $this->loadSession();
 
-        if (!$session) {
+        if (! $session) {
             return;
         }
 
         if ($session->trackings->count() < 2) {
             $this->markProcessed($session);
+
             return;
         }
 
@@ -44,7 +45,6 @@ class ProcessTrackingSessionJob implements ShouldQueue
         ])->find($this->sessionId);
     }
 
-
     private function markProcessed(TrackingSession $session): void
     {
         $session->update([
@@ -59,10 +59,10 @@ class ProcessTrackingSessionJob implements ShouldQueue
     ): void {
 
         $session->update([
-            'distance'      => round($distance, 2),
-            'duration'      => $session->started_at->diffInSeconds($session->ended_at),
+            'distance' => round($distance, 2),
+            'duration' => $session->started_at->diffInSeconds($session->ended_at),
             'route_geojson' => $geojson,
-            'processed_at'  => now(),
+            'processed_at' => now(),
         ]);
     }
 

@@ -12,10 +12,10 @@ class TransportPoiController extends Controller
     public function nearby(Request $request)
     {
         $validated = $request->validate([
-            'lat'    => 'required|numeric|between:-90,90',
-            'lon'    => 'required|numeric|between:-180,180',
+            'lat' => 'required|numeric|between:-90,90',
+            'lon' => 'required|numeric|between:-180,180',
             'radius' => 'nullable|integer|min:100|max:35000',
-            'types'  => 'nullable|string',
+            'types' => 'nullable|string',
         ]);
 
         $lat = (float) $validated['lat'];
@@ -35,6 +35,7 @@ class TransportPoiController extends Controller
         try {
             $data = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($lat, $lon, $radius, $categories) {
                 $features = $this->fetchFromGeoapify($lat, $lon, $radius, $categories);
+
                 return ['features' => $features];
             });
 
@@ -72,9 +73,9 @@ class TransportPoiController extends Controller
                     ->acceptJson()
                     ->get('https://api.geoapify.com/v2/places', [
                         'categories' => $categories,
-                        'filter'     => "circle:$pLon,$pLat,$radius",
-                        'limit'      => 500,
-                        'apiKey'     => config('services.geoapify.key'),
+                        'filter' => "circle:$pLon,$pLat,$radius",
+                        'limit' => 500,
+                        'apiKey' => config('services.geoapify.key'),
                     ]);
 
                 if ($response->successful()) {
@@ -84,7 +85,7 @@ class TransportPoiController extends Controller
 
             } catch (\Throwable $e) {
                 Log::warning('Geoapify partial failure', [
-                    'message' => $e->getMessage()
+                    'message' => $e->getMessage(),
                 ]);
             }
         }
@@ -182,7 +183,7 @@ class TransportPoiController extends Controller
             $props = $feature['properties'] ?? [];
             $coords = $feature['geometry']['coordinates'] ?? null;
 
-            if (!is_array($coords) || count($coords) !== 2) {
+            if (! is_array($coords) || count($coords) !== 2) {
                 continue;
             }
 
@@ -193,12 +194,11 @@ class TransportPoiController extends Controller
             $out[] = [
                 'id' => $props['place_id'] ?? null,
 
-                'name' =>
-                    $props['name']
+                'name' => $props['name']
                     ?? $props['formatted']
                     ?? $props['street']
                     ?? 'Unknown',
-    
+
                 'type' => $this->detectType($props['categories'] ?? []),
 
                 'coordinates' => [
@@ -210,20 +210,19 @@ class TransportPoiController extends Controller
                     'meters' => (int) round($meters),
                     'km' => round($meters / 1000, 2),
                     'formatted' => $meters < 1000
-                        ? round($meters) . ' m'
-                        : round($meters / 1000, 1) . ' km',
+                        ? round($meters).' m'
+                        : round($meters / 1000, 1).' km',
                 ],
 
                 'address' => [
                     'formatted' => $props['formatted'] ?? null,
-                    'city'      => $props['city'] ?? null,
-                    'country'   => $props['country'] ?? null,
+                    'city' => $props['city'] ?? null,
+                    'country' => $props['country'] ?? null,
                 ],
             ];
         }
 
-        usort($out, fn ($a, $b) =>
-            $a['distance']['meters'] <=> $b['distance']['meters']
+        usort($out, fn ($a, $b) => $a['distance']['meters'] <=> $b['distance']['meters']
         );
 
         return $out;
@@ -238,16 +237,36 @@ class TransportPoiController extends Controller
     {
         foreach ($categories as $c) {
 
-            if (str_starts_with($c, 'public_transport.bus')) return 'bus';
-            if (str_starts_with($c, 'public_transport.train')) return 'train';
-            if (str_starts_with($c, 'public_transport.subway')) return 'subway';
-            if (str_starts_with($c, 'airport')) return 'airport';
-            if (str_starts_with($c, 'tourism')) return 'tourism';
-            if (str_starts_with($c, 'healthcare.hospital')) return 'hospital';
-            if (str_starts_with($c, 'healthcare.pharmacy')) return 'pharmacy';
-            if (str_starts_with($c, 'service.fire_station')) return 'fire';
-            if (str_starts_with($c, 'service.taxi')) return 'taxi';
-            if (str_starts_with($c, 'service.police')) return 'police';
+            if (str_starts_with($c, 'public_transport.bus')) {
+                return 'bus';
+            }
+            if (str_starts_with($c, 'public_transport.train')) {
+                return 'train';
+            }
+            if (str_starts_with($c, 'public_transport.subway')) {
+                return 'subway';
+            }
+            if (str_starts_with($c, 'airport')) {
+                return 'airport';
+            }
+            if (str_starts_with($c, 'tourism')) {
+                return 'tourism';
+            }
+            if (str_starts_with($c, 'healthcare.hospital')) {
+                return 'hospital';
+            }
+            if (str_starts_with($c, 'healthcare.pharmacy')) {
+                return 'pharmacy';
+            }
+            if (str_starts_with($c, 'service.fire_station')) {
+                return 'fire';
+            }
+            if (str_starts_with($c, 'service.taxi')) {
+                return 'taxi';
+            }
+            if (str_starts_with($c, 'service.police')) {
+                return 'police';
+            }
         }
 
         return 'transport';

@@ -1,0 +1,219 @@
+ ------ ------------------------------------------------------------------------------------------------------------------------------------------- 
+  Line   app/Http/Controllers/Auth/RegisterController.php                                                                                           
+ ------ ------------------------------------------------------------------------------------------------------------------------------------------- 
+  48     Method App\Http\Controllers\Auth\RegisterController::validator() has parameter $data with no value type specified in iterable type array.  
+         🪪  missingType.iterableValue                                                                                                              
+         💡  See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type                                                 
+  62     Method App\Http\Controllers\Auth\RegisterController::create() has parameter $data with no value type specified in iterable type array.     
+         🪪  missingType.iterableValue                                                                                                              
+         💡  See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type                                                 
+ ------ ------------------------------------------------------------------------------------------------------------------------------------------- 
+
+ ------ --------------------------------------------------------------------------------------- 
+  Line   app/Http/Controllers/DeviceController.php                                              
+ ------ --------------------------------------------------------------------------------------- 
+  13     Method App\Http\Controllers\DeviceController::index() has no return type specified.    
+         🪪  missingType.return                                                                 
+  21     Method App\Http\Controllers\DeviceController::create() has no return type specified.   
+         🪪  missingType.return                                                                 
+  29     Method App\Http\Controllers\DeviceController::store() has no return type specified.    
+         🪪  missingType.return                                                                 
+  37     Method App\Http\Controllers\DeviceController::show() has no return type specified.     
+         🪪  missingType.return                                                                 
+  45     Method App\Http\Controllers\DeviceController::edit() has no return type specified.     
+         🪪  missingType.return                                                                 
+  53     Method App\Http\Controllers\DeviceController::update() has no return type specified.   
+         🪪  missingType.return                                                                 
+  61     Method App\Http\Controllers\DeviceController::destroy() has no return type specified.  
+         🪪  missingType.return                                                                 
+ ------ --------------------------------------------------------------------------------------- 
+
+ ------ ---------------------------------------------------------------------------------------- 
+  Line   app/Http/Controllers/LocationController.php                                             
+ ------ ---------------------------------------------------------------------------------------- 
+  9      Method App\Http\Controllers\LocationController::toggle() has no return type specified.  
+         🪪  missingType.return                                                                  
+  26     Method App\Http\Controllers\LocationController::update() has no return type specified.  
+         🪪  missingType.return                                                                  
+ ------ ---------------------------------------------------------------------------------------- 
+
+ ------ ------------------------------------------------------------------------------------------------- 
+  Line   app/Http/Controllers/TrackingController.php                                                      
+ ------ ------------------------------------------------------------------------------------------------- 
+  16     Method App\Http\Controllers\TrackingController::index() has no return type specified.            
+         🪪  missingType.return                                                                           
+  21     Method App\Http\Controllers\TrackingController::route() has no return type specified.            
+         🪪  missingType.return                                                                           
+  83     Method App\Http\Controllers\TrackingController::tile() has no return type specified.             
+         🪪  missingType.return                                                                           
+  83     Method App\Http\Controllers\TrackingController::tile() has parameter $x with no type specified.  
+         🪪  missingType.parameter                                                                        
+  83     Method App\Http\Controllers\TrackingController::tile() has parameter $y with no type specified.  
+         🪪  missingType.parameter                                                                        
+  83     Method App\Http\Controllers\TrackingController::tile() has parameter $z with no type specified.  
+         🪪  missingType.parameter                                                                        
+  100    Method App\Http\Controllers\TrackingController::toggle() has no return type specified.           
+         🪪  missingType.return                                                                           
+  117    Method App\Http\Controllers\TrackingController::start() has no return type specified.            
+         🪪  missingType.return                                                                           
+  140    Method App\Http\Controllers\TrackingController::point() has no return type specified.            
+         🪪  missingType.return                                                                           
+  169    Method App\Http\Controllers\TrackingController::stop() has no return type specified.             
+         🪪  missingType.return                                                                           
+  188    Method App\Http\Controllers\TrackingController::show() has no return type specified.             
+         🪪  missingType.return                                                                           
+  197    Method App\Http\Controllers\TrackingController::sessions() has no return type specified.         
+         🪪  missingType.return                                                                           
+  211    Method App\Http\Controllers\TrackingController::points() has no return type specified.           
+         🪪  missingType.return                                                                           
+ ------ ------------------------------------------------------------------------------------------------- 
+
+ ------ ------------------------------------------------------------------------------------------------ 
+  Line   app/Http/Controllers/TrackingSessionController.php                                              
+ ------ ------------------------------------------------------------------------------------------------ 
+  13     Method App\Http\Controllers\TrackingSessionController::index() has no return type specified.    
+         🪪  missingType.return                                                                          
+  21     Method App\Http\Controllers\TrackingSessionController::create() has no return type specified.   
+         🪪  missingType.return                                                                          
+  29     Method App\Http\Controllers\TrackingSessionController::store() has no return type specified.    
+         🪪  missingType.return                                                                          
+  37     Method App\Http\Controllers\TrackingSessionController::show() has no return type specified.     
+         🪪  missingType.return                                                                          
+  45     Method App\Http\Controllers\TrackingSessionController::edit() has no return type specified.     
+         🪪  missingType.return                                                                          
+  53     Method App\Http\Controllers\TrackingSessionController::update() has no return type specified.   
+         🪪  missingType.return                                                                          
+  61     Method App\Http\Controllers\TrackingSessionController::destroy() has no return type specified.  
+         🪪  missingType.return                                                                          
+ ------ ------------------------------------------------------------------------------------------------ 
+
+ ------ ------------------------------------------------------------------------------------------------------------------------------------------------- 
+  Line   app/Http/Controllers/TransportPoiController.php                                                                                                  
+ ------ ------------------------------------------------------------------------------------------------------------------------------------------------- 
+  12     Method App\Http\Controllers\TransportPoiController::nearby() has no return type specified.                                                       
+         🪪  missingType.return                                                                                                                           
+  62     Method App\Http\Controllers\TransportPoiController::fetchFromGeoapify() return type has no value type specified in iterable type array.          
+         🪪  missingType.iterableValue                                                                                                                    
+         💡  See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type                                                       
+  101    Method App\Http\Controllers\TransportPoiController::buildGridPoints() return type has no value type specified in iterable type array.            
+         🪪  missingType.iterableValue                                                                                                                    
+         💡  See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type                                                       
+  120    Method App\Http\Controllers\TransportPoiController::deduplicate() has parameter $features with no value type specified in iterable type array.   
+         🪪  missingType.iterableValue                                                                                                                    
+         💡  See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type                                                       
+  120    Method App\Http\Controllers\TransportPoiController::deduplicate() return type has no value type specified in iterable type array.                
+         🪪  missingType.iterableValue                                                                                                                    
+         💡  See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type                                                       
+  161    Unable to resolve the template type TKey in call to function collect                                                                             
+         🪪  argument.templateType                                                                                                                        
+         💡  See: https://phpstan.org/blog/solving-phpstan-error-unable-to-resolve-template-type                                                          
+  161    Unable to resolve the template type TValue in call to function collect                                                                           
+         🪪  argument.templateType                                                                                                                        
+         💡  See: https://phpstan.org/blog/solving-phpstan-error-unable-to-resolve-template-type                                                          
+  177    Method App\Http\Controllers\TransportPoiController::transform() has parameter $features with no value type specified in iterable type array.     
+         🪪  missingType.iterableValue                                                                                                                    
+         💡  See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type                                                       
+  177    Method App\Http\Controllers\TransportPoiController::transform() return type has no value type specified in iterable type array.                  
+         🪪  missingType.iterableValue                                                                                                                    
+         💡  See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type                                                       
+  236    Method App\Http\Controllers\TransportPoiController::detectType() has parameter $categories with no value type specified in iterable type array.  
+         🪪  missingType.iterableValue                                                                                                                    
+         💡  See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type                                                       
+ ------ ------------------------------------------------------------------------------------------------------------------------------------------------- 
+
+ ------ ------------------------------------------------------------------------------------------------------------------------------------- 
+  Line   app/Jobs/ProcessTrackingSessionJob.php                                                                                               
+ ------ ------------------------------------------------------------------------------------------------------------------------------------- 
+  14     Constructor of class App\Jobs\ProcessTrackingSessionJob has a return type.                                                           
+         🪪  constructor.returnType (non-ignorable)                                                                                           
+  55     Method App\Jobs\ProcessTrackingSessionJob::saveResult() has parameter $geojson with no value type specified in iterable type array.  
+         🪪  missingType.iterableValue                                                                                                        
+         💡  See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type                                           
+  72     Method App\Jobs\ProcessTrackingSessionJob::calculateDistance() has parameter $points with no type specified.                         
+         🪪  missingType.parameter                                                                                                            
+  72     Method App\Jobs\ProcessTrackingSessionJob::calculateDistance() is unused.                                                            
+         🪪  method.unused                                                                                                                    
+  116    Method App\Jobs\ProcessTrackingSessionJob::buildGeoJson() has parameter $points with no type specified.                              
+         🪪  missingType.parameter                                                                                                            
+  116    Method App\Jobs\ProcessTrackingSessionJob::buildGeoJson() is unused.                                                                 
+         🪪  method.unused                                                                                                                    
+  116    Method App\Jobs\ProcessTrackingSessionJob::buildGeoJson() return type has no value type specified in iterable type array.            
+         🪪  missingType.iterableValue                                                                                                        
+         💡  See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type                                           
+ ------ ------------------------------------------------------------------------------------------------------------------------------------- 
+
+ ------ ------------------------------------------------------------------------------------------------------------------------------------------------- 
+  Line   app/Models/Device.php                                                                                                                            
+ ------ ------------------------------------------------------------------------------------------------------------------------------------------------- 
+  30     Method App\Models\Device::user() return type with generic class Illuminate\Database\Eloquent\Relations\BelongsTo does not specify its types:     
+         TRelatedModel, TDeclaringModel                                                                                                                   
+         🪪  missingType.generics                                                                                                                         
+  35     Method App\Models\Device::trackingSessions() return type with generic class Illuminate\Database\Eloquent\Relations\HasMany does not specify its  
+         types: TRelatedModel, TDeclaringModel                                                                                                            
+         🪪  missingType.generics                                                                                                                         
+  43     Method App\Models\Device::activeSession() return type with generic class Illuminate\Database\Eloquent\Relations\HasMany does not specify its     
+         types: TRelatedModel, TDeclaringModel                                                                                                            
+         🪪  missingType.generics                                                                                                                         
+ ------ ------------------------------------------------------------------------------------------------------------------------------------------------- 
+
+ ------ --------------------------------------------------------------------- 
+  Line   app/Models/Tracking.php                                              
+ ------ --------------------------------------------------------------------- 
+  25     Method App\Models\Tracking::session() has no return type specified.  
+         🪪  missingType.return                                               
+ ------ --------------------------------------------------------------------- 
+
+ ------ -------------------------------------------------------------------------------------------------------------------------------------------------- 
+  Line   app/Models/TrackingSession.php                                                                                                                    
+ ------ -------------------------------------------------------------------------------------------------------------------------------------------------- 
+  24     Method App\Models\TrackingSession::user() return type with generic class Illuminate\Database\Eloquent\Relations\BelongsTo does not specify its    
+         types: TRelatedModel, TDeclaringModel                                                                                                             
+         🪪  missingType.generics                                                                                                                          
+  34     Method App\Models\TrackingSession::device() should return Illuminate\Database\Eloquent\Relations\BelongsTo<App\Models\Device, App\Models\Trackin  
+         gSession> but returns Illuminate\Database\Eloquent\Relations\BelongsTo<App\Models\Device, $this(App\Models\TrackingSession)>.                     
+         🪪  return.type                                                                                                                                   
+         💡  Template type TDeclaringModel on class Illuminate\Database\Eloquent\Relations\BelongsTo is not covariant. Learn more: https://phpstan.org/blo  
+         g/whats-up-with-template-covariant                                                                                                                
+  42     Method App\Models\TrackingSession::trackings() should return Illuminate\Database\Eloquent\Relations\HasMany<App\Models\Tracking, App\Models\Trac  
+         kingSession> but returns Illuminate\Database\Eloquent\Relations\HasMany<App\Models\Tracking, $this(App\Models\TrackingSession)>.                  
+         🪪  return.type                                                                                                                                   
+         💡  Template type TDeclaringModel on class Illuminate\Database\Eloquent\Relations\HasMany is not covariant. Learn more: https://phpstan.org/blog/  
+         whats-up-with-template-covariant                                                                                                                  
+ ------ -------------------------------------------------------------------------------------------------------------------------------------------------- 
+
+ ------ ----------------------------------------------------------------------------------------------------------------------------------------------- 
+  Line   app/Models/User.php                                                                                                                            
+ ------ ----------------------------------------------------------------------------------------------------------------------------------------------- 
+  36     Method App\Models\User::tracking() return type with generic class Illuminate\Database\Eloquent\Relations\HasMany does not specify its types:   
+         TRelatedModel, TDeclaringModel                                                                                                                 
+         🪪  missingType.generics                                                                                                                       
+  41     Method App\Models\User::devices() return type with generic class Illuminate\Database\Eloquent\Relations\HasMany does not specify its types:    
+         TRelatedModel, TDeclaringModel                                                                                                                 
+         🪪  missingType.generics                                                                                                                       
+  46     Method App\Models\User::trackingSessions() return type with generic class Illuminate\Database\Eloquent\Relations\HasMany does not specify its  
+         types: TRelatedModel, TDeclaringModel                                                                                                          
+         🪪  missingType.generics                                                                                                                       
+ ------ ----------------------------------------------------------------------------------------------------------------------------------------------- 
+
+ ------ ------------------------------------------------------------------------------------------------------------------------------------------------- 
+  Line   app/Services/TrackProcessingService.php                                                                                                          
+ ------ ------------------------------------------------------------------------------------------------------------------------------------------------- 
+  12     Method App\Services\TrackProcessingService::process() has parameter $points with generic class Illuminate\Support\Collection but does not        
+         specify its types: TKey, TValue                                                                                                                  
+         🪪  missingType.generics                                                                                                                         
+  12     Method App\Services\TrackProcessingService::process() return type has no value type specified in iterable type array.                            
+         🪪  missingType.iterableValue                                                                                                                    
+         💡  See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type                                                       
+  23     Method App\Services\TrackProcessingService::calculateDistance() has parameter $points with generic class Illuminate\Support\Collection but does  
+         not specify its types: TKey, TValue                                                                                                              
+         🪪  missingType.generics                                                                                                                         
+  67     Method App\Services\TrackProcessingService::buildGeoJson() has parameter $points with generic class Illuminate\Support\Collection but does not   
+         specify its types: TKey, TValue                                                                                                                  
+         🪪  missingType.generics                                                                                                                         
+  67     Method App\Services\TrackProcessingService::buildGeoJson() return type has no value type specified in iterable type array.                       
+         🪪  missingType.iterableValue                                                                                                                    
+         💡  See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type                                                       
+ ------ ------------------------------------------------------------------------------------------------------------------------------------------------- 
+
+ [ERROR] Found 63 errors                                                                                                
+

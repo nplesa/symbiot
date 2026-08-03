@@ -33,7 +33,7 @@ return new class extends Migration
             $table->enum('status', [
                 'active',
                 'completed',
-                'cancelled'
+                'cancelled',
             ])->default('active');
 
             $table->decimal('distance', 10, 2)->default(0);

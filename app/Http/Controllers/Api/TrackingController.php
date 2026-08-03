@@ -9,6 +9,7 @@ use App\Models\Tracking;
 use App\Models\TrackingSession;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class TrackingController extends Controller
 {
@@ -17,7 +18,7 @@ class TrackingController extends Controller
     /**
      * Începe o sesiune de tracking.
      */
-    public function start(Request $request)
+    public function start(Request $request):JsonResponse
     {
         $data = $request->validate([
             'uuid' => ['required', 'uuid'],
@@ -28,10 +29,10 @@ class TrackingController extends Controller
         $session = TrackingSession::firstOrCreate(
             [
                 'device_id' => $device->id,
-                'status'    => 'active',
+                'status' => 'active',
             ],
             [
-                'user_id'    => $request->user()->id,
+                'user_id' => $request->user()->id,
                 'started_at' => now(),
             ]
         );
@@ -49,7 +50,7 @@ class TrackingController extends Controller
     /**
      * Primește o poziție GPS.
      */
-    public function location(Request $request)
+    public function location(Request $request):JsonResponse
     {
         $data = $request->validate([
             'session_id' => ['required', 'integer', 'exists:tracking_sessions,id'],
@@ -74,24 +75,24 @@ class TrackingController extends Controller
         Tracking::create([
             'tracking_session_id' => $session->id,
 
-            'provider'  => $data['provider'] ?? null,
+            'provider' => $data['provider'] ?? null,
 
-            'latitude'  => $data['latitude'],
+            'latitude' => $data['latitude'],
             'longitude' => $data['longitude'],
 
-            'accuracy'  => $data['accuracy'] ?? null,
-            'speed'     => $data['speed'] ?? null,
-            'heading'   => $data['heading'] ?? null,
-            'altitude'  => $data['altitude'] ?? null,
+            'accuracy' => $data['accuracy'] ?? null,
+            'speed' => $data['speed'] ?? null,
+            'heading' => $data['heading'] ?? null,
+            'altitude' => $data['altitude'] ?? null,
 
-            'battery'   => $data['battery'] ?? null,
+            'battery' => $data['battery'] ?? null,
 
             'tracked_at' => $data['tracked_at'],
         ]);
 
         $session->device?->update([
             'last_seen' => now(),
-            'battery'   => $data['battery'] ?? $session->device->battery,
+            'battery' => $data['battery'] ?? $session->device->battery,
         ]);
 
         return $this->success(
@@ -103,7 +104,7 @@ class TrackingController extends Controller
     /**
      * Oprește tracking-ul.
      */
-    public function stop(Request $request)
+    public function stop(Request $request):JsonResponse
     {
         $data = $request->validate([
             'session_id' => ['required', 'integer', 'exists:tracking_sessions,id'],
@@ -115,7 +116,7 @@ class TrackingController extends Controller
 
         $session->update([
             'ended_at' => $endedAt,
-            'status'   => 'completed',
+            'status' => 'completed',
             'duration' => $session->started_at->diffInSeconds($endedAt),
         ]);
 

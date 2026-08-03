@@ -62,7 +62,7 @@ class TrackingController extends Controller
 
         $response = Http::timeout(20)
             ->post(
-                'https://api.geoapify.com/v1/routing?apiKey=' . config('services.geoapify.key'),
+                'https://api.geoapify.com/v1/routing?apiKey='.config('services.geoapify.key'),
                 [
                     'mode' => 'drive',
                     'waypoints' => $coordinates,
@@ -70,7 +70,7 @@ class TrackingController extends Controller
                 ]
             );
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             return response()->json([
                 'message' => 'Geoapify routing failed.',
                 'error' => $response->body(),
@@ -119,50 +119,50 @@ class TrackingController extends Controller
         // dacă există deja o sesiune activă nu mai creez alta
         if (session()->has('tracking_session_id')) {
             return response()->json([
-                'success' => true
+                'success' => true,
             ]);
         }
 
         $session = TrackingSession::create([
-            'user_id'    => auth()->id(),
+            'user_id' => auth()->id(),
             'started_at' => now(),
         ]);
 
         session([
-            'tracking_session_id' => $session->id
+            'tracking_session_id' => $session->id,
         ]);
 
         return response()->json([
-            'success' => true
+            'success' => true,
         ]);
     }
 
     public function point(Request $request)
     {
         $request->validate([
-            'latitude'   => 'required|numeric',
-            'longitude'  => 'required|numeric',
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
             'tracked_at' => 'required|date',
         ]);
 
         $sessionId = session('tracking_session_id');
 
-        if (!$sessionId) {
+        if (! $sessionId) {
             return response()->json([
                 'success' => false,
-                'message' => 'No active tracking session.'
+                'message' => 'No active tracking session.',
             ], 409);
         }
 
         Tracking::create([
             'tracking_session_id' => $sessionId,
-            'latitude'            => $request->latitude,
-            'longitude'           => $request->longitude,
-            'tracked_at'          => $request->tracked_at,
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+            'tracked_at' => $request->tracked_at,
         ]);
 
         return response()->json([
-            'success' => true
+            'success' => true,
         ]);
     }
 
@@ -174,14 +174,14 @@ class TrackingController extends Controller
 
             TrackingSession::whereKey($sessionId)
                 ->update([
-                    'ended_at' => now()
+                    'ended_at' => now(),
                 ]);
 
             session()->forget('tracking_session_id');
         }
 
         return response()->json([
-            'success' => true
+            'success' => true,
         ]);
     }
 
@@ -204,10 +204,9 @@ class TrackingController extends Controller
             ->get([
                 'id',
                 'started_at',
-                'ended_at'
+                'ended_at',
             ]);
     }
-
 
     public function points(TrackingSession $session)
     {
@@ -223,5 +222,4 @@ class TrackingController extends Controller
                 ])
         );
     }
-
 }

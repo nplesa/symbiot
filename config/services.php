@@ -36,7 +36,7 @@ return [
     ],
     'geoapify' => [
         'key' => env('GEOAPIFY_KEY'),
-        'locations' => env('GEOAPIFY_LOCATIONS')
+        'locations' => env('GEOAPIFY_LOCATIONS'),
     ],
 
 ];

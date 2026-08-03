@@ -23,7 +23,7 @@ return new class extends Migration
 
             $table->unique([
                 'user_id',
-                'uuid'
+                'uuid',
             ]);
 
             $table->string('platform', 20);          // android / ios

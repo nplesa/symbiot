@@ -42,7 +42,7 @@ return new class extends Migration
             ]);
 
             $table->index('tracked_at');
-        }); 
+        });
     }
 
     /**
