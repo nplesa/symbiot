@@ -13,14 +13,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
 
-            $table->boolean('location_active')
-                ->default(false);
-
-            $table->decimal('latitude', 10, 7)
-                ->nullable();
-
-            $table->decimal('longitude', 10, 7)
-                ->nullable();
+            $table->boolean('location')->after('tracking')->default(false);
         });
     }
 
@@ -29,9 +22,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
 
             $table->dropColumn([
-                'location_active',
-                'latitude',
-                'longitude'
+                'location',
             ]);
         });
     }

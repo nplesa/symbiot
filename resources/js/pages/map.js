@@ -690,7 +690,7 @@ function createInputLocationElement(create) {
 
 document
     .getElementById('toggleLocation')
-    ?.addEventListener('click', () => {
+    ?.addEventListener('change', async function () {
 
         tracking = !tracking;
 
@@ -704,6 +704,25 @@ document
         let turismBtn = document.getElementById('turismLocations');
         let autoDetectLocation = document.getElementById('auto_detect_location');    
 
+        // salvează preferința utilizatorului
+
+        await fetch(
+            '/location/toggle',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN':  csrfToken
+                },
+
+                body: JSON.stringify({
+                    location: this.checked
+                })
+            }
+        );
+
+
         if (!tracking) {
 
             mapCard.classList.add('d-none');
@@ -711,11 +730,13 @@ document
             shareBtn.classList.add('d-none');
             turismBtn.classList.add('d-none');
             createInputLocationElement(false);
+            document.getElementById("i_location").classList.remove("rotate3d-y");
 
             autoDetectLocation.setAttribute('disabled', true);
             resetMap();
             return;
         }
+        document.getElementById("i_location").classList.add("rotate3d-y");
 
         mobCard.querySelector('.row')
             .classList.remove('mt-3');

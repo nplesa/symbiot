@@ -18,7 +18,22 @@
 
                     <div class="card mt-3" id="location_card">
                         <div class="card-header">
-                            Location
+                            <div class="row">
+                                <div class="col-4 dashboard-element-title">
+                                    Location
+                                </div>
+                                <div class="col-4">
+                                </div>
+                                <div class="col-4 dashboard-element">
+                                    <div class="btn locate-user dashboard-button">
+                                        <i class="fa-solid fa-2x fa-location-dot" id="i_location"></i>
+                                    </div>    
+                                    <div class="btn track-user dashboard-button">
+                                        <i class="fa-solid fa-2x fa-street-view" id="i_tracking"></i>
+                                    </div>    
+                                </div>
+                            </div>
+                            
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -26,6 +41,10 @@
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" role="switch" id="toggleLocation">
                                         <label class="form-check-label" for="toggleLocation">Activate my location</label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="trackingmyself">
+                                        <label class="form-check-label" for="trackingmyself">Tracking Me</label>
                                     </div>
                                     <div class="">
                                         <button

@@ -6,6 +6,22 @@ use Illuminate\Http\Request;
 
 class LocationController extends Controller
 {
+    public function toggle(Request $request)
+    {
+        $request->validate([
+            'location' => ['required', 'boolean'],
+        ]);
+
+        $user = $request->user();
+
+        $user->location = $request->boolean('location');
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'tracking' => $user->tracking,
+        ]);
+    }
     public function update(Request $request)
     {
         $user = auth()->user();
