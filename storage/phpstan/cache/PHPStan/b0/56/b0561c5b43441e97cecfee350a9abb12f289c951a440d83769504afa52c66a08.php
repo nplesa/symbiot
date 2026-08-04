@@ -2,7 +2,7 @@
 
 // odsl-/var/www/symbiot.npsoft.ro/app/Models/Tracking.php-PHPStan\BetterReflection\Reflection\ReflectionClass-App\Models\Tracking
 return \PHPStan\Cache\CacheItem::__set_state(array(
-   'variableKey' => 'v2-6.70.0.3-8.4.16-f435093ce9c7418ed28a86616ab5c3d281480a039282c66cc5bb4a878e071cdb',
+   'variableKey' => 'v2-6.70.0.3-8.4.16-c00791e9780381f119c879dc03cc2abc897ab18c190ea9caec987a29a8a81099',
    'data' => 
   array (
     'locatedSource' => 
@@ -27,7 +27,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     array (
     ),
     'startLine' => 8,
-    'endLine' => 29,
+    'endLine' => 32,
     'startColumn' => 1,
     'endColumn' => 1,
     'parentClassName' => 'Illuminate\\Database\\Eloquent\\Model',
@@ -126,9 +126,11 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         'attributes' => 
         array (
         ),
-        'docComment' => NULL,
-        'startLine' => 25,
-        'endLine' => 28,
+        'docComment' => '/**
+ * @return BelongsTo<TrackingSession, $this>
+ */',
+        'startLine' => 28,
+        'endLine' => 31,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,

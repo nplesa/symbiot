@@ -1388,7 +1388,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     1 => 
     array (
-      '/var/www/symbiot.npsoft.ro/app/Models/User.php' => '9db1dd0f93f02a84cf5d2dc85280741bb3940cacad9d397bb7c05707b4cb3fd8',
+      '/var/www/symbiot.npsoft.ro/app/Models/User.php' => '6162777c08ef2fb9ca0e0dca6b3de66e76ff86106e53411980aa98ace2d468ba',
       '/var/www/symbiot.npsoft.ro/vendor/composer/../laravel/sanctum/src/HasApiTokens.php' => '7400600b832dc377ac5f51d051a917775f6efc0d2176a1de7bd7826499ae6509',
       '/var/www/symbiot.npsoft.ro/vendor/composer/../laravel/framework/src/Illuminate/Database/Eloquent/Factories/HasFactory.php' => 'b6cb2b164e90168e80963a5549541f5f3188a3ec8cfd368bf3611bd94fbd46a7',
       '/var/www/symbiot.npsoft.ro/vendor/composer/../laravel/framework/src/Illuminate/Notifications/Notifiable.php' => '573fa9bb96fa392434450c9cd9deb8d4e40a5bb93c140a648267b48dfa0433ac',

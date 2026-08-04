@@ -135,7 +135,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     1 => 
     array (
-      '/var/www/symbiot.npsoft.ro/app/Models/Device.php' => '292056970814aa1eb87b6ff1c529b3808790f156ff766ffb6b5b985f63813e87',
+      '/var/www/symbiot.npsoft.ro/app/Models/Device.php' => '25a319fe051ee20a48c62b4547868c343525421a51391dd2f5f5aa6974d8999b',
     ),
   ),
 ));

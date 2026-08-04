@@ -2,7 +2,7 @@
 
 // odsl-/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php-PHPStan\BetterReflection\Reflection\ReflectionClass-App\Jobs\ProcessTrackingSessionJob
 return \PHPStan\Cache\CacheItem::__set_state(array(
-   'variableKey' => 'v2-6.70.0.3-8.4.16-43d9557d792a6c9231b3091b8771e4805fc0c5f2067cca96f49fdcbf3caead36',
+   'variableKey' => 'v2-6.70.0.3-8.4.16-a648b1f68f323167e9f542626abd13cb40a08faf7cd634a6e5adc7d8aab3dcbf',
    'data' => 
   array (
     'locatedSource' => 
@@ -26,8 +26,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     'attributes' => 
     array (
     ),
-    'startLine' => 10,
-    'endLine' => 129,
+    'startLine' => 11,
+    'endLine' => 73,
     'startColumn' => 1,
     'endColumn' => 1,
     'parentClassName' => NULL,
@@ -64,8 +64,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         'attributes' => 
         array (
         ),
-        'startLine' => 15,
-        'endLine' => 15,
+        'startLine' => 16,
+        'endLine' => 16,
         'startColumn' => 9,
         'endColumn' => 29,
         'isPromoted' => true,
@@ -102,8 +102,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 15,
-            'endLine' => 15,
+            'startLine' => 16,
+            'endLine' => 16,
             'startColumn' => 9,
             'endColumn' => 29,
             'parameterIndex' => 0,
@@ -111,23 +111,15 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           ),
         ),
         'returnsReference' => false,
-        'returnType' => 
-        array (
-          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
-          'data' => 
-          array (
-            'name' => 'void',
-            'isIdentifier' => true,
-          ),
-        ),
+        'returnType' => NULL,
         'attributes' => 
         array (
         ),
         'docComment' => NULL,
-        'startLine' => 14,
-        'endLine' => 16,
+        'startLine' => 15,
+        'endLine' => 17,
         'startColumn' => 5,
-        'endColumn' => 14,
+        'endColumn' => 8,
         'couldThrow' => false,
         'isClosure' => false,
         'isGenerator' => false,
@@ -163,8 +155,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 18,
-            'endLine' => 18,
+            'startLine' => 19,
+            'endLine' => 19,
             'startColumn' => 28,
             'endColumn' => 66,
             'parameterIndex' => 0,
@@ -185,8 +177,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
         ),
         'docComment' => NULL,
-        'startLine' => 18,
-        'endLine' => 39,
+        'startLine' => 19,
+        'endLine' => 40,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -239,8 +231,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
         ),
         'docComment' => NULL,
-        'startLine' => 41,
-        'endLine' => 46,
+        'startLine' => 42,
+        'endLine' => 47,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -278,8 +270,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 48,
-            'endLine' => 48,
+            'startLine' => 49,
+            'endLine' => 49,
             'startColumn' => 36,
             'endColumn' => 59,
             'parameterIndex' => 0,
@@ -300,8 +292,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
         ),
         'docComment' => NULL,
-        'startLine' => 48,
-        'endLine' => 53,
+        'startLine' => 49,
+        'endLine' => 54,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -339,8 +331,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 56,
-            'endLine' => 56,
+            'startLine' => 61,
+            'endLine' => 61,
             'startColumn' => 9,
             'endColumn' => 32,
             'parameterIndex' => 0,
@@ -365,8 +357,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 57,
-            'endLine' => 57,
+            'startLine' => 62,
+            'endLine' => 62,
             'startColumn' => 9,
             'endColumn' => 23,
             'parameterIndex' => 1,
@@ -391,8 +383,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 58,
-            'endLine' => 58,
+            'startLine' => 63,
+            'endLine' => 63,
             'startColumn' => 9,
             'endColumn' => 22,
             'parameterIndex' => 2,
@@ -412,260 +404,11 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         'attributes' => 
         array (
         ),
-        'docComment' => NULL,
-        'startLine' => 55,
-        'endLine' => 67,
-        'startColumn' => 5,
-        'endColumn' => 5,
-        'couldThrow' => false,
-        'isClosure' => false,
-        'isGenerator' => false,
-        'isVariadic' => false,
-        'modifiers' => 4,
-        'namespace' => 'App\\Jobs',
-        'declaringClassName' => 'App\\Jobs\\ProcessTrackingSessionJob',
-        'implementingClassName' => 'App\\Jobs\\ProcessTrackingSessionJob',
-        'currentClassName' => 'App\\Jobs\\ProcessTrackingSessionJob',
-        'aliasName' => NULL,
-      ),
-      'calculateDistance' => 
-      array (
-        'name' => 'calculateDistance',
-        'parameters' => 
-        array (
-          'points' => 
-          array (
-            'name' => 'points',
-            'default' => NULL,
-            'type' => NULL,
-            'isVariadic' => false,
-            'byRef' => false,
-            'isPromoted' => false,
-            'attributes' => 
-            array (
-            ),
-            'startLine' => 72,
-            'endLine' => 72,
-            'startColumn' => 40,
-            'endColumn' => 46,
-            'parameterIndex' => 0,
-            'isOptional' => false,
-          ),
-        ),
-        'returnsReference' => false,
-        'returnType' => 
-        array (
-          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
-          'data' => 
-          array (
-            'name' => 'float',
-            'isIdentifier' => true,
-          ),
-        ),
-        'attributes' => 
-        array (
-        ),
         'docComment' => '/**
- * Calculează distanța totală (metri).
+ * @param array<string, mixed> $geojson
  */',
-        'startLine' => 72,
-        'endLine' => 87,
-        'startColumn' => 5,
-        'endColumn' => 5,
-        'couldThrow' => false,
-        'isClosure' => false,
-        'isGenerator' => false,
-        'isVariadic' => false,
-        'modifiers' => 4,
-        'namespace' => 'App\\Jobs',
-        'declaringClassName' => 'App\\Jobs\\ProcessTrackingSessionJob',
-        'implementingClassName' => 'App\\Jobs\\ProcessTrackingSessionJob',
-        'currentClassName' => 'App\\Jobs\\ProcessTrackingSessionJob',
-        'aliasName' => NULL,
-      ),
-      'haversine' => 
-      array (
-        'name' => 'haversine',
-        'parameters' => 
-        array (
-          'lat1' => 
-          array (
-            'name' => 'lat1',
-            'default' => NULL,
-            'type' => 
-            array (
-              'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
-              'data' => 
-              array (
-                'name' => 'float',
-                'isIdentifier' => true,
-              ),
-            ),
-            'isVariadic' => false,
-            'byRef' => false,
-            'isPromoted' => false,
-            'attributes' => 
-            array (
-            ),
-            'startLine' => 93,
-            'endLine' => 93,
-            'startColumn' => 9,
-            'endColumn' => 19,
-            'parameterIndex' => 0,
-            'isOptional' => false,
-          ),
-          'lon1' => 
-          array (
-            'name' => 'lon1',
-            'default' => NULL,
-            'type' => 
-            array (
-              'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
-              'data' => 
-              array (
-                'name' => 'float',
-                'isIdentifier' => true,
-              ),
-            ),
-            'isVariadic' => false,
-            'byRef' => false,
-            'isPromoted' => false,
-            'attributes' => 
-            array (
-            ),
-            'startLine' => 94,
-            'endLine' => 94,
-            'startColumn' => 9,
-            'endColumn' => 19,
-            'parameterIndex' => 1,
-            'isOptional' => false,
-          ),
-          'lat2' => 
-          array (
-            'name' => 'lat2',
-            'default' => NULL,
-            'type' => 
-            array (
-              'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
-              'data' => 
-              array (
-                'name' => 'float',
-                'isIdentifier' => true,
-              ),
-            ),
-            'isVariadic' => false,
-            'byRef' => false,
-            'isPromoted' => false,
-            'attributes' => 
-            array (
-            ),
-            'startLine' => 95,
-            'endLine' => 95,
-            'startColumn' => 9,
-            'endColumn' => 19,
-            'parameterIndex' => 2,
-            'isOptional' => false,
-          ),
-          'lon2' => 
-          array (
-            'name' => 'lon2',
-            'default' => NULL,
-            'type' => 
-            array (
-              'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
-              'data' => 
-              array (
-                'name' => 'float',
-                'isIdentifier' => true,
-              ),
-            ),
-            'isVariadic' => false,
-            'byRef' => false,
-            'isPromoted' => false,
-            'attributes' => 
-            array (
-            ),
-            'startLine' => 96,
-            'endLine' => 96,
-            'startColumn' => 9,
-            'endColumn' => 19,
-            'parameterIndex' => 3,
-            'isOptional' => false,
-          ),
-        ),
-        'returnsReference' => false,
-        'returnType' => 
-        array (
-          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
-          'data' => 
-          array (
-            'name' => 'float',
-            'isIdentifier' => true,
-          ),
-        ),
-        'attributes' => 
-        array (
-        ),
-        'docComment' => '/**
- * Formula Haversine.
- */',
-        'startLine' => 92,
-        'endLine' => 111,
-        'startColumn' => 5,
-        'endColumn' => 5,
-        'couldThrow' => false,
-        'isClosure' => false,
-        'isGenerator' => false,
-        'isVariadic' => false,
-        'modifiers' => 4,
-        'namespace' => 'App\\Jobs',
-        'declaringClassName' => 'App\\Jobs\\ProcessTrackingSessionJob',
-        'implementingClassName' => 'App\\Jobs\\ProcessTrackingSessionJob',
-        'currentClassName' => 'App\\Jobs\\ProcessTrackingSessionJob',
-        'aliasName' => NULL,
-      ),
-      'buildGeoJson' => 
-      array (
-        'name' => 'buildGeoJson',
-        'parameters' => 
-        array (
-          'points' => 
-          array (
-            'name' => 'points',
-            'default' => NULL,
-            'type' => NULL,
-            'isVariadic' => false,
-            'byRef' => false,
-            'isPromoted' => false,
-            'attributes' => 
-            array (
-            ),
-            'startLine' => 116,
-            'endLine' => 116,
-            'startColumn' => 35,
-            'endColumn' => 41,
-            'parameterIndex' => 0,
-            'isOptional' => false,
-          ),
-        ),
-        'returnsReference' => false,
-        'returnType' => 
-        array (
-          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
-          'data' => 
-          array (
-            'name' => 'array',
-            'isIdentifier' => true,
-          ),
-        ),
-        'attributes' => 
-        array (
-        ),
-        'docComment' => '/**
- * Construiește GeoJSON.
- */',
-        'startLine' => 116,
-        'endLine' => 128,
+        'startLine' => 60,
+        'endLine' => 72,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,

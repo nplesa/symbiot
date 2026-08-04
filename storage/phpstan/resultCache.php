@@ -1924,1113 +1924,6 @@ return [
 	'projectExtensionFiles' => array (
 ),
 	'errorsCallback' => static function (): array { return array (
-  '/var/www/symbiot.npsoft.ro/app/Http/Controllers/Auth/RegisterController.php' => 
-  array (
-    0 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\Auth\\RegisterController::validator() has parameter $data with no value type specified in iterable type array.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/Auth/RegisterController.php',
-       'line' => 48,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/Auth/RegisterController.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type',
-       'nodeLine' => 48,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.iterableValue',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    1 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\Auth\\RegisterController::create() has parameter $data with no value type specified in iterable type array.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/Auth/RegisterController.php',
-       'line' => 62,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/Auth/RegisterController.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type',
-       'nodeLine' => 62,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.iterableValue',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-  ),
-  '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php' => 
-  array (
-    0 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\DeviceController::index() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'line' => 13,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 13,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    1 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\DeviceController::create() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'line' => 21,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 21,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    2 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\DeviceController::store() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'line' => 29,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 29,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    3 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\DeviceController::show() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'line' => 37,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 37,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    4 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\DeviceController::edit() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'line' => 45,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 45,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    5 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\DeviceController::update() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'line' => 53,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 53,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    6 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\DeviceController::destroy() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'line' => 61,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 61,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-  ),
-  '/var/www/symbiot.npsoft.ro/app/Http/Controllers/LocationController.php' => 
-  array (
-    0 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\LocationController::toggle() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/LocationController.php',
-       'line' => 9,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/LocationController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 9,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    1 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\LocationController::update() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/LocationController.php',
-       'line' => 26,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/LocationController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 26,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-  ),
-  '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php' => 
-  array (
-    0 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingController::index() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'line' => 16,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 16,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    1 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingController::route() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'line' => 21,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 21,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    2 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingController::tile() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'line' => 83,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 83,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    3 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingController::tile() has parameter $x with no type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'line' => 83,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 83,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.parameter',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    4 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingController::tile() has parameter $y with no type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'line' => 83,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 83,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.parameter',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    5 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingController::tile() has parameter $z with no type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'line' => 83,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 83,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.parameter',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    6 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingController::toggle() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'line' => 100,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 100,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    7 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingController::start() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'line' => 117,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 117,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    8 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingController::point() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'line' => 140,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 140,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    9 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingController::stop() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'line' => 169,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 169,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    10 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingController::show() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'line' => 188,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 188,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    11 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingController::sessions() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'line' => 197,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 197,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    12 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingController::points() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'line' => 211,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 211,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-  ),
-  '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php' => 
-  array (
-    0 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingSessionController::index() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'line' => 13,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 13,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    1 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingSessionController::create() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'line' => 21,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 21,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    2 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingSessionController::store() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'line' => 29,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 29,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    3 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingSessionController::show() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'line' => 37,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 37,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    4 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingSessionController::edit() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'line' => 45,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 45,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    5 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingSessionController::update() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'line' => 53,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 53,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    6 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TrackingSessionController::destroy() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'line' => 61,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 61,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-  ),
-  '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php' => 
-  array (
-    0 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TransportPoiController::nearby() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'line' => 12,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 12,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    1 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TransportPoiController::fetchFromGeoapify() return type has no value type specified in iterable type array.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'line' => 62,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type',
-       'nodeLine' => 62,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.iterableValue',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    2 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TransportPoiController::buildGridPoints() return type has no value type specified in iterable type array.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'line' => 101,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type',
-       'nodeLine' => 101,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.iterableValue',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    3 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TransportPoiController::deduplicate() has parameter $features with no value type specified in iterable type array.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'line' => 120,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type',
-       'nodeLine' => 120,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.iterableValue',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    4 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TransportPoiController::deduplicate() return type has no value type specified in iterable type array.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'line' => 120,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type',
-       'nodeLine' => 120,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.iterableValue',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    5 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Unable to resolve the template type TKey in call to function collect',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'line' => 161,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-error-unable-to-resolve-template-type',
-       'nodeLine' => 161,
-       'nodeType' => 'PhpParser\\Node\\Expr\\FuncCall',
-       'identifier' => 'argument.templateType',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    6 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Unable to resolve the template type TValue in call to function collect',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'line' => 161,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-error-unable-to-resolve-template-type',
-       'nodeLine' => 161,
-       'nodeType' => 'PhpParser\\Node\\Expr\\FuncCall',
-       'identifier' => 'argument.templateType',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    7 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TransportPoiController::transform() has parameter $features with no value type specified in iterable type array.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'line' => 177,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type',
-       'nodeLine' => 177,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.iterableValue',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    8 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TransportPoiController::transform() return type has no value type specified in iterable type array.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'line' => 177,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type',
-       'nodeLine' => 177,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.iterableValue',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    9 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Http\\Controllers\\TransportPoiController::detectType() has parameter $categories with no value type specified in iterable type array.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'line' => 236,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type',
-       'nodeLine' => 236,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.iterableValue',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-  ),
-  '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php' => 
-  array (
-    0 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Constructor of class App\\Jobs\\ProcessTrackingSessionJob has a return type.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'line' => 14,
-       'canBeIgnored' => false,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 14,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'constructor.returnType',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    1 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Jobs\\ProcessTrackingSessionJob::saveResult() has parameter $geojson with no value type specified in iterable type array.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'line' => 55,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type',
-       'nodeLine' => 55,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.iterableValue',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    2 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Jobs\\ProcessTrackingSessionJob::calculateDistance() has parameter $points with no type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'line' => 72,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 72,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.parameter',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    3 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Jobs\\ProcessTrackingSessionJob::calculateDistance() is unused.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'line' => 72,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 10,
-       'nodeType' => 'PHPStan\\Node\\ClassMethodsNode',
-       'identifier' => 'method.unused',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    4 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Jobs\\ProcessTrackingSessionJob::buildGeoJson() has parameter $points with no type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'line' => 116,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 116,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.parameter',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    5 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Jobs\\ProcessTrackingSessionJob::buildGeoJson() is unused.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'line' => 116,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 10,
-       'nodeType' => 'PHPStan\\Node\\ClassMethodsNode',
-       'identifier' => 'method.unused',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    6 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Jobs\\ProcessTrackingSessionJob::buildGeoJson() return type has no value type specified in iterable type array.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'line' => 116,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type',
-       'nodeLine' => 116,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.iterableValue',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-  ),
-  '/var/www/symbiot.npsoft.ro/app/Models/Device.php' => 
-  array (
-    0 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Models\\Device::user() return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types: TRelatedModel, TDeclaringModel',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Models/Device.php',
-       'line' => 30,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Models/Device.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 30,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.generics',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    1 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Models\\Device::trackingSessions() return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types: TRelatedModel, TDeclaringModel',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Models/Device.php',
-       'line' => 35,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Models/Device.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 35,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.generics',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    2 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Models\\Device::activeSession() return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types: TRelatedModel, TDeclaringModel',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Models/Device.php',
-       'line' => 43,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Models/Device.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 43,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.generics',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-  ),
-  '/var/www/symbiot.npsoft.ro/app/Models/Tracking.php' => 
-  array (
-    0 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Models\\Tracking::session() has no return type specified.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Models/Tracking.php',
-       'line' => 25,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Models/Tracking.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 25,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.return',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-  ),
-  '/var/www/symbiot.npsoft.ro/app/Models/TrackingSession.php' => 
-  array (
-    0 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Models\\TrackingSession::user() return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types: TRelatedModel, TDeclaringModel',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Models/TrackingSession.php',
-       'line' => 24,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Models/TrackingSession.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 24,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.generics',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    1 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Models\\TrackingSession::device() should return Illuminate\\Database\\Eloquent\\Relations\\BelongsTo<App\\Models\\Device, App\\Models\\TrackingSession> but returns Illuminate\\Database\\Eloquent\\Relations\\BelongsTo<App\\Models\\Device, $this(App\\Models\\TrackingSession)>.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Models/TrackingSession.php',
-       'line' => 34,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Models/TrackingSession.php',
-       'traitFilePath' => NULL,
-       'tip' => 'Template type TDeclaringModel on class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo is not covariant. Learn more: <fg=cyan>https://phpstan.org/blog/whats-up-with-template-covariant</>',
-       'nodeLine' => 34,
-       'nodeType' => 'PhpParser\\Node\\Stmt\\Return_',
-       'identifier' => 'return.type',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    2 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Models\\TrackingSession::trackings() should return Illuminate\\Database\\Eloquent\\Relations\\HasMany<App\\Models\\Tracking, App\\Models\\TrackingSession> but returns Illuminate\\Database\\Eloquent\\Relations\\HasMany<App\\Models\\Tracking, $this(App\\Models\\TrackingSession)>.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Models/TrackingSession.php',
-       'line' => 42,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Models/TrackingSession.php',
-       'traitFilePath' => NULL,
-       'tip' => 'Template type TDeclaringModel on class Illuminate\\Database\\Eloquent\\Relations\\HasMany is not covariant. Learn more: <fg=cyan>https://phpstan.org/blog/whats-up-with-template-covariant</>',
-       'nodeLine' => 42,
-       'nodeType' => 'PhpParser\\Node\\Stmt\\Return_',
-       'identifier' => 'return.type',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-  ),
-  '/var/www/symbiot.npsoft.ro/app/Models/User.php' => 
-  array (
-    0 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Models\\User::tracking() return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types: TRelatedModel, TDeclaringModel',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Models/User.php',
-       'line' => 36,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Models/User.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 36,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.generics',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    1 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Models\\User::devices() return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types: TRelatedModel, TDeclaringModel',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Models/User.php',
-       'line' => 41,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Models/User.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 41,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.generics',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    2 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Models\\User::trackingSessions() return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types: TRelatedModel, TDeclaringModel',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Models/User.php',
-       'line' => 46,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Models/User.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 46,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.generics',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-  ),
-  '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php' => 
-  array (
-    0 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Services\\TrackProcessingService::process() has parameter $points with generic class Illuminate\\Support\\Collection but does not specify its types: TKey, TValue',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php',
-       'line' => 12,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 12,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.generics',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    1 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Services\\TrackProcessingService::process() return type has no value type specified in iterable type array.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php',
-       'line' => 12,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type',
-       'nodeLine' => 12,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.iterableValue',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    2 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Services\\TrackProcessingService::calculateDistance() has parameter $points with generic class Illuminate\\Support\\Collection but does not specify its types: TKey, TValue',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php',
-       'line' => 23,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 23,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.generics',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    3 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Services\\TrackProcessingService::buildGeoJson() has parameter $points with generic class Illuminate\\Support\\Collection but does not specify its types: TKey, TValue',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php',
-       'line' => 67,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php',
-       'traitFilePath' => NULL,
-       'tip' => NULL,
-       'nodeLine' => 67,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.generics',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-    4 => 
-    \PHPStan\Analyser\Error::__set_state(array(
-       'message' => 'Method App\\Services\\TrackProcessingService::buildGeoJson() return type has no value type specified in iterable type array.',
-       'file' => '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php',
-       'line' => 67,
-       'canBeIgnored' => true,
-       'filePath' => '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php',
-       'traitFilePath' => NULL,
-       'tip' => 'See: https://phpstan.org/blog/solving-phpstan-no-value-type-specified-in-iterable-type',
-       'nodeLine' => 67,
-       'nodeType' => 'PHPStan\\Node\\InClassMethodNode',
-       'identifier' => 'missingType.iterableValue',
-       'metadata' => 
-      array (
-      ),
-       'fixedErrorDiff' => NULL,
-    )),
-  ),
 ); },
 	'locallyIgnoredErrorsCallback' => static function (): array { return array (
 ); },
@@ -3179,75 +2072,6 @@ return [
       ),
     ),
   ),
-  '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php' => 
-  array (
-    'PHPStan\\Rules\\DeadCode\\MethodWithoutImpurePointsCollector' => 
-    array (
-      0 => 
-      array (
-        0 => 'App\\Http\\Controllers\\DeviceController',
-        1 => 'index',
-        2 => 'App\\Http\\Controllers\\DeviceController',
-        3 => 
-        array (
-        ),
-      ),
-      1 => 
-      array (
-        0 => 'App\\Http\\Controllers\\DeviceController',
-        1 => 'create',
-        2 => 'App\\Http\\Controllers\\DeviceController',
-        3 => 
-        array (
-        ),
-      ),
-      2 => 
-      array (
-        0 => 'App\\Http\\Controllers\\DeviceController',
-        1 => 'store',
-        2 => 'App\\Http\\Controllers\\DeviceController',
-        3 => 
-        array (
-        ),
-      ),
-      3 => 
-      array (
-        0 => 'App\\Http\\Controllers\\DeviceController',
-        1 => 'show',
-        2 => 'App\\Http\\Controllers\\DeviceController',
-        3 => 
-        array (
-        ),
-      ),
-      4 => 
-      array (
-        0 => 'App\\Http\\Controllers\\DeviceController',
-        1 => 'edit',
-        2 => 'App\\Http\\Controllers\\DeviceController',
-        3 => 
-        array (
-        ),
-      ),
-      5 => 
-      array (
-        0 => 'App\\Http\\Controllers\\DeviceController',
-        1 => 'update',
-        2 => 'App\\Http\\Controllers\\DeviceController',
-        3 => 
-        array (
-        ),
-      ),
-      6 => 
-      array (
-        0 => 'App\\Http\\Controllers\\DeviceController',
-        1 => 'destroy',
-        2 => 'App\\Http\\Controllers\\DeviceController',
-        3 => 
-        array (
-        ),
-      ),
-    ),
-  ),
   '/var/www/symbiot.npsoft.ro/app/Http/Controllers/HomeController.php' => 
   array (
     'Larastan\\Larastan\\Collectors\\UsedViewFunctionCollector' => 
@@ -3282,14 +2106,14 @@ return [
       array (
         0 => 'PHPStan\\Rules\\Comparison\\BooleanNotConstantConditionRule',
         1 => NULL,
-        2 => '$response->successful():73',
+        2 => '$response->successful():80',
         3 => NULL,
       ),
       1 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\IfConstantConditionRule',
         1 => NULL,
-        2 => 'session()->has(\'tracking_session_id\'):120',
+        2 => 'session()->has(\'tracking_session_id\'):127',
         3 => NULL,
       ),
     ),
@@ -3311,7 +2135,7 @@ return [
       0 => 
       array (
         0 => 'session',
-        1 => 131,
+        1 => 138,
       ),
     ),
     'PHPStan\\Rules\\DeadCode\\PossiblyPureStaticCallCollector' => 
@@ -3320,76 +2144,48 @@ return [
       array (
         0 => 'Illuminate\\Database\\Eloquent\\Builder',
         1 => 'create',
-        2 => 157,
+        2 => 164,
       ),
     ),
   ),
   '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php' => 
   array (
-    'PHPStan\\Rules\\DeadCode\\MethodWithoutImpurePointsCollector' => 
+    'PHPStan\\Rules\\DeadCode\\PossiblyPureFuncCallCollector' => 
     array (
       0 => 
       array (
-        0 => 'App\\Http\\Controllers\\TrackingSessionController',
-        1 => 'index',
-        2 => 'App\\Http\\Controllers\\TrackingSessionController',
-        3 => 
-        array (
-        ),
+        0 => 'abort',
+        1 => 18,
       ),
       1 => 
       array (
-        0 => 'App\\Http\\Controllers\\TrackingSessionController',
-        1 => 'create',
-        2 => 'App\\Http\\Controllers\\TrackingSessionController',
-        3 => 
-        array (
-        ),
+        0 => 'abort',
+        1 => 26,
       ),
       2 => 
       array (
-        0 => 'App\\Http\\Controllers\\TrackingSessionController',
-        1 => 'store',
-        2 => 'App\\Http\\Controllers\\TrackingSessionController',
-        3 => 
-        array (
-        ),
+        0 => 'abort',
+        1 => 34,
       ),
       3 => 
       array (
-        0 => 'App\\Http\\Controllers\\TrackingSessionController',
-        1 => 'show',
-        2 => 'App\\Http\\Controllers\\TrackingSessionController',
-        3 => 
-        array (
-        ),
+        0 => 'abort',
+        1 => 42,
       ),
       4 => 
       array (
-        0 => 'App\\Http\\Controllers\\TrackingSessionController',
-        1 => 'edit',
-        2 => 'App\\Http\\Controllers\\TrackingSessionController',
-        3 => 
-        array (
-        ),
+        0 => 'abort',
+        1 => 50,
       ),
       5 => 
       array (
-        0 => 'App\\Http\\Controllers\\TrackingSessionController',
-        1 => 'update',
-        2 => 'App\\Http\\Controllers\\TrackingSessionController',
-        3 => 
-        array (
-        ),
+        0 => 'abort',
+        1 => 58,
       ),
       6 => 
       array (
-        0 => 'App\\Http\\Controllers\\TrackingSessionController',
-        1 => 'destroy',
-        2 => 'App\\Http\\Controllers\\TrackingSessionController',
-        3 => 
-        array (
-        ),
+        0 => 'abort',
+        1 => 66,
       ),
     ),
   ),
@@ -3401,98 +2197,98 @@ return [
       array (
         0 => 'PHPStan\\Rules\\Comparison\\IfConstantConditionRule',
         1 => NULL,
-        2 => '$response->successful():81',
+        2 => '$response->successful():86',
         3 => NULL,
       ),
       1 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\TernaryOperatorConstantConditionRule',
         1 => NULL,
-        2 => '$request->filled(\'types\'):153',
+        2 => '$request->filled(\'types\'):167',
         3 => NULL,
       ),
       2 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\TernaryOperatorConstantConditionRule',
         1 => NULL,
-        2 => '$categories->isEmpty():167',
+        2 => '$categories->isEmpty():182',
         3 => NULL,
       ),
       3 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\BooleanNotConstantConditionRule',
         1 => NULL,
-        2 => 'is_array($coords):186',
+        2 => 'is_array($coords):206',
         3 => NULL,
       ),
       4 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\IfConstantConditionRule',
         1 => NULL,
-        2 => 'str_starts_with($c, \'public_transport.bus\'):240',
+        2 => 'str_starts_with($c, \'public_transport.bus\'):264',
         3 => NULL,
       ),
       5 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\IfConstantConditionRule',
         1 => NULL,
-        2 => 'str_starts_with($c, \'public_transport.train\'):243',
+        2 => 'str_starts_with($c, \'public_transport.train\'):267',
         3 => NULL,
       ),
       6 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\IfConstantConditionRule',
         1 => NULL,
-        2 => 'str_starts_with($c, \'public_transport.subway\'):246',
+        2 => 'str_starts_with($c, \'public_transport.subway\'):270',
         3 => NULL,
       ),
       7 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\IfConstantConditionRule',
         1 => NULL,
-        2 => 'str_starts_with($c, \'airport\'):249',
+        2 => 'str_starts_with($c, \'airport\'):273',
         3 => NULL,
       ),
       8 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\IfConstantConditionRule',
         1 => NULL,
-        2 => 'str_starts_with($c, \'tourism\'):252',
+        2 => 'str_starts_with($c, \'tourism\'):276',
         3 => NULL,
       ),
       9 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\IfConstantConditionRule',
         1 => NULL,
-        2 => 'str_starts_with($c, \'healthcare.hospital\'):255',
+        2 => 'str_starts_with($c, \'healthcare.hospital\'):279',
         3 => NULL,
       ),
       10 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\IfConstantConditionRule',
         1 => NULL,
-        2 => 'str_starts_with($c, \'healthcare.pharmacy\'):258',
+        2 => 'str_starts_with($c, \'healthcare.pharmacy\'):282',
         3 => NULL,
       ),
       11 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\IfConstantConditionRule',
         1 => NULL,
-        2 => 'str_starts_with($c, \'service.fire_station\'):261',
+        2 => 'str_starts_with($c, \'service.fire_station\'):285',
         3 => NULL,
       ),
       12 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\IfConstantConditionRule',
         1 => NULL,
-        2 => 'str_starts_with($c, \'service.taxi\'):264',
+        2 => 'str_starts_with($c, \'service.taxi\'):288',
         3 => NULL,
       ),
       13 => 
       array (
         0 => 'PHPStan\\Rules\\Comparison\\IfConstantConditionRule',
         1 => NULL,
-        2 => 'str_starts_with($c, \'service.police\'):267',
+        2 => 'str_starts_with($c, \'service.police\'):291',
         3 => NULL,
       ),
     ),
@@ -3543,7 +2339,7 @@ return [
       0 => 
       array (
         0 => 'usort',
-        1 => 225,
+        1 => 245,
       ),
     ),
   ),
@@ -3555,18 +2351,6 @@ return [
       array (
         0 => 'App\\Jobs\\ProcessTrackingSessionJob',
         1 => 
-        array (
-        ),
-      ),
-    ),
-    'PHPStan\\Rules\\DeadCode\\MethodWithoutImpurePointsCollector' => 
-    array (
-      0 => 
-      array (
-        0 => 'App\\Jobs\\ProcessTrackingSessionJob',
-        1 => 'haversine',
-        2 => 'App\\Jobs\\ProcessTrackingSessionJob',
-        3 => 
         array (
         ),
       ),
@@ -3587,7 +2371,7 @@ return [
       array (
         0 => 'PHPStan\\Rules\\Comparison\\BooleanNotConstantConditionRule',
         1 => NULL,
-        2 => 'is_null($battery):53',
+        2 => 'is_null($battery):59',
         3 => NULL,
       ),
     ),
@@ -3848,7 +2632,7 @@ return [
   ),
   '/var/www/symbiot.npsoft.ro/app/Http/Controllers/Auth/RegisterController.php' => 
   array (
-    'fileHash' => '41b08aa736c0731b02abc5b8e6ad7b13bd5d71c4427712efa708ce351a3cda23',
+    'fileHash' => '03ead51e472f7cfbde3239c7798eb3df9d20af0f648678267b01816206c3829d',
     'dependentFiles' => 
     array (
     ),
@@ -3891,13 +2675,6 @@ return [
       16 => '/var/www/symbiot.npsoft.ro/routes/web.php',
     ),
   ),
-  '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php' => 
-  array (
-    'fileHash' => '24a1458c3425f88b2ef55a5d57758d86c9bec7e8a4286ef96af15d8d7b1b9775',
-    'dependentFiles' => 
-    array (
-    ),
-  ),
   '/var/www/symbiot.npsoft.ro/app/Http/Controllers/HomeController.php' => 
   array (
     'fileHash' => 'a329d6ad3a9ca77845ac1530408c641da1c5c9e46e5a16d8f95f26ecc9bdcd10',
@@ -3908,7 +2685,7 @@ return [
   ),
   '/var/www/symbiot.npsoft.ro/app/Http/Controllers/LocationController.php' => 
   array (
-    'fileHash' => 'df2ffa33a2104204e71588f5349f0a7e748ed4d4660f6c523b9bf6ae3d0a5236',
+    'fileHash' => 'dc4c506774ca578b5eff1542665cb91e6d6c4188533e4e09bd5ca1e662014ea7',
     'dependentFiles' => 
     array (
       0 => '/var/www/symbiot.npsoft.ro/routes/web.php',
@@ -3916,7 +2693,7 @@ return [
   ),
   '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php' => 
   array (
-    'fileHash' => 'f4da344420d13912e7bccf7dad66358962386c2bda85c18fdd1bb6390446fe64',
+    'fileHash' => 'db4356bc780228bcd3de6949e7a12e641626fcdbe3ebb8dbac5ba0b52abe3da4',
     'dependentFiles' => 
     array (
       0 => '/var/www/symbiot.npsoft.ro/routes/web.php',
@@ -3924,14 +2701,14 @@ return [
   ),
   '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php' => 
   array (
-    'fileHash' => '23b99b4b6a9e4531d295a079fc904f7a4649f83cf5dcf12f0c657d6c4ca532f2',
+    'fileHash' => '9cfc193f32a87a24a7917bf8d5fdbd070ef34fd35a083414aaf14ddfcfcdd123',
     'dependentFiles' => 
     array (
     ),
   ),
   '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php' => 
   array (
-    'fileHash' => 'b4e6d751991e29be93bdc5d10ba29b0942c1dd434f708169046b85a56baff8b3',
+    'fileHash' => '03a62ff50ae584b382db9159c4d2b0919d5e54e1e016e01788eb4d967e73cb42',
     'dependentFiles' => 
     array (
       0 => '/var/www/symbiot.npsoft.ro/routes/web.php',
@@ -3939,7 +2716,7 @@ return [
   ),
   '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php' => 
   array (
-    'fileHash' => '43d9557d792a6c9231b3091b8771e4805fc0c5f2067cca96f49fdcbf3caead36',
+    'fileHash' => 'a648b1f68f323167e9f542626abd13cb40a08faf7cd634a6e5adc7d8aab3dcbf',
     'dependentFiles' => 
     array (
       0 => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/Api/TrackingController.php',
@@ -3947,7 +2724,7 @@ return [
   ),
   '/var/www/symbiot.npsoft.ro/app/Models/Device.php' => 
   array (
-    'fileHash' => '292056970814aa1eb87b6ff1c529b3808790f156ff766ffb6b5b985f63813e87',
+    'fileHash' => '25a319fe051ee20a48c62b4547868c343525421a51391dd2f5f5aa6974d8999b',
     'dependentFiles' => 
     array (
       0 => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/Api/DeviceController.php',
@@ -3959,7 +2736,7 @@ return [
   ),
   '/var/www/symbiot.npsoft.ro/app/Models/Tracking.php' => 
   array (
-    'fileHash' => 'f435093ce9c7418ed28a86616ab5c3d281480a039282c66cc5bb4a878e071cdb',
+    'fileHash' => 'c00791e9780381f119c879dc03cc2abc897ab18c190ea9caec987a29a8a81099',
     'dependentFiles' => 
     array (
       0 => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/Api/TrackingController.php',
@@ -3967,11 +2744,12 @@ return [
       2 => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
       3 => '/var/www/symbiot.npsoft.ro/app/Models/TrackingSession.php',
       4 => '/var/www/symbiot.npsoft.ro/app/Models/User.php',
+      5 => '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php',
     ),
   ),
   '/var/www/symbiot.npsoft.ro/app/Models/TrackingSession.php' => 
   array (
-    'fileHash' => '9d1911254da0f8905034d4f2f79def8ea97a2fd41f2a790d650ff649ea22b854',
+    'fileHash' => 'ed36156259982fe5a84cb0d404414d8fd87d5c4ee5d121ed316e7048d07def94',
     'dependentFiles' => 
     array (
       0 => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/Api/TrackingController.php',
@@ -3992,7 +2770,7 @@ return [
   ),
   '/var/www/symbiot.npsoft.ro/app/Models/User.php' => 
   array (
-    'fileHash' => '9db1dd0f93f02a84cf5d2dc85280741bb3940cacad9d397bb7c05707b4cb3fd8',
+    'fileHash' => '6162777c08ef2fb9ca0e0dca6b3de66e76ff86106e53411980aa98ace2d468ba',
     'dependentFiles' => 
     array (
       0 => '/var/www/symbiot.npsoft.ro/app/Http/Controllers/Api/AuthController.php',
@@ -4016,7 +2794,7 @@ return [
   ),
   '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php' => 
   array (
-    'fileHash' => 'c56e43a978713f9abc27f1104696ba162b4cfce53bcad7905bfdd633aa83bd7c',
+    'fileHash' => '5de437dafa4c97488567f200a793b42d7535a5fe698f8da6c33217543e6a2bf8',
     'dependentFiles' => 
     array (
       0 => '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php',
@@ -4932,8 +3710,6 @@ return [
           \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
              'phpDocString' => '/**
      * Where to redirect users after registration.
-     *
-     * @var string
      */',
              'namespace' => 'App\\Http\\Controllers\\Auth',
              'uses' => 
@@ -4942,13 +3718,14 @@ return [
               'user' => 'App\\Models\\User',
               'registersusers' => 'Illuminate\\Foundation\\Auth\\RegistersUsers',
               'hash' => 'Illuminate\\Support\\Facades\\Hash',
-              'validator' => 'Illuminate\\Support\\Facades\\Validator',
+              'validatorfacade' => 'Illuminate\\Support\\Facades\\Validator',
+              'validator' => 'Illuminate\\Validation\\Validator',
             ),
              'constUses' => 
             array (
             ),
           )),
-           'type' => NULL,
+           'type' => 'string',
            'public' => false,
            'private' => false,
            'static' => false,
@@ -4969,26 +3746,7 @@ return [
         1 => 
         \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
            'name' => '__construct',
-           'phpDoc' => 
-          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
-             'phpDocString' => '/**
-     * Create a new controller instance.
-     *
-     * @return void
-     */',
-             'namespace' => 'App\\Http\\Controllers\\Auth',
-             'uses' => 
-            array (
-              'controller' => 'App\\Http\\Controllers\\Controller',
-              'user' => 'App\\Models\\User',
-              'registersusers' => 'Illuminate\\Foundation\\Auth\\RegistersUsers',
-              'hash' => 'Illuminate\\Support\\Facades\\Hash',
-              'validator' => 'Illuminate\\Support\\Facades\\Validator',
-            ),
-             'constUses' => 
-            array (
-            ),
-          )),
+           'phpDoc' => NULL,
            'byRef' => false,
            'public' => true,
            'private' => false,
@@ -5011,7 +3769,7 @@ return [
              'phpDocString' => '/**
      * Get a validator for an incoming registration request.
      *
-     * @return \\Illuminate\\Contracts\\Validation\\Validator
+     * @param array<string, mixed> $data
      */',
              'namespace' => 'App\\Http\\Controllers\\Auth',
              'uses' => 
@@ -5020,7 +3778,8 @@ return [
               'user' => 'App\\Models\\User',
               'registersusers' => 'Illuminate\\Foundation\\Auth\\RegistersUsers',
               'hash' => 'Illuminate\\Support\\Facades\\Hash',
-              'validator' => 'Illuminate\\Support\\Facades\\Validator',
+              'validatorfacade' => 'Illuminate\\Support\\Facades\\Validator',
+              'validator' => 'Illuminate\\Validation\\Validator',
             ),
              'constUses' => 
             array (
@@ -5032,7 +3791,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Validation\\Validator',
            'parameters' => 
           array (
             0 => 
@@ -5045,22 +3804,7 @@ return [
                'attributes' => 
               array (
               ),
-               'phpDoc' => 
-              \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
-                 'phpDocString' => '/** @param array<string,mixed> $data */',
-                 'namespace' => 'App\\Http\\Controllers\\Auth',
-                 'uses' => 
-                array (
-                  'controller' => 'App\\Http\\Controllers\\Controller',
-                  'user' => 'App\\Models\\User',
-                  'registersusers' => 'Illuminate\\Foundation\\Auth\\RegistersUsers',
-                  'hash' => 'Illuminate\\Support\\Facades\\Hash',
-                  'validator' => 'Illuminate\\Support\\Facades\\Validator',
-                ),
-                 'constUses' => 
-                array (
-                ),
-              )),
+               'phpDoc' => NULL,
                'flags' => 0,
             )),
           ),
@@ -5076,7 +3820,7 @@ return [
              'phpDocString' => '/**
      * Create a new user instance after a valid registration.
      *
-     * @return User
+     * @param array<string, mixed> $data
      */',
              'namespace' => 'App\\Http\\Controllers\\Auth',
              'uses' => 
@@ -5085,7 +3829,8 @@ return [
               'user' => 'App\\Models\\User',
               'registersusers' => 'Illuminate\\Foundation\\Auth\\RegistersUsers',
               'hash' => 'Illuminate\\Support\\Facades\\Hash',
-              'validator' => 'Illuminate\\Support\\Facades\\Validator',
+              'validatorfacade' => 'Illuminate\\Support\\Facades\\Validator',
+              'validator' => 'Illuminate\\Validation\\Validator',
             ),
              'constUses' => 
             array (
@@ -5097,7 +3842,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'App\\Models\\User',
            'parameters' => 
           array (
             0 => 
@@ -5110,22 +3855,7 @@ return [
                'attributes' => 
               array (
               ),
-               'phpDoc' => 
-              \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
-                 'phpDocString' => '/** @param array<string,mixed> $data */',
-                 'namespace' => 'App\\Http\\Controllers\\Auth',
-                 'uses' => 
-                array (
-                  'controller' => 'App\\Http\\Controllers\\Controller',
-                  'user' => 'App\\Models\\User',
-                  'registersusers' => 'Illuminate\\Foundation\\Auth\\RegistersUsers',
-                  'hash' => 'Illuminate\\Support\\Facades\\Hash',
-                  'validator' => 'Illuminate\\Support\\Facades\\Validator',
-                ),
-                 'constUses' => 
-                array (
-                ),
-              )),
+               'phpDoc' => NULL,
                'flags' => 0,
             )),
           ),
@@ -5337,334 +4067,6 @@ return [
       ),
     )),
   ),
-  '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php' => 
-  array (
-    0 => 
-    \PHPStan\Dependency\ExportedNode\ExportedClassNode::__set_state(array(
-       'name' => 'App\\Http\\Controllers\\DeviceController',
-       'phpDoc' => NULL,
-       'abstract' => false,
-       'final' => false,
-       'extends' => 'App\\Http\\Controllers\\Controller',
-       'implements' => 
-      array (
-      ),
-       'usedTraits' => 
-      array (
-      ),
-       'traitUseAdaptations' => 
-      array (
-      ),
-       'statements' => 
-      array (
-        0 => 
-        \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
-           'name' => 'index',
-           'phpDoc' => 
-          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
-             'phpDocString' => '/**
-     * Display a listing of the resource.
-     */',
-             'namespace' => 'App\\Http\\Controllers',
-             'uses' => 
-            array (
-              'device' => 'App\\Models\\Device',
-              'request' => 'Illuminate\\Http\\Request',
-            ),
-             'constUses' => 
-            array (
-            ),
-          )),
-           'byRef' => false,
-           'public' => true,
-           'private' => false,
-           'abstract' => false,
-           'final' => false,
-           'static' => false,
-           'returnType' => NULL,
-           'parameters' => 
-          array (
-          ),
-           'attributes' => 
-          array (
-          ),
-        )),
-        1 => 
-        \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
-           'name' => 'create',
-           'phpDoc' => 
-          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
-             'phpDocString' => '/**
-     * Show the form for creating a new resource.
-     */',
-             'namespace' => 'App\\Http\\Controllers',
-             'uses' => 
-            array (
-              'device' => 'App\\Models\\Device',
-              'request' => 'Illuminate\\Http\\Request',
-            ),
-             'constUses' => 
-            array (
-            ),
-          )),
-           'byRef' => false,
-           'public' => true,
-           'private' => false,
-           'abstract' => false,
-           'final' => false,
-           'static' => false,
-           'returnType' => NULL,
-           'parameters' => 
-          array (
-          ),
-           'attributes' => 
-          array (
-          ),
-        )),
-        2 => 
-        \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
-           'name' => 'store',
-           'phpDoc' => 
-          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
-             'phpDocString' => '/**
-     * Store a newly created resource in storage.
-     */',
-             'namespace' => 'App\\Http\\Controllers',
-             'uses' => 
-            array (
-              'device' => 'App\\Models\\Device',
-              'request' => 'Illuminate\\Http\\Request',
-            ),
-             'constUses' => 
-            array (
-            ),
-          )),
-           'byRef' => false,
-           'public' => true,
-           'private' => false,
-           'abstract' => false,
-           'final' => false,
-           'static' => false,
-           'returnType' => NULL,
-           'parameters' => 
-          array (
-            0 => 
-            \PHPStan\Dependency\ExportedNode\ExportedParameterNode::__set_state(array(
-               'name' => 'request',
-               'type' => 'Illuminate\\Http\\Request',
-               'byRef' => false,
-               'variadic' => false,
-               'hasDefault' => false,
-               'attributes' => 
-              array (
-              ),
-               'phpDoc' => NULL,
-               'flags' => 0,
-            )),
-          ),
-           'attributes' => 
-          array (
-          ),
-        )),
-        3 => 
-        \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
-           'name' => 'show',
-           'phpDoc' => 
-          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
-             'phpDocString' => '/**
-     * Display the specified resource.
-     */',
-             'namespace' => 'App\\Http\\Controllers',
-             'uses' => 
-            array (
-              'device' => 'App\\Models\\Device',
-              'request' => 'Illuminate\\Http\\Request',
-            ),
-             'constUses' => 
-            array (
-            ),
-          )),
-           'byRef' => false,
-           'public' => true,
-           'private' => false,
-           'abstract' => false,
-           'final' => false,
-           'static' => false,
-           'returnType' => NULL,
-           'parameters' => 
-          array (
-            0 => 
-            \PHPStan\Dependency\ExportedNode\ExportedParameterNode::__set_state(array(
-               'name' => 'device',
-               'type' => 'App\\Models\\Device',
-               'byRef' => false,
-               'variadic' => false,
-               'hasDefault' => false,
-               'attributes' => 
-              array (
-              ),
-               'phpDoc' => NULL,
-               'flags' => 0,
-            )),
-          ),
-           'attributes' => 
-          array (
-          ),
-        )),
-        4 => 
-        \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
-           'name' => 'edit',
-           'phpDoc' => 
-          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
-             'phpDocString' => '/**
-     * Show the form for editing the specified resource.
-     */',
-             'namespace' => 'App\\Http\\Controllers',
-             'uses' => 
-            array (
-              'device' => 'App\\Models\\Device',
-              'request' => 'Illuminate\\Http\\Request',
-            ),
-             'constUses' => 
-            array (
-            ),
-          )),
-           'byRef' => false,
-           'public' => true,
-           'private' => false,
-           'abstract' => false,
-           'final' => false,
-           'static' => false,
-           'returnType' => NULL,
-           'parameters' => 
-          array (
-            0 => 
-            \PHPStan\Dependency\ExportedNode\ExportedParameterNode::__set_state(array(
-               'name' => 'device',
-               'type' => 'App\\Models\\Device',
-               'byRef' => false,
-               'variadic' => false,
-               'hasDefault' => false,
-               'attributes' => 
-              array (
-              ),
-               'phpDoc' => NULL,
-               'flags' => 0,
-            )),
-          ),
-           'attributes' => 
-          array (
-          ),
-        )),
-        5 => 
-        \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
-           'name' => 'update',
-           'phpDoc' => 
-          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
-             'phpDocString' => '/**
-     * Update the specified resource in storage.
-     */',
-             'namespace' => 'App\\Http\\Controllers',
-             'uses' => 
-            array (
-              'device' => 'App\\Models\\Device',
-              'request' => 'Illuminate\\Http\\Request',
-            ),
-             'constUses' => 
-            array (
-            ),
-          )),
-           'byRef' => false,
-           'public' => true,
-           'private' => false,
-           'abstract' => false,
-           'final' => false,
-           'static' => false,
-           'returnType' => NULL,
-           'parameters' => 
-          array (
-            0 => 
-            \PHPStan\Dependency\ExportedNode\ExportedParameterNode::__set_state(array(
-               'name' => 'request',
-               'type' => 'Illuminate\\Http\\Request',
-               'byRef' => false,
-               'variadic' => false,
-               'hasDefault' => false,
-               'attributes' => 
-              array (
-              ),
-               'phpDoc' => NULL,
-               'flags' => 0,
-            )),
-            1 => 
-            \PHPStan\Dependency\ExportedNode\ExportedParameterNode::__set_state(array(
-               'name' => 'device',
-               'type' => 'App\\Models\\Device',
-               'byRef' => false,
-               'variadic' => false,
-               'hasDefault' => false,
-               'attributes' => 
-              array (
-              ),
-               'phpDoc' => NULL,
-               'flags' => 0,
-            )),
-          ),
-           'attributes' => 
-          array (
-          ),
-        )),
-        6 => 
-        \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
-           'name' => 'destroy',
-           'phpDoc' => 
-          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
-             'phpDocString' => '/**
-     * Remove the specified resource from storage.
-     */',
-             'namespace' => 'App\\Http\\Controllers',
-             'uses' => 
-            array (
-              'device' => 'App\\Models\\Device',
-              'request' => 'Illuminate\\Http\\Request',
-            ),
-             'constUses' => 
-            array (
-            ),
-          )),
-           'byRef' => false,
-           'public' => true,
-           'private' => false,
-           'abstract' => false,
-           'final' => false,
-           'static' => false,
-           'returnType' => NULL,
-           'parameters' => 
-          array (
-            0 => 
-            \PHPStan\Dependency\ExportedNode\ExportedParameterNode::__set_state(array(
-               'name' => 'device',
-               'type' => 'App\\Models\\Device',
-               'byRef' => false,
-               'variadic' => false,
-               'hasDefault' => false,
-               'attributes' => 
-              array (
-              ),
-               'phpDoc' => NULL,
-               'flags' => 0,
-            )),
-          ),
-           'attributes' => 
-          array (
-          ),
-        )),
-      ),
-       'attributes' => 
-      array (
-      ),
-    )),
-  ),
   '/var/www/symbiot.npsoft.ro/app/Http/Controllers/HomeController.php' => 
   array (
     0 => 
@@ -5787,7 +4189,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Http\\JsonResponse',
            'parameters' => 
           array (
             0 => 
@@ -5818,7 +4220,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Http\\JsonResponse',
            'parameters' => 
           array (
             0 => 
@@ -5881,6 +4283,10 @@ return [
               'carbon' => 'Carbon\\Carbon',
               'request' => 'Illuminate\\Http\\Request',
               'http' => 'Illuminate\\Support\\Facades\\Http',
+              'jsonresponse' => 'Illuminate\\Http\\JsonResponse',
+              'response' => 'Illuminate\\Http\\Response',
+              'view' => 'Illuminate\\View\\View',
+              'collection' => 'Illuminate\\Database\\Eloquent\\Collection',
             ),
              'constUses' => 
             array (
@@ -5892,7 +4298,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\View\\View',
            'parameters' => 
           array (
           ),
@@ -5910,7 +4316,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Http\\JsonResponse',
            'parameters' => 
           array (
             0 => 
@@ -5941,13 +4347,13 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Http\\Response',
            'parameters' => 
           array (
             0 => 
             \PHPStan\Dependency\ExportedNode\ExportedParameterNode::__set_state(array(
                'name' => 'z',
-               'type' => NULL,
+               'type' => 'int',
                'byRef' => false,
                'variadic' => false,
                'hasDefault' => false,
@@ -5960,7 +4366,7 @@ return [
             1 => 
             \PHPStan\Dependency\ExportedNode\ExportedParameterNode::__set_state(array(
                'name' => 'x',
-               'type' => NULL,
+               'type' => 'int',
                'byRef' => false,
                'variadic' => false,
                'hasDefault' => false,
@@ -5973,7 +4379,7 @@ return [
             2 => 
             \PHPStan\Dependency\ExportedNode\ExportedParameterNode::__set_state(array(
                'name' => 'y',
-               'type' => NULL,
+               'type' => 'int',
                'byRef' => false,
                'variadic' => false,
                'hasDefault' => false,
@@ -5998,7 +4404,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Http\\JsonResponse',
            'parameters' => 
           array (
             0 => 
@@ -6029,7 +4435,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Http\\JsonResponse',
            'parameters' => 
           array (
             0 => 
@@ -6060,7 +4466,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Http\\JsonResponse',
            'parameters' => 
           array (
             0 => 
@@ -6091,7 +4497,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Http\\JsonResponse',
            'parameters' => 
           array (
             0 => 
@@ -6115,14 +4521,35 @@ return [
         7 => 
         \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
            'name' => 'show',
-           'phpDoc' => NULL,
+           'phpDoc' => 
+          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
+             'phpDocString' => '/**
+     * @return Collection<int, Tracking>
+     */',
+             'namespace' => 'App\\Http\\Controllers',
+             'uses' => 
+            array (
+              'tracking' => 'App\\Models\\Tracking',
+              'trackingsession' => 'App\\Models\\TrackingSession',
+              'carbon' => 'Carbon\\Carbon',
+              'request' => 'Illuminate\\Http\\Request',
+              'http' => 'Illuminate\\Support\\Facades\\Http',
+              'jsonresponse' => 'Illuminate\\Http\\JsonResponse',
+              'response' => 'Illuminate\\Http\\Response',
+              'view' => 'Illuminate\\View\\View',
+              'collection' => 'Illuminate\\Database\\Eloquent\\Collection',
+            ),
+             'constUses' => 
+            array (
+            ),
+          )),
            'byRef' => false,
            'public' => true,
            'private' => false,
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Database\\Eloquent\\Collection',
            'parameters' => 
           array (
             0 => 
@@ -6146,14 +4573,35 @@ return [
         8 => 
         \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
            'name' => 'sessions',
-           'phpDoc' => NULL,
+           'phpDoc' => 
+          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
+             'phpDocString' => '/**
+     * @return Collection<int, TrackingSession>
+     */',
+             'namespace' => 'App\\Http\\Controllers',
+             'uses' => 
+            array (
+              'tracking' => 'App\\Models\\Tracking',
+              'trackingsession' => 'App\\Models\\TrackingSession',
+              'carbon' => 'Carbon\\Carbon',
+              'request' => 'Illuminate\\Http\\Request',
+              'http' => 'Illuminate\\Support\\Facades\\Http',
+              'jsonresponse' => 'Illuminate\\Http\\JsonResponse',
+              'response' => 'Illuminate\\Http\\Response',
+              'view' => 'Illuminate\\View\\View',
+              'collection' => 'Illuminate\\Database\\Eloquent\\Collection',
+            ),
+             'constUses' => 
+            array (
+            ),
+          )),
            'byRef' => false,
            'public' => true,
            'private' => false,
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Database\\Eloquent\\Collection',
            'parameters' => 
           array (
             0 => 
@@ -6184,7 +4632,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Http\\JsonResponse',
            'parameters' => 
           array (
             0 => 
@@ -6244,6 +4692,9 @@ return [
             array (
               'trackingsession' => 'App\\Models\\TrackingSession',
               'request' => 'Illuminate\\Http\\Request',
+              'response' => 'Illuminate\\Http\\Response',
+              'view' => 'Illuminate\\View\\View',
+              'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
             ),
              'constUses' => 
             array (
@@ -6255,7 +4706,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\View\\View',
            'parameters' => 
           array (
           ),
@@ -6276,6 +4727,9 @@ return [
             array (
               'trackingsession' => 'App\\Models\\TrackingSession',
               'request' => 'Illuminate\\Http\\Request',
+              'response' => 'Illuminate\\Http\\Response',
+              'view' => 'Illuminate\\View\\View',
+              'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
             ),
              'constUses' => 
             array (
@@ -6287,7 +4741,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\View\\View',
            'parameters' => 
           array (
           ),
@@ -6308,6 +4762,9 @@ return [
             array (
               'trackingsession' => 'App\\Models\\TrackingSession',
               'request' => 'Illuminate\\Http\\Request',
+              'response' => 'Illuminate\\Http\\Response',
+              'view' => 'Illuminate\\View\\View',
+              'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
             ),
              'constUses' => 
             array (
@@ -6319,7 +4776,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Http\\RedirectResponse',
            'parameters' => 
           array (
             0 => 
@@ -6353,6 +4810,9 @@ return [
             array (
               'trackingsession' => 'App\\Models\\TrackingSession',
               'request' => 'Illuminate\\Http\\Request',
+              'response' => 'Illuminate\\Http\\Response',
+              'view' => 'Illuminate\\View\\View',
+              'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
             ),
              'constUses' => 
             array (
@@ -6364,7 +4824,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\View\\View',
            'parameters' => 
           array (
             0 => 
@@ -6398,6 +4858,9 @@ return [
             array (
               'trackingsession' => 'App\\Models\\TrackingSession',
               'request' => 'Illuminate\\Http\\Request',
+              'response' => 'Illuminate\\Http\\Response',
+              'view' => 'Illuminate\\View\\View',
+              'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
             ),
              'constUses' => 
             array (
@@ -6409,7 +4872,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\View\\View',
            'parameters' => 
           array (
             0 => 
@@ -6443,6 +4906,9 @@ return [
             array (
               'trackingsession' => 'App\\Models\\TrackingSession',
               'request' => 'Illuminate\\Http\\Request',
+              'response' => 'Illuminate\\Http\\Response',
+              'view' => 'Illuminate\\View\\View',
+              'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
             ),
              'constUses' => 
             array (
@@ -6454,7 +4920,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Http\\RedirectResponse',
            'parameters' => 
           array (
             0 => 
@@ -6501,6 +4967,9 @@ return [
             array (
               'trackingsession' => 'App\\Models\\TrackingSession',
               'request' => 'Illuminate\\Http\\Request',
+              'response' => 'Illuminate\\Http\\Response',
+              'view' => 'Illuminate\\View\\View',
+              'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
             ),
              'constUses' => 
             array (
@@ -6512,7 +4981,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Http\\Response',
            'parameters' => 
           array (
             0 => 
@@ -6569,7 +5038,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => NULL,
+           'returnType' => 'Illuminate\\Http\\JsonResponse',
            'parameters' => 
           array (
             0 => 
@@ -6628,7 +5097,7 @@ return [
            'abstract' => false,
            'final' => false,
            'static' => false,
-           'returnType' => 'void',
+           'returnType' => NULL,
            'parameters' => 
           array (
             0 => 
@@ -6759,7 +5228,22 @@ return [
         2 => 
         \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
            'name' => 'user',
-           'phpDoc' => NULL,
+           'phpDoc' => 
+          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
+             'phpDocString' => '/**
+     * @return BelongsTo<User, $this>
+     */',
+             'namespace' => 'App\\Models',
+             'uses' => 
+            array (
+              'model' => 'Illuminate\\Database\\Eloquent\\Model',
+              'belongsto' => 'Illuminate\\Database\\Eloquent\\Relations\\BelongsTo',
+              'hasmany' => 'Illuminate\\Database\\Eloquent\\Relations\\HasMany',
+            ),
+             'constUses' => 
+            array (
+            ),
+          )),
            'byRef' => false,
            'public' => true,
            'private' => false,
@@ -6777,7 +5261,22 @@ return [
         3 => 
         \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
            'name' => 'trackingSessions',
-           'phpDoc' => NULL,
+           'phpDoc' => 
+          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
+             'phpDocString' => '/**
+     * @return HasMany<TrackingSession, $this>
+     */',
+             'namespace' => 'App\\Models',
+             'uses' => 
+            array (
+              'model' => 'Illuminate\\Database\\Eloquent\\Model',
+              'belongsto' => 'Illuminate\\Database\\Eloquent\\Relations\\BelongsTo',
+              'hasmany' => 'Illuminate\\Database\\Eloquent\\Relations\\HasMany',
+            ),
+             'constUses' => 
+            array (
+            ),
+          )),
            'byRef' => false,
            'public' => true,
            'private' => false,
@@ -6798,7 +5297,7 @@ return [
            'phpDoc' => 
           \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
              'phpDocString' => '/**
-     * Sesiunea activă a dispozitivului.
+     * @return HasMany<TrackingSession, $this>
      */',
              'namespace' => 'App\\Models',
              'uses' => 
@@ -6935,7 +5434,21 @@ return [
         2 => 
         \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
            'name' => 'session',
-           'phpDoc' => NULL,
+           'phpDoc' => 
+          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
+             'phpDocString' => '/**
+     * @return BelongsTo<TrackingSession, $this>
+     */',
+             'namespace' => 'App\\Models',
+             'uses' => 
+            array (
+              'model' => 'Illuminate\\Database\\Eloquent\\Model',
+              'belongsto' => 'Illuminate\\Database\\Eloquent\\Relations\\BelongsTo',
+            ),
+             'constUses' => 
+            array (
+            ),
+          )),
            'byRef' => false,
            'public' => true,
            'private' => false,
@@ -7029,7 +5542,22 @@ return [
         2 => 
         \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
            'name' => 'user',
-           'phpDoc' => NULL,
+           'phpDoc' => 
+          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
+             'phpDocString' => '/**
+     * @return BelongsTo<User, $this>
+     */',
+             'namespace' => 'App\\Models',
+             'uses' => 
+            array (
+              'model' => 'Illuminate\\Database\\Eloquent\\Model',
+              'belongsto' => 'Illuminate\\Database\\Eloquent\\Relations\\BelongsTo',
+              'hasmany' => 'Illuminate\\Database\\Eloquent\\Relations\\HasMany',
+            ),
+             'constUses' => 
+            array (
+            ),
+          )),
            'byRef' => false,
            'public' => true,
            'private' => false,
@@ -7050,7 +5578,7 @@ return [
            'phpDoc' => 
           \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
              'phpDocString' => '/**
-     * @return BelongsTo<Device, self>
+     * @return BelongsTo<Device, $this>
      */',
              'namespace' => 'App\\Models',
              'uses' => 
@@ -7083,7 +5611,7 @@ return [
            'phpDoc' => 
           \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
              'phpDocString' => '/**
-     * @return HasMany<Tracking, self>
+     * @return HasMany<Tracking, $this>
      */',
              'namespace' => 'App\\Models',
              'uses' => 
@@ -7215,7 +5743,27 @@ return [
         1 => 
         \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
            'name' => 'tracking',
-           'phpDoc' => NULL,
+           'phpDoc' => 
+          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
+             'phpDocString' => '/**
+     * @return HasMany<Tracking, $this>
+     */',
+             'namespace' => 'App\\Models',
+             'uses' => 
+            array (
+              'userfactory' => 'Database\\Factories\\UserFactory',
+              'fillable' => 'Illuminate\\Database\\Eloquent\\Attributes\\Fillable',
+              'hidden' => 'Illuminate\\Database\\Eloquent\\Attributes\\Hidden',
+              'hasfactory' => 'Illuminate\\Database\\Eloquent\\Factories\\HasFactory',
+              'authenticatable' => 'Illuminate\\Foundation\\Auth\\User',
+              'notifiable' => 'Illuminate\\Notifications\\Notifiable',
+              'hasapitokens' => 'Laravel\\Sanctum\\HasApiTokens',
+              'hasmany' => 'Illuminate\\Database\\Eloquent\\Relations\\HasMany',
+            ),
+             'constUses' => 
+            array (
+            ),
+          )),
            'byRef' => false,
            'public' => true,
            'private' => false,
@@ -7233,7 +5781,27 @@ return [
         2 => 
         \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
            'name' => 'devices',
-           'phpDoc' => NULL,
+           'phpDoc' => 
+          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
+             'phpDocString' => '/**
+     * @return HasMany<Device, $this>
+     */',
+             'namespace' => 'App\\Models',
+             'uses' => 
+            array (
+              'userfactory' => 'Database\\Factories\\UserFactory',
+              'fillable' => 'Illuminate\\Database\\Eloquent\\Attributes\\Fillable',
+              'hidden' => 'Illuminate\\Database\\Eloquent\\Attributes\\Hidden',
+              'hasfactory' => 'Illuminate\\Database\\Eloquent\\Factories\\HasFactory',
+              'authenticatable' => 'Illuminate\\Foundation\\Auth\\User',
+              'notifiable' => 'Illuminate\\Notifications\\Notifiable',
+              'hasapitokens' => 'Laravel\\Sanctum\\HasApiTokens',
+              'hasmany' => 'Illuminate\\Database\\Eloquent\\Relations\\HasMany',
+            ),
+             'constUses' => 
+            array (
+            ),
+          )),
            'byRef' => false,
            'public' => true,
            'private' => false,
@@ -7251,7 +5819,27 @@ return [
         3 => 
         \PHPStan\Dependency\ExportedNode\ExportedMethodNode::__set_state(array(
            'name' => 'trackingSessions',
-           'phpDoc' => NULL,
+           'phpDoc' => 
+          \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
+             'phpDocString' => '/**
+     * @return HasMany<TrackingSession, $this>
+     */',
+             'namespace' => 'App\\Models',
+             'uses' => 
+            array (
+              'userfactory' => 'Database\\Factories\\UserFactory',
+              'fillable' => 'Illuminate\\Database\\Eloquent\\Attributes\\Fillable',
+              'hidden' => 'Illuminate\\Database\\Eloquent\\Attributes\\Hidden',
+              'hasfactory' => 'Illuminate\\Database\\Eloquent\\Factories\\HasFactory',
+              'authenticatable' => 'Illuminate\\Foundation\\Auth\\User',
+              'notifiable' => 'Illuminate\\Notifications\\Notifiable',
+              'hasapitokens' => 'Laravel\\Sanctum\\HasApiTokens',
+              'hasmany' => 'Illuminate\\Database\\Eloquent\\Relations\\HasMany',
+            ),
+             'constUses' => 
+            array (
+            ),
+          )),
            'byRef' => false,
            'public' => true,
            'private' => false,
@@ -7410,10 +5998,20 @@ return [
           \PHPStan\Dependency\ExportedNode\ExportedPhpDocNode::__set_state(array(
              'phpDocString' => '/**
      * Procesează punctele GPS.
+     *
+     * @param Collection<int, Tracking> $points
+     * @return array{
+     *     distance: float,
+     *     geojson: array{
+     *         type: string,
+     *         coordinates: array<int, array{0: float, 1: float}>
+     *     }
+     * }
      */',
              'namespace' => 'App\\Services',
              'uses' => 
             array (
+              'tracking' => 'App\\Models\\Tracking',
               'collection' => 'Illuminate\\Support\\Collection',
             ),
              'constUses' => 

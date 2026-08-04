@@ -110,7 +110,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     1 => 
     array (
-      '/var/www/symbiot.npsoft.ro/app/Models/TrackingSession.php' => '9d1911254da0f8905034d4f2f79def8ea97a2fd41f2a790d650ff649ea22b854',
+      '/var/www/symbiot.npsoft.ro/app/Models/TrackingSession.php' => 'ed36156259982fe5a84cb0d404414d8fd87d5c4ee5d121ed316e7048d07def94',
     ),
   ),
 ));

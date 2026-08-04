@@ -6,7 +6,7 @@ use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\TransportPoiController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn() => view('welcome'));
+Route::get('/', fn () => view('welcome'));
 
 Auth::routes();
 
@@ -24,7 +24,7 @@ Route::name('app.')->middleware(['auth'])->group(function () {
     Route::post('/tracking/stop', [TrackingController::class, 'stop'])->name('tracking.stop');
 
     Route::get('/map/tiles/{z}/{x}/{y}', [TrackingController::class, 'tile']);
-    Route::get('/tracks/{session}', [TrackingController::class, 'show'])->name('tracking.sessions');
+    Route::get('/tracks/{session}', [TrackingController::class, 'show'])->name('tracking.show');
     Route::get('/tracking/sessions', [TrackingController::class, 'sessions'])->name('tracking.sessions');
     Route::get('/tracking/{session}/points', [TrackingController::class, 'points'])->name('tracking.points');
     Route::get('/tracking/{session}/route', [TrackingController::class, 'route'])->name('tracking.route');

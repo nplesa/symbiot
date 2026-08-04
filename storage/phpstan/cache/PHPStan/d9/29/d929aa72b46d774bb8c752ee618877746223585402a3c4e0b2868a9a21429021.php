@@ -2,7 +2,7 @@
 
 // odsl-/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php-PHPStan\BetterReflection\Reflection\ReflectionClass-App\Services\TrackProcessingService
 return \PHPStan\Cache\CacheItem::__set_state(array(
-   'variableKey' => 'v2-6.70.0.3-8.4.16-c56e43a978713f9abc27f1104696ba162b4cfce53bcad7905bfdd633aa83bd7c',
+   'variableKey' => 'v2-6.70.0.3-8.4.16-5de437dafa4c97488567f200a793b42d7535a5fe698f8da6c33217543e6a2bf8',
    'data' => 
   array (
     'locatedSource' => 
@@ -26,8 +26,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     'attributes' => 
     array (
     ),
-    'startLine' => 7,
-    'endLine' => 80,
+    'startLine' => 8,
+    'endLine' => 98,
     'startColumn' => 1,
     'endColumn' => 1,
     'parentClassName' => NULL,
@@ -69,8 +69,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 12,
-            'endLine' => 12,
+            'startLine' => 22,
+            'endLine' => 22,
             'startColumn' => 29,
             'endColumn' => 46,
             'parameterIndex' => 0,
@@ -92,9 +92,18 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         ),
         'docComment' => '/**
  * Procesează punctele GPS.
+ *
+ * @param Collection<int, Tracking> $points
+ * @return array{
+ *     distance: float,
+ *     geojson: array{
+ *         type: string,
+ *         coordinates: array<int, array{0: float, 1: float}>
+ *     }
+ * }
  */',
-        'startLine' => 12,
-        'endLine' => 18,
+        'startLine' => 22,
+        'endLine' => 28,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -132,8 +141,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 23,
-            'endLine' => 23,
+            'startLine' => 35,
+            'endLine' => 35,
             'startColumn' => 40,
             'endColumn' => 57,
             'parameterIndex' => 0,
@@ -155,9 +164,11 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         ),
         'docComment' => '/**
  * Calculează distanța totală.
+ *
+ * @param Collection<int, Tracking> $points
  */',
-        'startLine' => 23,
-        'endLine' => 38,
+        'startLine' => 35,
+        'endLine' => 49,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -195,8 +206,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 44,
-            'endLine' => 44,
+            'startLine' => 55,
+            'endLine' => 55,
             'startColumn' => 9,
             'endColumn' => 19,
             'parameterIndex' => 0,
@@ -221,8 +232,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 45,
-            'endLine' => 45,
+            'startLine' => 56,
+            'endLine' => 56,
             'startColumn' => 9,
             'endColumn' => 19,
             'parameterIndex' => 1,
@@ -247,8 +258,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 46,
-            'endLine' => 46,
+            'startLine' => 57,
+            'endLine' => 57,
             'startColumn' => 9,
             'endColumn' => 19,
             'parameterIndex' => 2,
@@ -273,8 +284,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 47,
-            'endLine' => 47,
+            'startLine' => 58,
+            'endLine' => 58,
             'startColumn' => 9,
             'endColumn' => 19,
             'parameterIndex' => 3,
@@ -297,8 +308,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         'docComment' => '/**
  * Formula Haversine.
  */',
-        'startLine' => 43,
-        'endLine' => 62,
+        'startLine' => 54,
+        'endLine' => 72,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -336,8 +347,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 67,
-            'endLine' => 67,
+            'startLine' => 83,
+            'endLine' => 83,
             'startColumn' => 35,
             'endColumn' => 52,
             'parameterIndex' => 0,
@@ -359,9 +370,15 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         ),
         'docComment' => '/**
  * Construiește GeoJSON.
+ *
+ * @param Collection<int, Tracking> $points
+ * @return array{
+ *     type: string,
+ *     coordinates: array<int, array{0: float, 1: float}>
+ * }
  */',
-        'startLine' => 67,
-        'endLine' => 79,
+        'startLine' => 83,
+        'endLine' => 97,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,

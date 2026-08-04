@@ -2,12 +2,22 @@
 
 namespace App\Services;
 
+use App\Models\Tracking;
 use Illuminate\Support\Collection;
 
 class TrackProcessingService
 {
     /**
      * Procesează punctele GPS.
+     *
+     * @param  Collection<int, Tracking>  $points
+     * @return array{
+     *     distance: float,
+     *     geojson: array{
+     *         type: string,
+     *         coordinates: array<int, array{0: float, 1: float}>
+     *     }
+     * }
      */
     public function process(Collection $points): array
     {
@@ -19,18 +29,19 @@ class TrackProcessingService
 
     /**
      * Calculează distanța totală.
+     *
+     * @param  Collection<int, Tracking>  $points
      */
     private function calculateDistance(Collection $points): float
     {
-        $distance = 0;
+        $distance = 0.0;
 
         for ($i = 1; $i < $points->count(); $i++) {
-
             $distance += $this->haversine(
-                $points[$i - 1]->latitude,
-                $points[$i - 1]->longitude,
-                $points[$i]->latitude,
-                $points[$i]->longitude
+                (float) $points[$i - 1]->latitude,
+                (float) $points[$i - 1]->longitude,
+                (float) $points[$i]->latitude,
+                (float) $points[$i]->longitude
             );
         }
 
@@ -46,7 +57,6 @@ class TrackProcessingService
         float $lat2,
         float $lon2
     ): float {
-
         $earthRadius = 6371000;
 
         $dLat = deg2rad($lat2 - $lat1);
@@ -63,16 +73,24 @@ class TrackProcessingService
 
     /**
      * Construiește GeoJSON.
+     *
+     * @param  Collection<int, Tracking>  $points
+     * @return array{
+     *     type: string,
+     *     coordinates: array<int, array{0: float, 1: float}>
+     * }
      */
     private function buildGeoJson(Collection $points): array
     {
         return [
             'type' => 'LineString',
             'coordinates' => $points
-                ->map(fn ($point) => [
-                    (float) $point->longitude,
-                    (float) $point->latitude,
-                ])
+                ->map(
+                    static fn (Tracking $point): array => [
+                        (float) $point->longitude,
+                        (float) $point->latitude,
+                    ]
+                )
                 ->values()
                 ->all(),
         ];

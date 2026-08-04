@@ -101,7 +101,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     '/var/www/symbiot.npsoft.ro/app/Http/Controllers/Auth/RegisterController.php' => 
     array (
-      0 => '41b08aa736c0731b02abc5b8e6ad7b13bd5d71c4427712efa708ce351a3cda23',
+      0 => '03ead51e472f7cfbde3239c7798eb3df9d20af0f648678267b01816206c3829d',
       1 => 
       array (
         0 => 'app\\http\\controllers\\auth\\registercontroller',
@@ -159,27 +159,6 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
       array (
       ),
     ),
-    '/var/www/symbiot.npsoft.ro/app/Http/Controllers/DeviceController.php' => 
-    array (
-      0 => '24a1458c3425f88b2ef55a5d57758d86c9bec7e8a4286ef96af15d8d7b1b9775',
-      1 => 
-      array (
-        0 => 'app\\http\\controllers\\devicecontroller',
-      ),
-      2 => 
-      array (
-        0 => 'app\\http\\controllers\\index',
-        1 => 'app\\http\\controllers\\create',
-        2 => 'app\\http\\controllers\\store',
-        3 => 'app\\http\\controllers\\show',
-        4 => 'app\\http\\controllers\\edit',
-        5 => 'app\\http\\controllers\\update',
-        6 => 'app\\http\\controllers\\destroy',
-      ),
-      3 => 
-      array (
-      ),
-    ),
     '/var/www/symbiot.npsoft.ro/app/Http/Controllers/HomeController.php' => 
     array (
       0 => 'a329d6ad3a9ca77845ac1530408c641da1c5c9e46e5a16d8f95f26ecc9bdcd10',
@@ -198,7 +177,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     '/var/www/symbiot.npsoft.ro/app/Http/Controllers/LocationController.php' => 
     array (
-      0 => 'df2ffa33a2104204e71588f5349f0a7e748ed4d4660f6c523b9bf6ae3d0a5236',
+      0 => 'dc4c506774ca578b5eff1542665cb91e6d6c4188533e4e09bd5ca1e662014ea7',
       1 => 
       array (
         0 => 'app\\http\\controllers\\locationcontroller',
@@ -214,7 +193,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php' => 
     array (
-      0 => 'f4da344420d13912e7bccf7dad66358962386c2bda85c18fdd1bb6390446fe64',
+      0 => 'db4356bc780228bcd3de6949e7a12e641626fcdbe3ebb8dbac5ba0b52abe3da4',
       1 => 
       array (
         0 => 'app\\http\\controllers\\trackingcontroller',
@@ -238,7 +217,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php' => 
     array (
-      0 => '23b99b4b6a9e4531d295a079fc904f7a4649f83cf5dcf12f0c657d6c4ca532f2',
+      0 => '9cfc193f32a87a24a7917bf8d5fdbd070ef34fd35a083414aaf14ddfcfcdd123',
       1 => 
       array (
         0 => 'app\\http\\controllers\\trackingsessioncontroller',
@@ -259,7 +238,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TransportPoiController.php' => 
     array (
-      0 => 'b4e6d751991e29be93bdc5d10ba29b0942c1dd434f708169046b85a56baff8b3',
+      0 => '03a62ff50ae584b382db9159c4d2b0919d5e54e1e016e01788eb4d967e73cb42',
       1 => 
       array (
         0 => 'app\\http\\controllers\\transportpoicontroller',
@@ -281,7 +260,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php' => 
     array (
-      0 => '43d9557d792a6c9231b3091b8771e4805fc0c5f2067cca96f49fdcbf3caead36',
+      0 => 'a648b1f68f323167e9f542626abd13cb40a08faf7cd634a6e5adc7d8aab3dcbf',
       1 => 
       array (
         0 => 'app\\jobs\\processtrackingsessionjob',
@@ -293,9 +272,6 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         2 => 'app\\jobs\\loadsession',
         3 => 'app\\jobs\\markprocessed',
         4 => 'app\\jobs\\saveresult',
-        5 => 'app\\jobs\\calculatedistance',
-        6 => 'app\\jobs\\haversine',
-        7 => 'app\\jobs\\buildgeojson',
       ),
       3 => 
       array (
@@ -303,7 +279,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     '/var/www/symbiot.npsoft.ro/app/Models/Device.php' => 
     array (
-      0 => '292056970814aa1eb87b6ff1c529b3808790f156ff766ffb6b5b985f63813e87',
+      0 => '25a319fe051ee20a48c62b4547868c343525421a51391dd2f5f5aa6974d8999b',
       1 => 
       array (
         0 => 'app\\models\\device',
@@ -321,7 +297,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     '/var/www/symbiot.npsoft.ro/app/Models/Tracking.php' => 
     array (
-      0 => 'f435093ce9c7418ed28a86616ab5c3d281480a039282c66cc5bb4a878e071cdb',
+      0 => 'c00791e9780381f119c879dc03cc2abc897ab18c190ea9caec987a29a8a81099',
       1 => 
       array (
         0 => 'app\\models\\tracking',
@@ -336,7 +312,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     '/var/www/symbiot.npsoft.ro/app/Models/TrackingSession.php' => 
     array (
-      0 => '9d1911254da0f8905034d4f2f79def8ea97a2fd41f2a790d650ff649ea22b854',
+      0 => 'ed36156259982fe5a84cb0d404414d8fd87d5c4ee5d121ed316e7048d07def94',
       1 => 
       array (
         0 => 'app\\models\\trackingsession',
@@ -367,7 +343,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     '/var/www/symbiot.npsoft.ro/app/Models/User.php' => 
     array (
-      0 => '9db1dd0f93f02a84cf5d2dc85280741bb3940cacad9d397bb7c05707b4cb3fd8',
+      0 => '6162777c08ef2fb9ca0e0dca6b3de66e76ff86106e53411980aa98ace2d468ba',
       1 => 
       array (
         0 => 'app\\models\\user',
@@ -401,7 +377,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php' => 
     array (
-      0 => 'c56e43a978713f9abc27f1104696ba162b4cfce53bcad7905bfdd633aa83bd7c',
+      0 => '5de437dafa4c97488567f200a793b42d7535a5fe698f8da6c33217543e6a2bf8',
       1 => 
       array (
         0 => 'app\\services\\trackprocessingservice',

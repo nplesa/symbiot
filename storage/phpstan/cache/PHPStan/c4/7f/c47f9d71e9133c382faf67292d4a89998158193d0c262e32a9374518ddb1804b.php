@@ -2,7 +2,7 @@
 
 // odsl-/var/www/symbiot.npsoft.ro/app/Http/Controllers/Auth/RegisterController.php-PHPStan\BetterReflection\Reflection\ReflectionClass-App\Http\Controllers\Auth\RegisterController
 return \PHPStan\Cache\CacheItem::__set_state(array(
-   'variableKey' => 'v2-6.70.0.3-8.4.16-41b08aa736c0731b02abc5b8e6ad7b13bd5d71c4427712efa708ce351a3cda23',
+   'variableKey' => 'v2-6.70.0.3-8.4.16-03ead51e472f7cfbde3239c7798eb3df9d20af0f648678267b01816206c3829d',
    'data' => 
   array (
     'locatedSource' => 
@@ -26,8 +26,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     'attributes' => 
     array (
     ),
-    'startLine' => 11,
-    'endLine' => 70,
+    'startLine' => 12,
+    'endLine' => 53,
     'startColumn' => 1,
     'endColumn' => 1,
     'parentClassName' => 'App\\Http\\Controllers\\Controller',
@@ -49,32 +49,38 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         'implementingClassName' => 'App\\Http\\Controllers\\Auth\\RegisterController',
         'name' => 'redirectTo',
         'modifiers' => 2,
-        'type' => NULL,
+        'type' => 
+        array (
+          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+          'data' => 
+          array (
+            'name' => 'string',
+            'isIdentifier' => true,
+          ),
+        ),
         'default' => 
         array (
           'code' => '\'/home\'',
           'attributes' => 
           array (
-            'startLine' => 31,
-            'endLine' => 31,
-            'startTokenPos' => 57,
-            'startFilePos' => 858,
-            'endTokenPos' => 57,
-            'endFilePos' => 864,
+            'startLine' => 19,
+            'endLine' => 19,
+            'startTokenPos' => 66,
+            'startFilePos' => 459,
+            'endTokenPos' => 66,
+            'endFilePos' => 465,
           ),
         ),
         'docComment' => '/**
  * Where to redirect users after registration.
- *
- * @var string
  */',
         'attributes' => 
         array (
         ),
-        'startLine' => 31,
-        'endLine' => 31,
+        'startLine' => 19,
+        'endLine' => 19,
         'startColumn' => 5,
-        'endColumn' => 36,
+        'endColumn' => 43,
         'isPromoted' => false,
         'declaredAtCompileTime' => true,
         'immediateVirtual' => false,
@@ -96,13 +102,9 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         'attributes' => 
         array (
         ),
-        'docComment' => '/**
- * Create a new controller instance.
- *
- * @return void
- */',
-        'startLine' => 38,
-        'endLine' => 41,
+        'docComment' => NULL,
+        'startLine' => 21,
+        'endLine' => 24,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -140,26 +142,34 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 48,
-            'endLine' => 48,
-            'startColumn' => 74,
-            'endColumn' => 84,
+            'startLine' => 31,
+            'endLine' => 31,
+            'startColumn' => 34,
+            'endColumn' => 44,
             'parameterIndex' => 0,
             'isOptional' => false,
           ),
         ),
         'returnsReference' => false,
-        'returnType' => NULL,
+        'returnType' => 
+        array (
+          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+          'data' => 
+          array (
+            'name' => 'Illuminate\\Validation\\Validator',
+            'isIdentifier' => false,
+          ),
+        ),
         'attributes' => 
         array (
         ),
         'docComment' => '/**
  * Get a validator for an incoming registration request.
  *
- * @return \\Illuminate\\Contracts\\Validation\\Validator
+ * @param array<string, mixed> $data
  */',
-        'startLine' => 48,
-        'endLine' => 55,
+        'startLine' => 31,
+        'endLine' => 38,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -197,26 +207,34 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 62,
-            'endLine' => 62,
-            'startColumn' => 71,
-            'endColumn' => 81,
+            'startLine' => 45,
+            'endLine' => 45,
+            'startColumn' => 31,
+            'endColumn' => 41,
             'parameterIndex' => 0,
             'isOptional' => false,
           ),
         ),
         'returnsReference' => false,
-        'returnType' => NULL,
+        'returnType' => 
+        array (
+          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+          'data' => 
+          array (
+            'name' => 'App\\Models\\User',
+            'isIdentifier' => false,
+          ),
+        ),
         'attributes' => 
         array (
         ),
         'docComment' => '/**
  * Create a new user instance after a valid registration.
  *
- * @return User
+ * @param array<string, mixed> $data
  */',
-        'startLine' => 62,
-        'endLine' => 69,
+        'startLine' => 45,
+        'endLine' => 52,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,

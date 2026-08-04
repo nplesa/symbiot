@@ -16,6 +16,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           'shouldqueue' => 'Illuminate\\Contracts\\Queue\\ShouldQueue',
           'queueable' => 'Illuminate\\Foundation\\Queue\\Queueable',
           'trackprocessingservice' => 'App\\Services\\TrackProcessingService',
+          'collection' => 'Illuminate\\Database\\Eloquent\\Collection',
         ),
          'className' => 'App\\Jobs\\ProcessTrackingSessionJob',
          'functionName' => NULL,
@@ -2171,6 +2172,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           'shouldqueue' => 'Illuminate\\Contracts\\Queue\\ShouldQueue',
           'queueable' => 'Illuminate\\Foundation\\Queue\\Queueable',
           'trackprocessingservice' => 'App\\Services\\TrackProcessingService',
+          'collection' => 'Illuminate\\Database\\Eloquent\\Collection',
         ),
          'className' => 'App\\Jobs\\ProcessTrackingSessionJob',
          'functionName' => '__construct',
@@ -2197,6 +2199,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           'shouldqueue' => 'Illuminate\\Contracts\\Queue\\ShouldQueue',
           'queueable' => 'Illuminate\\Foundation\\Queue\\Queueable',
           'trackprocessingservice' => 'App\\Services\\TrackProcessingService',
+          'collection' => 'Illuminate\\Database\\Eloquent\\Collection',
         ),
          'className' => 'App\\Jobs\\ProcessTrackingSessionJob',
          'functionName' => 'handle',
@@ -2223,6 +2226,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           'shouldqueue' => 'Illuminate\\Contracts\\Queue\\ShouldQueue',
           'queueable' => 'Illuminate\\Foundation\\Queue\\Queueable',
           'trackprocessingservice' => 'App\\Services\\TrackProcessingService',
+          'collection' => 'Illuminate\\Database\\Eloquent\\Collection',
         ),
          'className' => 'App\\Jobs\\ProcessTrackingSessionJob',
          'functionName' => 'loadSession',
@@ -2249,6 +2253,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           'shouldqueue' => 'Illuminate\\Contracts\\Queue\\ShouldQueue',
           'queueable' => 'Illuminate\\Foundation\\Queue\\Queueable',
           'trackprocessingservice' => 'App\\Services\\TrackProcessingService',
+          'collection' => 'Illuminate\\Database\\Eloquent\\Collection',
         ),
          'className' => 'App\\Jobs\\ProcessTrackingSessionJob',
          'functionName' => 'markProcessed',
@@ -2275,6 +2280,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           'shouldqueue' => 'Illuminate\\Contracts\\Queue\\ShouldQueue',
           'queueable' => 'Illuminate\\Foundation\\Queue\\Queueable',
           'trackprocessingservice' => 'App\\Services\\TrackProcessingService',
+          'collection' => 'Illuminate\\Database\\Eloquent\\Collection',
         ),
          'className' => 'App\\Jobs\\ProcessTrackingSessionJob',
          'functionName' => 'saveResult',
@@ -2292,88 +2298,10 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
          'typeAliasClassName' => NULL,
          'traitData' => NULL,
       )),
-      'a172dad4394cbbd1fafb92f093b5f46c' => 
-      \PHPStan\Analyser\IntermediaryNameScope::__set_state(array(
-         'namespace' => 'App\\Jobs',
-         'uses' => 
-        array (
-          'trackingsession' => 'App\\Models\\TrackingSession',
-          'shouldqueue' => 'Illuminate\\Contracts\\Queue\\ShouldQueue',
-          'queueable' => 'Illuminate\\Foundation\\Queue\\Queueable',
-          'trackprocessingservice' => 'App\\Services\\TrackProcessingService',
-        ),
-         'className' => 'App\\Jobs\\ProcessTrackingSessionJob',
-         'functionName' => 'calculateDistance',
-         'templatePhpDocNodes' => 
-        array (
-        ),
-         'parent' => NULL,
-         'typeAliasesMap' => 
-        array (
-        ),
-         'bypassTypeAliases' => false,
-         'constUses' => 
-        array (
-        ),
-         'typeAliasClassName' => NULL,
-         'traitData' => NULL,
-      )),
-      '2799ff0c8c1b03bd2a7b24e704a7c43c' => 
-      \PHPStan\Analyser\IntermediaryNameScope::__set_state(array(
-         'namespace' => 'App\\Jobs',
-         'uses' => 
-        array (
-          'trackingsession' => 'App\\Models\\TrackingSession',
-          'shouldqueue' => 'Illuminate\\Contracts\\Queue\\ShouldQueue',
-          'queueable' => 'Illuminate\\Foundation\\Queue\\Queueable',
-          'trackprocessingservice' => 'App\\Services\\TrackProcessingService',
-        ),
-         'className' => 'App\\Jobs\\ProcessTrackingSessionJob',
-         'functionName' => 'haversine',
-         'templatePhpDocNodes' => 
-        array (
-        ),
-         'parent' => NULL,
-         'typeAliasesMap' => 
-        array (
-        ),
-         'bypassTypeAliases' => false,
-         'constUses' => 
-        array (
-        ),
-         'typeAliasClassName' => NULL,
-         'traitData' => NULL,
-      )),
-      '1a32daf4378f911c740c72d771faeea7' => 
-      \PHPStan\Analyser\IntermediaryNameScope::__set_state(array(
-         'namespace' => 'App\\Jobs',
-         'uses' => 
-        array (
-          'trackingsession' => 'App\\Models\\TrackingSession',
-          'shouldqueue' => 'Illuminate\\Contracts\\Queue\\ShouldQueue',
-          'queueable' => 'Illuminate\\Foundation\\Queue\\Queueable',
-          'trackprocessingservice' => 'App\\Services\\TrackProcessingService',
-        ),
-         'className' => 'App\\Jobs\\ProcessTrackingSessionJob',
-         'functionName' => 'buildGeoJson',
-         'templatePhpDocNodes' => 
-        array (
-        ),
-         'parent' => NULL,
-         'typeAliasesMap' => 
-        array (
-        ),
-         'bypassTypeAliases' => false,
-         'constUses' => 
-        array (
-        ),
-         'typeAliasClassName' => NULL,
-         'traitData' => NULL,
-      )),
     ),
     1 => 
     array (
-      '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php' => '43d9557d792a6c9231b3091b8771e4805fc0c5f2067cca96f49fdcbf3caead36',
+      '/var/www/symbiot.npsoft.ro/app/Jobs/ProcessTrackingSessionJob.php' => 'a648b1f68f323167e9f542626abd13cb40a08faf7cd634a6e5adc7d8aab3dcbf',
       '/var/www/symbiot.npsoft.ro/vendor/composer/../laravel/framework/src/Illuminate/Foundation/Queue/Queueable.php' => '3f02abd5d38d7cf07e64a46b9cc5e578004e5ff10401432f683ef354bc8f3419',
       '/var/www/symbiot.npsoft.ro/vendor/composer/../laravel/framework/src/Illuminate/Foundation/Bus/Dispatchable.php' => '551294291775e57fbd590f0ed288a91cca683d42fac08e60c87e39b73617d47b',
       '/var/www/symbiot.npsoft.ro/vendor/composer/../laravel/framework/src/Illuminate/Queue/InteractsWithQueue.php' => '315b11da66ac6485726ba7406ccafce8e8b633f9e6d9a09ed0eea239c6aeffee',

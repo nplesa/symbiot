@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class LocationController extends Controller
 {
-    public function toggle(Request $request)
+    public function toggle(Request $request): JsonResponse
     {
         $request->validate([
             'location' => ['required', 'boolean'],
@@ -23,7 +24,7 @@ class LocationController extends Controller
         ]);
     }
 
-    public function update(Request $request)
+    public function update(Request $request): JsonResponse
     {
         $user = auth()->user();
 

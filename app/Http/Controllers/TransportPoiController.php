@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -9,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 class TransportPoiController extends Controller
 {
-    public function nearby(Request $request)
+    public function nearby(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'lat' => 'required|numeric|between:-90,90',
@@ -59,6 +60,10 @@ class TransportPoiController extends Controller
      * GEOAPIFY FETCH (handles >500 limit)
      * =====================================================
      */
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function fetchFromGeoapify(float $lat, float $lon, int $radius, string $categories): array
     {
         $points = $this->buildGridPoints($lat, $lon);
@@ -98,6 +103,10 @@ class TransportPoiController extends Controller
      * GRID (fixes 500 limit issue)
      * =====================================================
      */
+
+    /**
+     * @return array<int, array{0: float, 1: float}>
+     */
     private function buildGridPoints(float $lat, float $lon): array
     {
         $delta = 0.25; // ~20-25km
@@ -117,10 +126,15 @@ class TransportPoiController extends Controller
      * DEDUPLICATION
      * =====================================================
      */
+
+    /**
+     * @param  array<int, array<string, mixed>>  $features
+     * @return array<int, array<string, mixed>>
+     */
     private function deduplicate(array $features): array
     {
         return collect($features)
-            ->unique(fn ($f) => $f['properties']['place_id'] ?? null)
+            ->unique(fn (array $f): mixed => $f['properties']['place_id'] ?? null)
             ->values()
             ->all();
     }
@@ -158,6 +172,7 @@ class TransportPoiController extends Controller
                 ->all()
             : (json_decode(config('services.geoapify.locations', '[]'), true) ?? []);
 
+        /** @var array<int, string> $types */
         $categories = collect($types)
             ->filter(fn ($t) => isset($map[$t]))
             ->flatMap(fn ($t) => $map[$t])
@@ -173,6 +188,11 @@ class TransportPoiController extends Controller
      * =====================================================
      * TRANSFORM
      * =====================================================
+     */
+
+    /**
+     * @param  array<int, array<string, mixed>>  $features
+     * @return array<int, array<string, mixed>>
      */
     private function transform(array $features, float $userLat, float $userLon): array
     {
@@ -210,8 +230,8 @@ class TransportPoiController extends Controller
                     'meters' => (int) round($meters),
                     'km' => round($meters / 1000, 2),
                     'formatted' => $meters < 1000
-                        ? round($meters).' m'
-                        : round($meters / 1000, 1).' km',
+                        ? round($meters) . ' m'
+                        : round($meters / 1000, 1) . ' km',
                 ],
 
                 'address' => [
@@ -232,6 +252,10 @@ class TransportPoiController extends Controller
      * =====================================================
      * TYPE DETECTION
      * =====================================================
+     */
+
+    /**
+     * @param  array<int, string>  $categories
      */
     private function detectType(array $categories): string
     {

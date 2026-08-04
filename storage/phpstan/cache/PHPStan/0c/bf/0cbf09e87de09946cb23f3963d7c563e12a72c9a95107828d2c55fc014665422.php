@@ -2,7 +2,7 @@
 
 // odsl-/var/www/symbiot.npsoft.ro/app/Models/TrackingSession.php-PHPStan\BetterReflection\Reflection\ReflectionClass-App\Models\TrackingSession
 return \PHPStan\Cache\CacheItem::__set_state(array(
-   'variableKey' => 'v2-6.70.0.3-8.4.16-9d1911254da0f8905034d4f2f79def8ea97a2fd41f2a790d650ff649ea22b854',
+   'variableKey' => 'v2-6.70.0.3-8.4.16-ed36156259982fe5a84cb0d404414d8fd87d5c4ee5d121ed316e7048d07def94',
    'data' => 
   array (
     'locatedSource' => 
@@ -27,7 +27,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     array (
     ),
     'startLine' => 9,
-    'endLine' => 44,
+    'endLine' => 47,
     'startColumn' => 1,
     'endColumn' => 1,
     'parentClassName' => 'Illuminate\\Database\\Eloquent\\Model',
@@ -134,9 +134,11 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         'attributes' => 
         array (
         ),
-        'docComment' => NULL,
-        'startLine' => 24,
-        'endLine' => 27,
+        'docComment' => '/**
+ * @return BelongsTo<User, $this>
+ */',
+        'startLine' => 27,
+        'endLine' => 30,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -170,10 +172,10 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
         ),
         'docComment' => '/**
- * @return BelongsTo<Device, self>
+ * @return BelongsTo<Device, $this>
  */',
-        'startLine' => 32,
-        'endLine' => 35,
+        'startLine' => 35,
+        'endLine' => 38,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -207,10 +209,10 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
         ),
         'docComment' => '/**
- * @return HasMany<Tracking, self>
+ * @return HasMany<Tracking, $this>
  */',
-        'startLine' => 40,
-        'endLine' => 43,
+        'startLine' => 43,
+        'endLine' => 46,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,

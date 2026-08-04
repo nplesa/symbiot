@@ -2,7 +2,7 @@
 
 // odsl-/var/www/symbiot.npsoft.ro/app/Models/Device.php-PHPStan\BetterReflection\Reflection\ReflectionClass-App\Models\Device
 return \PHPStan\Cache\CacheItem::__set_state(array(
-   'variableKey' => 'v2-6.70.0.3-8.4.16-292056970814aa1eb87b6ff1c529b3808790f156ff766ffb6b5b985f63813e87',
+   'variableKey' => 'v2-6.70.0.3-8.4.16-25a319fe051ee20a48c62b4547868c343525421a51391dd2f5f5aa6974d8999b',
    'data' => 
   array (
     'locatedSource' => 
@@ -27,7 +27,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     array (
     ),
     'startLine' => 9,
-    'endLine' => 59,
+    'endLine' => 65,
     'startColumn' => 1,
     'endColumn' => 1,
     'parentClassName' => 'Illuminate\\Database\\Eloquent\\Model',
@@ -134,9 +134,11 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         'attributes' => 
         array (
         ),
-        'docComment' => NULL,
-        'startLine' => 30,
-        'endLine' => 33,
+        'docComment' => '/**
+ * @return BelongsTo<User, $this>
+ */',
+        'startLine' => 33,
+        'endLine' => 36,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -169,9 +171,11 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         'attributes' => 
         array (
         ),
-        'docComment' => NULL,
-        'startLine' => 35,
-        'endLine' => 38,
+        'docComment' => '/**
+ * @return HasMany<TrackingSession, $this>
+ */',
+        'startLine' => 41,
+        'endLine' => 44,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -205,11 +209,11 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
         ),
         'docComment' => '/**
- * Sesiunea activă a dispozitivului.
+ * @return HasMany<TrackingSession, $this>
  */',
-        'startLine' => 43,
-        'endLine' => 47,
-        'startColumn' => 5,
+        'startLine' => 49,
+        'endLine' => 53,
+        'startColumn' => 6,
         'endColumn' => 5,
         'couldThrow' => false,
         'isClosure' => false,
@@ -235,12 +239,12 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
               'code' => 'null',
               'attributes' => 
               array (
-                'startLine' => 49,
-                'endLine' => 49,
-                'startTokenPos' => 203,
-                'startFilePos' => 1038,
-                'endTokenPos' => 203,
-                'endFilePos' => 1041,
+                'startLine' => 55,
+                'endLine' => 55,
+                'startTokenPos' => 207,
+                'startFilePos' => 1165,
+                'endTokenPos' => 207,
+                'endFilePos' => 1168,
               ),
             ),
             'type' => 
@@ -277,8 +281,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 49,
-            'endLine' => 49,
+            'startLine' => 55,
+            'endLine' => 55,
             'startColumn' => 35,
             'endColumn' => 54,
             'parameterIndex' => 0,
@@ -299,8 +303,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
         ),
         'docComment' => NULL,
-        'startLine' => 49,
-        'endLine' => 58,
+        'startLine' => 55,
+        'endLine' => 64,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,

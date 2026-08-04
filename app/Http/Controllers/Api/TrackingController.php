@@ -8,8 +8,8 @@ use App\Models\Device;
 use App\Models\Tracking;
 use App\Models\TrackingSession;
 use App\Traits\ApiResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class TrackingController extends Controller
 {
@@ -18,7 +18,7 @@ class TrackingController extends Controller
     /**
      * Începe o sesiune de tracking.
      */
-    public function start(Request $request):JsonResponse
+    public function start(Request $request): JsonResponse
     {
         $data = $request->validate([
             'uuid' => ['required', 'uuid'],
@@ -50,7 +50,7 @@ class TrackingController extends Controller
     /**
      * Primește o poziție GPS.
      */
-    public function location(Request $request):JsonResponse
+    public function location(Request $request): JsonResponse
     {
         $data = $request->validate([
             'session_id' => ['required', 'integer', 'exists:tracking_sessions,id'],
@@ -104,7 +104,7 @@ class TrackingController extends Controller
     /**
      * Oprește tracking-ul.
      */
-    public function stop(Request $request):JsonResponse
+    public function stop(Request $request): JsonResponse
     {
         $data = $request->validate([
             'session_id' => ['required', 'integer', 'exists:tracking_sessions,id'],

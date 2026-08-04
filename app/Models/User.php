@@ -7,17 +7,19 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['name', 'email', 'password', 'tracking'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens;
+    use HasFactory;
+    use Notifiable;
 
     /**
      * Get the attributes that should be cast.
@@ -33,17 +35,26 @@ class User extends Authenticatable
         ];
     }
 
-    public function tracking():HasMany
+    /**
+     * @return HasMany<Tracking, $this>
+     */
+    public function tracking(): HasMany
     {
         return $this->hasMany(Tracking::class);
     }
 
-    public function devices():HasMany
+    /**
+     * @return HasMany<Device, $this>
+     */
+    public function devices(): HasMany
     {
         return $this->hasMany(Device::class);
     }
 
-    public function trackingSessions():HasMany
+    /**
+     * @return HasMany<TrackingSession, $this>
+     */
+    public function trackingSessions(): HasMany
     {
         return $this->hasMany(TrackingSession::class);
     }

@@ -22,6 +22,9 @@ class Tracking extends Model
         'tracked_at' => 'datetime',
     ];
 
+    /**
+     * @return BelongsTo<TrackingSession, $this>
+     */
     public function session()
     {
         return $this->belongsTo(TrackingSession::class, 'tracking_session_id');

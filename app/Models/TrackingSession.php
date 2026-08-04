@@ -21,13 +21,16 @@ class TrackingSession extends Model
         'ended_at' => 'datetime',
     ];
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
     /**
-     * @return BelongsTo<Device, self>
+     * @return BelongsTo<Device, $this>
      */
     public function device(): BelongsTo
     {
@@ -35,7 +38,7 @@ class TrackingSession extends Model
     }
 
     /**
-     * @return HasMany<Tracking, self>
+     * @return HasMany<Tracking, $this>
      */
     public function trackings(): HasMany
     {

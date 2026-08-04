@@ -12,6 +12,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
          'namespace' => 'App\\Services',
          'uses' => 
         array (
+          'tracking' => 'App\\Models\\Tracking',
           'collection' => 'Illuminate\\Support\\Collection',
         ),
          'className' => 'App\\Services\\TrackProcessingService',
@@ -35,6 +36,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
          'namespace' => 'App\\Services',
          'uses' => 
         array (
+          'tracking' => 'App\\Models\\Tracking',
           'collection' => 'Illuminate\\Support\\Collection',
         ),
          'className' => 'App\\Services\\TrackProcessingService',
@@ -58,6 +60,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
          'namespace' => 'App\\Services',
          'uses' => 
         array (
+          'tracking' => 'App\\Models\\Tracking',
           'collection' => 'Illuminate\\Support\\Collection',
         ),
          'className' => 'App\\Services\\TrackProcessingService',
@@ -81,6 +84,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
          'namespace' => 'App\\Services',
          'uses' => 
         array (
+          'tracking' => 'App\\Models\\Tracking',
           'collection' => 'Illuminate\\Support\\Collection',
         ),
          'className' => 'App\\Services\\TrackProcessingService',
@@ -104,6 +108,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
          'namespace' => 'App\\Services',
          'uses' => 
         array (
+          'tracking' => 'App\\Models\\Tracking',
           'collection' => 'Illuminate\\Support\\Collection',
         ),
          'className' => 'App\\Services\\TrackProcessingService',
@@ -125,7 +130,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     1 => 
     array (
-      '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php' => 'c56e43a978713f9abc27f1104696ba162b4cfce53bcad7905bfdd633aa83bd7c',
+      '/var/www/symbiot.npsoft.ro/app/Services/TrackProcessingService.php' => '5de437dafa4c97488567f200a793b42d7535a5fe698f8da6c33217543e6a2bf8',
     ),
   ),
 ));

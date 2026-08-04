@@ -14,6 +14,9 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
           'trackingsession' => 'App\\Models\\TrackingSession',
           'request' => 'Illuminate\\Http\\Request',
+          'response' => 'Illuminate\\Http\\Response',
+          'view' => 'Illuminate\\View\\View',
+          'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
         ),
          'className' => 'App\\Http\\Controllers\\TrackingSessionController',
          'functionName' => NULL,
@@ -38,6 +41,9 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
           'trackingsession' => 'App\\Models\\TrackingSession',
           'request' => 'Illuminate\\Http\\Request',
+          'response' => 'Illuminate\\Http\\Response',
+          'view' => 'Illuminate\\View\\View',
+          'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
         ),
          'className' => 'App\\Http\\Controllers\\TrackingSessionController',
          'functionName' => 'index',
@@ -62,6 +68,9 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
           'trackingsession' => 'App\\Models\\TrackingSession',
           'request' => 'Illuminate\\Http\\Request',
+          'response' => 'Illuminate\\Http\\Response',
+          'view' => 'Illuminate\\View\\View',
+          'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
         ),
          'className' => 'App\\Http\\Controllers\\TrackingSessionController',
          'functionName' => 'create',
@@ -86,6 +95,9 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
           'trackingsession' => 'App\\Models\\TrackingSession',
           'request' => 'Illuminate\\Http\\Request',
+          'response' => 'Illuminate\\Http\\Response',
+          'view' => 'Illuminate\\View\\View',
+          'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
         ),
          'className' => 'App\\Http\\Controllers\\TrackingSessionController',
          'functionName' => 'store',
@@ -110,6 +122,9 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
           'trackingsession' => 'App\\Models\\TrackingSession',
           'request' => 'Illuminate\\Http\\Request',
+          'response' => 'Illuminate\\Http\\Response',
+          'view' => 'Illuminate\\View\\View',
+          'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
         ),
          'className' => 'App\\Http\\Controllers\\TrackingSessionController',
          'functionName' => 'show',
@@ -134,6 +149,9 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
           'trackingsession' => 'App\\Models\\TrackingSession',
           'request' => 'Illuminate\\Http\\Request',
+          'response' => 'Illuminate\\Http\\Response',
+          'view' => 'Illuminate\\View\\View',
+          'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
         ),
          'className' => 'App\\Http\\Controllers\\TrackingSessionController',
          'functionName' => 'edit',
@@ -158,6 +176,9 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
           'trackingsession' => 'App\\Models\\TrackingSession',
           'request' => 'Illuminate\\Http\\Request',
+          'response' => 'Illuminate\\Http\\Response',
+          'view' => 'Illuminate\\View\\View',
+          'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
         ),
          'className' => 'App\\Http\\Controllers\\TrackingSessionController',
          'functionName' => 'update',
@@ -182,6 +203,9 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
           'trackingsession' => 'App\\Models\\TrackingSession',
           'request' => 'Illuminate\\Http\\Request',
+          'response' => 'Illuminate\\Http\\Response',
+          'view' => 'Illuminate\\View\\View',
+          'redirectresponse' => 'Illuminate\\Http\\RedirectResponse',
         ),
          'className' => 'App\\Http\\Controllers\\TrackingSessionController',
          'functionName' => 'destroy',
@@ -202,7 +226,7 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     ),
     1 => 
     array (
-      '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php' => '23b99b4b6a9e4531d295a079fc904f7a4649f83cf5dcf12f0c657d6c4ca532f2',
+      '/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingSessionController.php' => '9cfc193f32a87a24a7917bf8d5fdbd070ef34fd35a083414aaf14ddfcfcdd123',
     ),
   ),
 ));

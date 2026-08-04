@@ -2,7 +2,7 @@
 
 // odsl-/var/www/symbiot.npsoft.ro/app/Http/Controllers/TrackingController.php-PHPStan\BetterReflection\Reflection\ReflectionClass-App\Http\Controllers\TrackingController
 return \PHPStan\Cache\CacheItem::__set_state(array(
-   'variableKey' => 'v2-6.70.0.3-8.4.16-f4da344420d13912e7bccf7dad66358962386c2bda85c18fdd1bb6390446fe64',
+   'variableKey' => 'v2-6.70.0.3-8.4.16-db4356bc780228bcd3de6949e7a12e641626fcdbe3ebb8dbac5ba0b52abe3da4',
    'data' => 
   array (
     'locatedSource' => 
@@ -26,8 +26,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
     'attributes' => 
     array (
     ),
-    'startLine' => 11,
-    'endLine' => 225,
+    'startLine' => 16,
+    'endLine' => 238,
     'startColumn' => 1,
     'endColumn' => 1,
     'parentClassName' => 'App\\Http\\Controllers\\Controller',
@@ -52,15 +52,23 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
         array (
         ),
         'returnsReference' => false,
-        'returnType' => NULL,
+        'returnType' => 
+        array (
+          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+          'data' => 
+          array (
+            'name' => 'Illuminate\\View\\View',
+            'isIdentifier' => false,
+          ),
+        ),
         'attributes' => 
         array (
         ),
         'docComment' => '/**
  * Display a listing of the resource.
  */',
-        'startLine' => 16,
-        'endLine' => 19,
+        'startLine' => 21,
+        'endLine' => 24,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -98,8 +106,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 21,
-            'endLine' => 21,
+            'startLine' => 26,
+            'endLine' => 26,
             'startColumn' => 27,
             'endColumn' => 50,
             'parameterIndex' => 0,
@@ -107,13 +115,21 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           ),
         ),
         'returnsReference' => false,
-        'returnType' => NULL,
+        'returnType' => 
+        array (
+          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+          'data' => 
+          array (
+            'name' => 'Illuminate\\Http\\JsonResponse',
+            'isIdentifier' => false,
+          ),
+        ),
         'attributes' => 
         array (
         ),
         'docComment' => NULL,
-        'startLine' => 21,
-        'endLine' => 81,
+        'startLine' => 26,
+        'endLine' => 88,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -136,17 +152,25 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           array (
             'name' => 'z',
             'default' => NULL,
-            'type' => NULL,
+            'type' => 
+            array (
+              'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+              'data' => 
+              array (
+                'name' => 'int',
+                'isIdentifier' => true,
+              ),
+            ),
             'isVariadic' => false,
             'byRef' => false,
             'isPromoted' => false,
             'attributes' => 
             array (
             ),
-            'startLine' => 83,
-            'endLine' => 83,
+            'startLine' => 90,
+            'endLine' => 90,
             'startColumn' => 26,
-            'endColumn' => 27,
+            'endColumn' => 31,
             'parameterIndex' => 0,
             'isOptional' => false,
           ),
@@ -154,17 +178,25 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           array (
             'name' => 'x',
             'default' => NULL,
-            'type' => NULL,
+            'type' => 
+            array (
+              'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+              'data' => 
+              array (
+                'name' => 'int',
+                'isIdentifier' => true,
+              ),
+            ),
             'isVariadic' => false,
             'byRef' => false,
             'isPromoted' => false,
             'attributes' => 
             array (
             ),
-            'startLine' => 83,
-            'endLine' => 83,
-            'startColumn' => 30,
-            'endColumn' => 31,
+            'startLine' => 90,
+            'endLine' => 90,
+            'startColumn' => 34,
+            'endColumn' => 39,
             'parameterIndex' => 1,
             'isOptional' => false,
           ),
@@ -172,29 +204,45 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           array (
             'name' => 'y',
             'default' => NULL,
-            'type' => NULL,
+            'type' => 
+            array (
+              'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+              'data' => 
+              array (
+                'name' => 'int',
+                'isIdentifier' => true,
+              ),
+            ),
             'isVariadic' => false,
             'byRef' => false,
             'isPromoted' => false,
             'attributes' => 
             array (
             ),
-            'startLine' => 83,
-            'endLine' => 83,
-            'startColumn' => 34,
-            'endColumn' => 35,
+            'startLine' => 90,
+            'endLine' => 90,
+            'startColumn' => 42,
+            'endColumn' => 47,
             'parameterIndex' => 2,
             'isOptional' => false,
           ),
         ),
         'returnsReference' => false,
-        'returnType' => NULL,
+        'returnType' => 
+        array (
+          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+          'data' => 
+          array (
+            'name' => 'Illuminate\\Http\\Response',
+            'isIdentifier' => false,
+          ),
+        ),
         'attributes' => 
         array (
         ),
         'docComment' => NULL,
-        'startLine' => 83,
-        'endLine' => 98,
+        'startLine' => 90,
+        'endLine' => 105,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -232,8 +280,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 100,
-            'endLine' => 100,
+            'startLine' => 107,
+            'endLine' => 107,
             'startColumn' => 28,
             'endColumn' => 43,
             'parameterIndex' => 0,
@@ -241,13 +289,21 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           ),
         ),
         'returnsReference' => false,
-        'returnType' => NULL,
+        'returnType' => 
+        array (
+          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+          'data' => 
+          array (
+            'name' => 'Illuminate\\Http\\JsonResponse',
+            'isIdentifier' => false,
+          ),
+        ),
         'attributes' => 
         array (
         ),
         'docComment' => NULL,
-        'startLine' => 100,
-        'endLine' => 115,
+        'startLine' => 107,
+        'endLine' => 122,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -285,8 +341,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 117,
-            'endLine' => 117,
+            'startLine' => 124,
+            'endLine' => 124,
             'startColumn' => 27,
             'endColumn' => 42,
             'parameterIndex' => 0,
@@ -294,13 +350,21 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           ),
         ),
         'returnsReference' => false,
-        'returnType' => NULL,
+        'returnType' => 
+        array (
+          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+          'data' => 
+          array (
+            'name' => 'Illuminate\\Http\\JsonResponse',
+            'isIdentifier' => false,
+          ),
+        ),
         'attributes' => 
         array (
         ),
         'docComment' => NULL,
-        'startLine' => 117,
-        'endLine' => 138,
+        'startLine' => 124,
+        'endLine' => 145,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -338,8 +402,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 140,
-            'endLine' => 140,
+            'startLine' => 147,
+            'endLine' => 147,
             'startColumn' => 27,
             'endColumn' => 42,
             'parameterIndex' => 0,
@@ -347,13 +411,21 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           ),
         ),
         'returnsReference' => false,
-        'returnType' => NULL,
+        'returnType' => 
+        array (
+          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+          'data' => 
+          array (
+            'name' => 'Illuminate\\Http\\JsonResponse',
+            'isIdentifier' => false,
+          ),
+        ),
         'attributes' => 
         array (
         ),
         'docComment' => NULL,
-        'startLine' => 140,
-        'endLine' => 167,
+        'startLine' => 147,
+        'endLine' => 174,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -391,8 +463,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 169,
-            'endLine' => 169,
+            'startLine' => 176,
+            'endLine' => 176,
             'startColumn' => 26,
             'endColumn' => 41,
             'parameterIndex' => 0,
@@ -400,13 +472,21 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           ),
         ),
         'returnsReference' => false,
-        'returnType' => NULL,
+        'returnType' => 
+        array (
+          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+          'data' => 
+          array (
+            'name' => 'Illuminate\\Http\\JsonResponse',
+            'isIdentifier' => false,
+          ),
+        ),
         'attributes' => 
         array (
         ),
         'docComment' => NULL,
-        'startLine' => 169,
-        'endLine' => 186,
+        'startLine' => 176,
+        'endLine' => 193,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -444,8 +524,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 188,
-            'endLine' => 188,
+            'startLine' => 198,
+            'endLine' => 198,
             'startColumn' => 26,
             'endColumn' => 49,
             'parameterIndex' => 0,
@@ -453,13 +533,23 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           ),
         ),
         'returnsReference' => false,
-        'returnType' => NULL,
+        'returnType' => 
+        array (
+          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+          'data' => 
+          array (
+            'name' => 'Illuminate\\Database\\Eloquent\\Collection',
+            'isIdentifier' => false,
+          ),
+        ),
         'attributes' => 
         array (
         ),
-        'docComment' => NULL,
-        'startLine' => 188,
-        'endLine' => 195,
+        'docComment' => '/**
+ * @return Collection<int, Tracking>
+ */',
+        'startLine' => 198,
+        'endLine' => 205,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -497,8 +587,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 197,
-            'endLine' => 197,
+            'startLine' => 210,
+            'endLine' => 210,
             'startColumn' => 30,
             'endColumn' => 45,
             'parameterIndex' => 0,
@@ -506,13 +596,23 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           ),
         ),
         'returnsReference' => false,
-        'returnType' => NULL,
+        'returnType' => 
+        array (
+          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+          'data' => 
+          array (
+            'name' => 'Illuminate\\Database\\Eloquent\\Collection',
+            'isIdentifier' => false,
+          ),
+        ),
         'attributes' => 
         array (
         ),
-        'docComment' => NULL,
-        'startLine' => 197,
-        'endLine' => 209,
+        'docComment' => '/**
+ * @return Collection<int, TrackingSession>
+ */',
+        'startLine' => 210,
+        'endLine' => 222,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
@@ -550,8 +650,8 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
             'attributes' => 
             array (
             ),
-            'startLine' => 211,
-            'endLine' => 211,
+            'startLine' => 224,
+            'endLine' => 224,
             'startColumn' => 28,
             'endColumn' => 51,
             'parameterIndex' => 0,
@@ -559,13 +659,21 @@ return \PHPStan\Cache\CacheItem::__set_state(array(
           ),
         ),
         'returnsReference' => false,
-        'returnType' => NULL,
+        'returnType' => 
+        array (
+          'class' => 'PHPStan\\BetterReflection\\Reflection\\ReflectionNamedType',
+          'data' => 
+          array (
+            'name' => 'Illuminate\\Http\\JsonResponse',
+            'isIdentifier' => false,
+          ),
+        ),
         'attributes' => 
         array (
         ),
         'docComment' => NULL,
-        'startLine' => 211,
-        'endLine' => 224,
+        'startLine' => 224,
+        'endLine' => 237,
         'startColumn' => 5,
         'endColumn' => 5,
         'couldThrow' => false,
