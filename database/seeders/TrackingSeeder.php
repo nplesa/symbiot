@@ -83,7 +83,7 @@ class TrackingSeeder extends Seeder
     }
 
     /**
-     * @param array<int, array{0: float, 1: float}> $coordinates
+     * @param  array<int, array{0: float, 1: float}>  $coordinates
      * @return array<int, array{0: float, 1: float}>
      */
     private function samplePoints(
