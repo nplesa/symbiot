@@ -11,16 +11,50 @@ class TrackingSeeder extends Seeder
 {
     public function run(): void
     {
-        $start = [
-            25.758900,
-            45.642900,
+        $margins = [
+            [
+                'start' => [
+                    25.759500, // longitude Tărlungeni, Str. Zizinului 979A
+                    45.642700, // latitude
+                ],
+                'end' => [
+                    25.551000, // longitude Poiana Brașov
+                    45.595000, // latitude
+                ], 
+            ],
+            [
+                'start' => [
+                    25.759500, // longitude Tărlungeni, Str. Zizinului 979A
+                    45.642700, // latitude
+                ],
+                'end' => [
+                    25.458500, // longitude Centrul Târgoviște
+                    44.925000, // latitude
+                ], 
+            ],
         ];
 
-        $end = [
-            25.551000,
-            45.595000,
-        ];
+        $i = 0;
+        foreach ($margins as $margin) {
+            $i++;
+            $rows = $this->buildTrack($i, 
+                $margin['start'],
+                $margin['end']
+            );
 
+            DB::table('trackings')
+                ->insert($rows);
+            }
+    }
+
+
+    /**
+     * @param int $i
+     * @param array{0: float, 1: float} $start
+     * @param array{0: float, 1: float} $end
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildTrack(int $i, array $start, array $end): array {
         // OSRM route
         $url =
             'https://router.project-osrm.org/route/v1/driving/' .
@@ -33,8 +67,9 @@ class TrackingSeeder extends Seeder
             throw new \Exception('OSRM route failed');
         }
 
-        $geometry =
-            $response->json()['routes'][0]['geometry']['coordinates'];
+        $data = $response->json();
+
+        $geometry = $data['routes'][0]['geometry']['coordinates'];
 
         // luam 100 puncte egale
         $points = $this->samplePoints(
@@ -51,7 +86,7 @@ class TrackingSeeder extends Seeder
 
             $rows[] = [
 
-                'tracking_session_id' => 1,
+                'tracking_session_id' => $i,
 
                 'provider' => 'gps',
 
@@ -78,8 +113,7 @@ class TrackingSeeder extends Seeder
             ];
         }
 
-        DB::table('trackings')
-            ->insert($rows);
+        return $rows;
     }
 
     /**
