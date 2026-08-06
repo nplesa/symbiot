@@ -213,7 +213,7 @@ This project is licensed under the MIT License.
 
 ## Author
 
-Nicu Pleșa
+Nicolae Pleșa
 
 GitHub
 
