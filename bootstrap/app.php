@@ -12,8 +12,6 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        dd('1');
-
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         dd('2');
