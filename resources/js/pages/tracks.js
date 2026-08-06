@@ -70,24 +70,15 @@ class TrackMap {
         this.playerSource =
             new VectorSource();
 
-
         this.map = new Map({
-
             target: "track_map",
-
             layers: [
-
                 new TileLayer({
-
                     source: new XYZ({
-
                         url:
                         "/map/tiles/{z}/{x}/{y}"
-
                     })
-
                 }),
-
                 new VectorLayer({
                     source: this.trackSource
                 }),
@@ -99,28 +90,19 @@ class TrackMap {
                 new VectorLayer({
                     source: this.playerSource
                 })
-
             ],
-
             view: new View({
-
                 center:
                     fromLonLat([
                         25.6012,
                         45.6579
                     ]),
-
                 zoom: 12
-
             })
-
         });
-
     }
 
-
     fit(line) {
-
         this.map
             .getView()
             .fit(line, {
@@ -133,64 +115,43 @@ class TrackMap {
                 duration:700,
                 maxZoom:18
             });
-
     }
-
 
     clear() {
-
         this.trackSource.clear();
         this.markerSource.clear();
-
     }
-
 }
-
-
-
 
 // LOADER
 
 class TrackLoader {
 
-
     async sessions(date) {
-
         const r =
             await fetch(
                 `${API.sessions}?date=${date}`
             );
 
-
         if(!r.ok)
             throw Error("sessions");
 
-
         return r.json();
-
     }
 
-
-
     async points(id) {
-
         const r =
             await fetch(
                 `${API.points}/${id}/points`
             );
 
-
         if(!r.ok)
             throw Error("points");
-
 
         return this.normalize(
             await r.json()
         );
-
     }
-
-
 
     normalize(data) {
 
@@ -221,9 +182,7 @@ class TrackLoader {
                 !isNaN(p.latitude) &&
                 !isNaN(p.longitude)
             );
-
     }
-
 }
 
 // RENDER
@@ -234,9 +193,7 @@ class TrackRenderer {
         this.map = map;
     }
 
-
     draw(points) {
-
         const line =
             new LineString(
 
@@ -246,61 +203,40 @@ class TrackRenderer {
                         p.latitude
                     ])
                 )
-
             );
-
 
         const feature =
             new Feature({
                 geometry: line
             });
 
-
         feature.setStyle(
-
             new Style({
-
                 stroke: new Stroke({
-
                     color:"#0d6efd",
-
                     width:4
-
                 })
-
             })
-
         );
-
-
         this.map.trackSource
             .addFeature(feature);
 
-
         this.map.fit(line);
-
     }
-
 }
-
-
-
 
 // MARKERS
 
 class TrackMarkers {
 
-
     constructor(map) {
         this.map = map;
     }
-
 
     draw(points) {
 
         if(!points.length)
             return;
-
 
         [
             [points[0],"#198754"],
@@ -311,65 +247,40 @@ class TrackMarkers {
 
             const f =
                 new Feature({
-
                     geometry:
-
                         new Point(
-
                             fromLonLat([
                                 p.longitude,
                                 p.latitude
                             ])
-
                         )
-
                 });
 
-
             f.setStyle(
-
                 new Style({
-
                     image:
-
                         new Circle({
-
                             radius:8,
-
                             fill:
                                 new Fill({
                                     color
                                 })
-
                         })
-
                 })
-
             );
-
 
             this.map.markerSource
                 .addFeature(f);
-
         });
-
-
     }
-
 }
-
-
-
 
 // STATISTICS
 
 class TrackStatistics {
 
-
     calc(points) {
-
         let distance = 0;
-
 
         for(let i=1;i<points.length;i++)
         {
@@ -379,7 +290,6 @@ class TrackStatistics {
             );
         }
 
-
         return {
 
             distance:
@@ -388,12 +298,8 @@ class TrackStatistics {
 
             points:
                 points.length
-
         };
-
     }
-
-
 
     dist(a,b) {
 
@@ -404,12 +310,10 @@ class TrackStatistics {
             *
             Math.PI/180;
 
-
         const dLon =
             (b.longitude-a.longitude)
             *
             Math.PI/180;
-
 
         const x =
             Math.sin(dLat/2)**2 +
@@ -423,36 +327,25 @@ class TrackStatistics {
             *
             Math.sin(dLon/2)**2;
 
-
         return R *
             2 *
             Math.atan2(
                 Math.sqrt(x),
                 Math.sqrt(1-x)
             );
-
     }
-
 }
-
-
-
-
 
 // POPUP
 
 class TrackPopup {
 
-
     constructor(map) {
-
         const el =
             document.createElement("div");
 
-
         el.className =
             "track-popup";
-
 
         this.overlay =
             new Overlay({
@@ -466,19 +359,14 @@ class TrackPopup {
 
             });
 
-
         map.map.addOverlay(
             this.overlay
         );
 
         this.el = el;
-
     }
 
-
-
     show(point,pos) {
-
 
         this.el.innerHTML = `
 
@@ -491,61 +379,36 @@ class TrackPopup {
 
             Alt:
             ${point.altitude} m
-
         `;
-
 
         this.overlay
             .setPosition(pos);
-
     }
-
 }
-
-
-
-
-
-
 
 // PLAYER
 
 class TrackPlayer {
 
-
     constructor(map) {
-
         this.map = map;
-
         this.points=[];
-
         this.index=0;
-
         this.speed=1;
-
         this.running=false;
-
         this.marker=null;
-
     }
 
-
-
     load(points) {
-
         this.pause();
-
         this.points=points;
-
         this.index=0;
-
 
         if(this.marker)
         {
             this.map.playerSource
                 .removeFeature(this.marker);
         }
-
 
         this.marker =
             new Feature({
@@ -558,88 +421,47 @@ class TrackPlayer {
                             points[0].latitude
                         ])
                     )
-
             });
 
-
         this.marker.setStyle(
-
             new Style({
-
                 image:
-
                     new Circle({
-
                         radius:10,
-
                         fill:
                             new Fill({
                                 color:"#0d6efd"
                             })
-
                     })
-
             })
-
         );
-
-
         this.map.playerSource
             .addFeature(this.marker);
-
     }
 
-
-
-
-
     play() {
-
         if(!this.points.length)
             return;
 
-
         this.running=true;
-
         this.animate();
-
     }
-
-
-
-
 
     pause() {
-
         this.running=false;
-
     }
-
-
-
-
 
     reset() {
-
         this.pause();
-
         this.index=0;
-
         if(this.points.length)
             this.move(this.points[0]);
-
     }
-
-
-
-
-
 
     animate() {
 
         if(!this.running)
             return;
-
 
         if(this.index >= this.points.length-1)
         {
@@ -647,56 +469,32 @@ class TrackPlayer {
             return;
         }
 
-
         const a =
             this.points[this.index];
-
 
         const b =
             this.points[this.index+1];
 
-
         let start =
             performance.now();
 
-
-
         const step = now => {
-
 
             if(!this.running)
                 return;
-
 
             let t =
                 (now-start)
                 /
                 (1000/this.speed);
 
-
             if(t>1)
                 t=1;
 
-
-
             this.move({
-
-                latitude:
-                    a.latitude +
-                    (b.latitude-a.latitude)
-                    *
-                    t,
-
-
-                longitude:
-                    a.longitude +
-                    (b.longitude-a.longitude)
-                    *
-                    t
-
+                latitude:  a.latitude + (b.latitude-a.latitude) * t,
+                longitude: a.longitude + (b.longitude-a.longitude) * t
             });
-
-
 
             if(t<1)
             {
@@ -707,19 +505,11 @@ class TrackPlayer {
                 this.index++;
                 this.animate();
             }
-
         };
-
-
         requestAnimationFrame(step);
-
     }
 
-
-
-
     move(p) {
-
         this.marker
             .getGeometry()
             .setCoordinates(
@@ -728,79 +518,51 @@ class TrackPlayer {
                     p.longitude,
                     p.latitude
                 ])
-
             );
-
     }
-
-
 }
-
-
-
-
 
 // INIT
 
 const trackMap =
     new TrackMap();
 
-
 const loader =
     new TrackLoader();
-
 
 const renderer =
     new TrackRenderer(trackMap);
 
-
 const markers =
     new TrackMarkers(trackMap);
-
 
 const stats =
     new TrackStatistics();
 
-
 const popup =
     new TrackPopup(trackMap);
-
 
 const player =
     new TrackPlayer(trackMap);
 
-
-
 let currentPoints=[];
 
-
-
-
-
-
 // EVENTS
-
 
 trackDay?.addEventListener(
 "change",
 async e => {
-
     const sessions =
         await loader.sessions(
             e.target.value
         );
 
-
     trackSelect.innerHTML =
         '<option value="">Select</option>';
 
-
     sessions.forEach(s=>{
-
         const o =
             document.createElement("option");
-
-
         o.value=s.id;
 
         o.textContent =
@@ -808,46 +570,32 @@ async e => {
                 s.started_at
             )
             .toLocaleString();
-
-
         trackSelect.appendChild(o);
-
     });
-
 });
-
-
-
-
 
 trackSelect?.addEventListener(
 "change",
 async e=>{
-
 
     currentPoints =
         await loader.points(
             e.target.value
         );
 
-
     trackMap.clear();
-
 
     renderer.draw(
         currentPoints
     );
 
-
     markers.draw(
         currentPoints
     );
 
-
     player.load(
         currentPoints
     );
-
 
     if(statsBox)
     {
@@ -858,32 +606,22 @@ async e=>{
         km
         `;
     }
-
-
 });
-
-
-
-
-
 
 playButton?.addEventListener(
 "click",
 ()=>player.play()
 );
 
-
 pauseButton?.addEventListener(
 "click",
 ()=>player.pause()
 );
 
-
 resetButton?.addEventListener(
 "click",
 ()=>player.reset()
 );
-
 
 speedSelect?.addEventListener(
 "change",
@@ -891,9 +629,6 @@ e =>
 player.speed =
 Number(e.target.value)
 );
-
-
-
 
 // CLICK GPS
 
@@ -904,10 +639,8 @@ e=>{
     if(!currentPoints.length)
         return;
 
-
     popup.show(
         currentPoints[0],
         e.coordinate
     );
-
 });
