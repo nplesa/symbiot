@@ -16,6 +16,23 @@
                     <div class="content container">
                         <div class="page-header mb-0 pb-0 border-bottom-0">
                             <div class="row">
+                                <div class="col-12">
+                                
+                                    <div class="track-controls">
+                                        <button id="trackPlay"> ▶ </button>
+                                        <button id="trackPause"> ⏸ </button>
+                                        <button id="trackReset"> ⏮ </button>
+
+                                        <select id="trackSpeed">
+                                            <option value="1">1x</option>
+                                            <option value="2">2x</option>
+                                            <option value="5">5x</option>
+                                        </select>
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="row">
                                 <div class="col-md-3">
                                     <label class="form-label">Date</label>
                                     <input

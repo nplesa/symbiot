@@ -4,3 +4,102 @@
 	border: 1px solid #cdcdcd;
 	border-radius:5px;
 }
+
+/* =====================================================
+   TRACK MAP
+   ===================================================== */
+
+#track_map {
+    width: 100%;
+    height: 600px;
+    position: relative;
+}
+
+
+
+/* =====================================================
+   GPS POPUP
+   ===================================================== */
+
+.track-popup {
+
+    background: white;
+
+    padding: 12px;
+
+    border-radius: 8px;
+
+    box-shadow: 0 4px 15px rgba(0,0,0,.25);
+
+    font-size: 14px;
+
+    min-width: 180px;
+
+}
+
+
+
+/* =====================================================
+   TRACK STATS
+   ===================================================== */
+
+#trackStats {
+
+    display: flex;
+
+    gap: 15px;
+
+    flex-wrap: wrap;
+
+    margin-top: 10px;
+
+}
+
+
+#trackStats div {
+
+    background: #f8f9fa;
+
+    padding: 8px 12px;
+
+    border-radius: 6px;
+
+    font-size: 14px;
+
+}
+
+
+
+/* =====================================================
+   PLAYBACK CONTROLS
+   ===================================================== */
+
+.track-controls {
+
+    display: flex;
+
+    gap: 10px;
+
+    align-items: center;
+
+    margin-top: 10px;
+
+}
+
+
+
+.track-controls button {
+
+    cursor: pointer;
+
+    padding: 6px 14px;
+
+}
+
+
+
+.track-controls select {
+
+    padding: 6px;
+
+}

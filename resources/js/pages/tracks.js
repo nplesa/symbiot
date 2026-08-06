@@ -1,21 +1,9 @@
 /**
- * GPS Track Viewer
- *
- * Funcționalități:
- * - afișare hartă OpenLayers;
- * - încărcare sesiuni de tracking;
- * - afișare traseu GPS;
- * - colorare traseu după viteză;
- * - markere start/final;
- * - statistici traseu;
- * - popup informații punct GPS;
- * - pregătire pentru playback.
+ * =====================================================
+ * TRACKS.JS
+ * GPS TRACK VIEWER
+ * =====================================================
  */
-
-
-// =====================================================
-// IMPORTURI OPENLAYERS
-// =====================================================
 
 import Map from "ol/Map";
 import View from "ol/View";
@@ -34,693 +22,577 @@ import LineString from "ol/geom/LineString";
 import Overlay from "ol/Overlay";
 
 import {
-    Stroke,
     Style,
+    Stroke,
     Circle,
     Fill
 } from "ol/style";
 
-import { fromLonLat } from "ol/proj";
-
-
-
-// =====================================================
-// TIPURI DE DATE
-// =====================================================
-
-
-/**
- * Punct GPS primit de la server.
- *
- * @typedef {Object} TrackPoint
- *
- * @property {number} latitude
- * @property {number} longitude
- * @property {string} timestamp
- * @property {number} speed
- * @property {number} altitude
- */
-
-
-/**
- * Statistici traseu.
- *
- * @typedef {Object} TrackStats
- *
- * @property {string} distance
- * @property {string} duration
- * @property {string} avgSpeed
- * @property {string} maxSpeed
- * @property {string} elevation
- */
-
-
+import {
+    fromLonLat
+} from "ol/proj";
 
 // =====================================================
-// ELEMENTE HTML
+// CONFIG
 // =====================================================
 
 
-/**
- * Selector pentru ziua selectată.
- */
+const CONFIG =
+{
+
+    map:
+    {
+        center:
+        [
+            25.6012,
+            45.6579
+        ],
+        zoom: 12
+    },
+    api:
+    {
+        sessions: "/tracking/sessions",
+        points:   "/tracking"
+    }
+};
+
+// =====================================================
+// DOM
+// =====================================================
+
+
 const trackDay =
     document.getElementById(
         "trackDay"
     );
 
 
-
-/**
- * Selector pentru sesiunea GPS.
- */
 const trackSelect =
     document.getElementById(
         "trackDate"
     );
 
 
-
-/**
- * Container statistici.
- */
 const statsBox =
     document.getElementById(
         "trackStats"
     );
 
 
+const playButton =
+    document.getElementById(
+        "trackPlay"
+    );
+
+
+const pauseButton =
+    document.getElementById(
+        "trackPause"
+    );
+
+
+const resetButton =
+    document.getElementById(
+        "trackReset"
+    );
+
+
+const speedSelect =
+    document.getElementById(
+        "trackSpeed"
+    );
 
 
 // =====================================================
-// SURSE VECTOR
-// =====================================================
-
-
-/**
- * Sursă OpenLayers pentru segmentele traseului.
- */
-const trackSource =
-    new VectorSource();
-
-
-
-/**
- * Sursă OpenLayers pentru markere.
- */
-const markerSource =
-    new VectorSource();
-
-
-
-
-
-// =====================================================
-// LAYERE
-// =====================================================
-
-
-/**
- * Layer traseu GPS.
- */
-const trackLayer =
-    new VectorLayer({
-
-        source:
-            trackSource
-
-    });
-
-
-
-/**
- * Layer markere start/final.
- */
-const markerLayer =
-    new VectorLayer({
-
-        source:
-            markerSource
-
-    });
-
-
-
-
-// =====================================================
-// HARTA
+// MAP CLASS
 // =====================================================
 
 
 /**
- * Instanța principală OpenLayers.
+ * Gestionează harta OpenLayers.
  */
-const map =
-    new Map({
+class TrackMap
+{
+    constructor()
+    {
+        this.trackSource    = new VectorSource();
+        this.markerSource   = new VectorSource();
+        this.playerSource   = new VectorSource();
 
-        target:
-            "track_map",
-
-
-        layers:[
-
-            new TileLayer({
-
+        this.trackLayer =
+            new VectorLayer({
                 source:
-                    new XYZ({
-
-                        url:
-                            "/map/tiles/{z}/{x}/{y}"
-
-                    })
-
-            }),
-
-
-            trackLayer,
-
-            markerLayer
-
-        ],
-
-
-        view:
-            new View({
-
-                center:
-                    fromLonLat([
-
-                        25.6012,
-                        45.6579
-
-                    ]),
-
-
-                zoom:
-                    12
-
-            })
-
-    });
-
-
-
-
-// =====================================================
-// VARIABILE GLOBALE TRACKING
-// =====================================================
-
-
-/**
- * Controller pentru anularea requesturilor.
- *
- * Evită afișarea unui traseu vechi
- * când utilizatorul schimbă rapid selecția.
- */
-let controller = null;
-
-
-
-/**
- * Ultimul traseu încărcat.
- *
- * Folosit pentru:
- * - popup;
- * - playback.
- *
- * @type {TrackPoint[]}
- */
-let currentTrackPoints = [];
-
-
-
-/**
- * Popup OpenLayers.
- */
-let popupOverlay = null;
-
-
-
-// =====================================================
-// LOAD SESIUNI
-// =====================================================
-
-
-/**
- * Încarcă sesiunile disponibile pentru o zi.
- *
- * Endpoint:
- *
- * GET /tracking/sessions?date=YYYY-MM-DD
- *
- * @async
- *
- * @param {string} date
- *
- * @returns {Promise<void>}
- */
-async function loadSessions(date)
-{
-
-    trackSelect.innerHTML =
-        `
-        <option>
-            Loading...
-        </option>
-        `;
-
-
-    try
-    {
-
-        const response =
-            await fetch(
-                `/tracking/sessions?date=${date}`
-            );
-
-
-
-        if(!response.ok)
-        {
-            throw new Error(
-                "Unable to load sessions"
-            );
-        }
-
-
-
-        const sessions =
-            await response.json();
-
-
-
-        trackSelect.innerHTML =
-            `
-            <option value="">
-                Select Track
-            </option>
-            `;
-
-
-
-        if(!sessions.length)
-        {
-
-            trackSelect.innerHTML =
-                `
-                <option>
-                    No tracks found
-                </option>
-                `;
-
-            return;
-
-        }
-
-
-
-
-        sessions.forEach(session =>
-        {
-
-            const option =
-                document.createElement(
-                    "option"
-                );
-
-
-            option.value =
-                session.id;
-
-
-
-            option.textContent =
-                `${formatDate(session.started_at)}
-                 -
-                 ${formatTime(session.ended_at)}`;
-
-
-
-            trackSelect.appendChild(
-                option
-            );
-
-        });
-
-
-
-    }
-    catch(error)
-    {
-
-        console.error(error);
-
-
-        trackSelect.innerHTML =
-            `
-            <option>
-                Error loading tracks
-            </option>
-            `;
-
-    }
-
-}
-
-
-
-
-// =====================================================
-// LOAD TRACK
-// =====================================================
-
-
-/**
- * Încarcă punctele GPS ale unei sesiuni.
- *
- * Endpoint:
- *
- * GET /tracking/{sessionId}/points
- *
- * @async
- *
- * @param {number|string} sessionId
- *
- * @returns {Promise<void>}
- */
-async function drawTrack(sessionId)
-{
-
-
-    if(controller)
-    {
-        controller.abort();
-    }
-
-
-
-    controller =
-        new AbortController();
-
-
-
-    try
-    {
-
-
-        const response =
-            await fetch(
-
-                `/tracking/${sessionId}/points`,
-
-                {
-
-                    signal:
-                        controller.signal
-
-                }
-
-            );
-
-
-
-        if(!response.ok)
-        {
-            throw new Error(
-                "Unable to load track"
-            );
-        }
-
-
-
-        /**
-         * @type {TrackPoint[]}
-         */
-        const points =
-            await response.json();
-
-
-
-
-        const validPoints =
-            points.filter(point =>
-
-                point.latitude !== null &&
-
-                point.longitude !== null
-
-            );
-
-
-
-
-        if(!validPoints.length)
-        {
-            return;
-        }
-
-
-
-
-        currentTrackPoints =
-            validPoints;
-
-
-
-        clearMap();
-
-
-
-        drawSpeedTrack(
-            validPoints
-        );
-
-
-        drawMarkers(
-            validPoints
-        );
-
-
-        showStats(
-            calculateStats(
-                validPoints
-            )
-        );
-
-
-
-
-        const coordinates =
-            validPoints.map(point =>
-
-                fromLonLat([
-
-                    Number(point.longitude),
-
-                    Number(point.latitude)
-
-                ])
-
-            );
-
-
-
-
-        map.getView().fit(
-
-            new LineString(
-                coordinates
-            ),
-
-            {
-
-                padding:[
-                    60,
-                    60,
-                    60,
-                    60
+                    this.trackSource
+            });
+
+        this.markerLayer =
+            new VectorLayer({
+                source:
+                    this.markerSource
+            });
+
+        this.playerLayer =
+            new VectorLayer({
+                source:
+                    this.playerSource
+            });
+
+        this.map =
+            new Map({
+                target:
+                    "track_map",
+                layers:
+                [
+                    new TileLayer({
+                        source:
+                            new XYZ({
+                                url:
+                                    "/map/tiles/{z}/{x}/{y}"
+                            })
+                    }),
+                    this.trackLayer,
+                    this.markerLayer,
+                    this.playerLayer
                 ],
-
-                duration:
-                    700,
-
-                maxZoom:
-                    18
-
+                view:
+                    new View({
+                        center:
+                            fromLonLat(
+                                CONFIG.map.center
+                            ),
+                        zoom:
+                            CONFIG.map.zoom
+                    }
+                )
             }
+        );
+    }
+
+    /**
+     * Centrează harta pe traseu.
+     *
+     * @param {LineString} geometry
+     */
+    fit(geometry)
+    {
+        this.map
+            .getView()
+            .fit(
+                geometry,
+                {
+                    padding:
+                    [
+                        60,
+                        60,
+                        60,
+                        60
+                    ],
+                    duration: 700,
+                    maxZoom: 18
+                }
+            );
+    }
+
+
+    /**
+     * Curăță traseul și markerii.
+     */
+    clear()
+    {
+        this.trackSource.clear();
+        this.markerSource.clear();
+    }
+}
+
+
+// =====================================================
+// LOADER CLASS
+// =====================================================
+
+
+/**
+ * Încarcă date GPS din backend.
+ */
+class TrackLoader
+{
+
+    constructor()
+    {
+       this.controller = null;
+    }
+
+    /**
+     * Încarcă sesiunile unei zile.
+     *
+     * @param {string} date
+     *
+     * @returns {Promise<Array>}
+     */
+    async sessions(date)
+    {
+        const response =
+            await fetch(
+                `${CONFIG.api.sessions}?date=${date}`
+            );
+        if(!response.ok)
+        {
+            throw new Error(
+                "Sessions error"
+            );
+        }
+        return await response.json();
+
+    }
+
+    /**
+     * Încarcă punctele unui traseu.
+     *
+     * @param {number|string} id
+     *
+     * @returns {Promise<Array>}
+     */
+    async points(id)
+    {
+        if(this.controller)
+        {
+            this.controller.abort();
+        }
+
+        this.controller = new AbortController();
+        const response =
+            await fetch(
+                `${CONFIG.api.points}/${id}/points`,
+                {
+                    signal:
+                        this.controller.signal
+                }
+            );
+
+        if(!response.ok)
+        {
+            throw new Error(
+                "Track error"
+            );
+        }
+
+        const data = await response.json();
+        return this.normalize(data);
+    }
+
+    /**
+     * Normalizează date GPS.
+     *
+     * @param {Array} points
+     *
+     * @returns {Array}
+     */
+    normalize(points)
+    {
+        return points
+            .filter(point =>
+                point.latitude !== null &&
+                point.longitude !== null
+            )
+            .map(point =>
+            ({
+                latitude:
+                    Number(
+                        point.latitude
+                    ),
+                longitude:
+                    Number(
+                        point.longitude
+                    ),
+                speed:
+                    Number(
+                        point.speed || 0
+                    ),
+                altitude:
+                    Number(
+                        point.altitude || 0
+                    ),
+                timestamp:
+                    new Date(
+                        point.timestamp
+                    )
+            }
+        ));
+    }
+}
+
+// =====================================================
+// RENDERER CLASS
+// =====================================================
+
+
+/**
+ * Desenează traseul GPS pe hartă.
+ */
+class TrackRenderer
+{
+    /**
+     * @param {TrackMap} map
+     */
+    constructor(map)
+    {
+        this.map = map;
+    }
+
+    /**
+     * Desenează traseul segment cu segment.
+     *
+     * Fiecare segment primește culoare
+     * în funcție de viteză.
+     *
+     * @param {Array} points
+     */
+    draw(points)
+    {
+        for(
+            let i = 1;
+            i < points.length;
+            i++
+        )
+        {
+            const previous  = points[i - 1];
+            const current   = points[i];
+            const geometry =
+                new LineString([
+                    fromLonLat([
+                        previous.longitude,
+                        previous.latitude
+                    ]),
+                    fromLonLat([
+                        current.longitude,
+                        current.latitude
+                    ])
+                ]);
+
+            const feature =
+                new Feature({
+                    geometry
+                });
+
+            feature.setStyle(
+                this.style(
+                    current.speed
+                )
+            );
+
+            this.map.trackSource.addFeature(
+                feature
+            );
+        }
+
+
+
+
+
+
+        const fullLine =
+            new LineString(
+                points.map(point =>
+                    fromLonLat([
+                        point.longitude,
+                        point.latitude
+                    ])
+                )
+            );
+
+        this.map.fit(
+            fullLine
+        );
+    }
+
+    /**
+     * Stil traseu după viteză.
+     *
+     * @param {number} speed
+     *
+     * @returns {Style}
+     */
+    style(speed)
+    {
+
+
+        let color = "#dc3545";
+        if(speed > 20)
+        {
+            color = "#198754";
+        }
+        else if(speed > 5)
+        {
+            color = "#ffc107";
+        }
+
+        return new Style({
+            stroke:
+                new Stroke({
+                    color,
+                    width: 4
+                }
+            )
+        });
+    }
+}
+
+// =====================================================
+// MARKERS CLASS
+// =====================================================
+
+
+/**
+ * Gestionează markerii start/final.
+ */
+class TrackMarkers
+{
+
+
+    /**
+     * @param {TrackMap} map
+     */
+    constructor(map)
+    {
+
+        this.map =
+            map;
+
+    }
+
+
+
+
+
+
+    /**
+     * Desenează markerii.
+     *
+     * @param {Array} points
+     */
+    draw(points)
+    {
+
+
+        if(!points.length)
+        {
+            return;
+        }
+
+
+
+
+
+
+        this.map.markerSource.addFeature(
+
+            this.create(
+
+                points[0],
+
+                "#198754"
+
+            )
+
+        );
+
+
+
+
+
+
+        this.map.markerSource.addFeature(
+
+            this.create(
+
+                points.at(-1),
+
+                "#dc3545"
+
+            )
 
         );
 
 
     }
-    catch(error)
-    {
-
-        if(error.name !== "AbortError")
-        {
-            console.error(error);
-        }
-
-    }
-
-}
-
-// =====================================================
-// DESENARE TRASEU DUPĂ VITEZĂ
-// =====================================================
 
 
-/**
- * Desenează traseul GPS segment cu segment.
- *
- * Fiecare segment primește o culoare
- * în funcție de viteza de deplasare.
- *
- * Culori:
- * - roșu    = staționare / viteză mică
- * - galben   = deplasare medie
- * - verde    = deplasare rapidă
- *
- * @param {TrackPoint[]} points
- *
- * @returns {void}
- */
-function drawSpeedTrack(points)
-{
 
-    for(let i = 1; i < points.length; i++)
+
+
+
+    /**
+     * Creează marker.
+     *
+     * @param {Object} point
+     *
+     * @param {string} color
+     *
+     * @returns {Feature}
+     */
+    create(point,color)
     {
 
 
-        const previous =
-            points[i - 1];
+        const feature =
 
-
-        const current =
-            points[i];
-
-
-
-        const start =
-            fromLonLat([
-
-                Number(previous.longitude),
-
-                Number(previous.latitude)
-
-            ]);
-
-
-
-        const end =
-            fromLonLat([
-
-                Number(current.longitude),
-
-                Number(current.latitude)
-
-            ]);
-
-
-
-
-        const segment =
             new Feature({
 
                 geometry:
 
-                    new LineString([
+                    new Point(
 
-                        start,
+                        fromLonLat([
 
-                        end
+                            point.longitude,
 
-                    ])
+                            point.latitude
+
+                        ])
+
+                    )
 
             });
 
 
 
 
-        segment.setStyle(
-
-            speedStyle(
-                current.speed
-            )
-
-        );
 
 
+        feature.setStyle(
 
-        trackSource.addFeature(
-            segment
-        );
+            new Style({
 
-    }
+                image:
 
-}
+                    new Circle({
 
-
-
-
-// =====================================================
-// STYLE SEGMENT
-// =====================================================
+                        radius:
+                            8,
 
 
-/**
- * Creează stilul unui segment
- * în funcție de viteză.
- *
- * @param {number} speed
- *
- * @returns {Style}
- */
-function speedStyle(speed)
-{
+                        fill:
 
-    speed =
-        Number(speed || 0);
+                            new Fill({
 
+                                color
 
+                            })
 
-    let color =
-        "#dc3545";
-
-
-
-    if(speed > 20)
-    {
-
-        color =
-            "#198754";
-
-    }
-    else if(speed > 5)
-    {
-
-        color =
-            "#ffc107";
-
-    }
-
-
-
-
-    return new Style({
-
-        stroke:
-
-            new Stroke({
-
-                color,
-
-                width:
-                    4
+                    })
 
             })
 
-    });
+        );
+
+
+
+
+
+
+        return feature;
+
+    }
+
 
 }
 
@@ -728,302 +600,135 @@ function speedStyle(speed)
 
 
 
-// =====================================================
-// MARKERE START / FINAL
-// =====================================================
-
-
-/**
- * Creează markerii de început
- * și sfârșit ai traseului.
- *
- * @param {TrackPoint[]} points
- *
- * @returns {void}
- */
-function drawMarkers(points)
-{
-
-    const start =
-        points[0];
-
-
-
-    const finish =
-        points[
-            points.length - 1
-        ];
-
-
-
-
-    markerSource.addFeature(
-
-        createMarker(
-
-            start,
-
-            "#198754"
-
-        )
-
-    );
-
-
-
-    markerSource.addFeature(
-
-        createMarker(
-
-            finish,
-
-            "#dc3545"
-
-        )
-
-    );
-
-}
-
-
-
-
-
-/**
- * Creează un marker OpenLayers.
- *
- * @param {TrackPoint} point
- *
- * @param {string} color
- *
- * @returns {Feature}
- */
-function createMarker(point, color)
-{
-
-
-    const marker =
-        new Feature({
-
-            geometry:
-
-                new Point(
-
-                    fromLonLat([
-
-                        Number(point.longitude),
-
-                        Number(point.latitude)
-
-                    ])
-
-                )
-
-        });
-
-
-
-
-
-    marker.setStyle(
-
-        new Style({
-
-            image:
-
-                new Circle({
-
-                    radius:
-                        8,
-
-
-                    fill:
-
-                        new Fill({
-
-                            color
-
-                        })
-
-                })
-
-        })
-
-    );
-
-
-
-
-    return marker;
-
-}
 
 
 
 
 // =====================================================
-// STATISTICI TRACK
+// STATISTICS CLASS
 // =====================================================
 
 
 /**
- * Calculează informațiile principale
- * despre traseu.
- *
- * Calcule:
- * - distanță totală;
- * - durată;
- * - viteză medie;
- * - viteză maximă;
- * - urcare acumulată.
- *
- * @param {TrackPoint[]} points
- *
- * @returns {TrackStats}
+ * Calculează statisticile traseului.
  */
-function calculateStats(points)
+class TrackStatistics
 {
 
 
-    let distance =
-        0;
-
-
-
-    let maxSpeed =
-        0;
-
-
-
-    let elevation =
-        0;
-
-
-
-
-
-    for(let i = 1; i < points.length; i++)
+    /**
+     * Calculează statistici.
+     *
+     * @param {Array} points
+     *
+     * @returns {Object}
+     */
+    calculate(points)
     {
 
 
-        distance +=
-
-            haversine(
-
-                points[i - 1],
-
-                points[i]
-
-            );
+        let distance =
+            0;
 
 
+        let elevation =
+            0;
 
 
-
-        maxSpeed =
-
-            Math.max(
-
-                maxSpeed,
-
-                Number(
-                    points[i].speed || 0
-                )
-
-            );
+        let maxSpeed =
+            0;
 
 
 
 
 
 
-        const altitudeDifference =
-
-            Number(
-                points[i].altitude || 0
-            )
-
-            -
-
-            Number(
-                points[i - 1].altitude || 0
-            );
-
-
-
-
-        if(altitudeDifference > 0)
+        for(
+            let i = 1;
+            i < points.length;
+            i++
+        )
         {
 
-            elevation +=
-                altitudeDifference;
+
+            distance +=
+
+                this.haversine(
+
+                    points[i - 1],
+
+                    points[i]
+
+                );
+
+
+
+
+
+            maxSpeed =
+
+                Math.max(
+
+                    maxSpeed,
+
+                    points[i].speed
+
+                );
+
+
+
+
+
+
+            const diff =
+
+                points[i].altitude -
+
+                points[i-1].altitude;
+
+
+
+
+
+            if(diff > 0)
+            {
+                elevation +=
+                    diff;
+            }
+
 
         }
 
 
-    }
 
 
 
 
+        const seconds =
 
-    const duration =
-
-        (
-
-            new Date(
+            (
 
                 points.at(-1).timestamp
 
-            )
-
-            -
-
-            new Date(
+                -
 
                 points[0].timestamp
 
             )
 
-        )
+            /
 
-        /
-
-        1000;
+            1000;
 
 
 
 
 
-    return {
 
 
-        distance:
+        return {
 
-            (
-
-                distance / 1000
-
-            )
-
-            .toFixed(2),
-
-
-
-
-        duration:
-
-            formatDuration(
-                duration
-            ),
-
-
-
-
-
-        avgSpeed:
-
-            (
+            distance:
 
                 (
 
@@ -1031,285 +736,495 @@ function calculateStats(points)
 
                 )
 
-                /
+                .toFixed(2),
+
+
+
+
+            duration:
+
+                this.formatDuration(
+
+                    seconds
+
+                ),
+
+
+
+
+            avgSpeed:
 
                 (
 
-                    duration / 3600
+                    (
+
+                        distance / 1000
+
+                    )
+
+                    /
+
+                    (
+
+                        seconds / 3600
+
+                    )
 
                 )
 
-            )
+                .toFixed(1),
 
-            .toFixed(1),
 
 
 
+            maxSpeed:
 
-        maxSpeed:
+                maxSpeed.toFixed(1),
 
-            maxSpeed.toFixed(1),
 
 
 
+            elevation:
 
+                elevation.toFixed(0)
 
-        elevation:
+        };
 
-            elevation.toFixed(0)
 
-    };
+    }
 
 
-}
 
 
 
 
 
-// =====================================================
-// DISTANȚĂ GPS - HAVERSINE
-// =====================================================
 
-
-/**
- * Calculează distanța dintre două puncte GPS.
- *
- * Rezultat:
- * metri.
- *
- * @param {TrackPoint} a
- *
- * @param {TrackPoint} b
- *
- * @returns {number}
- */
-function haversine(a, b)
-{
-
-
-    const earthRadius =
-        6371000;
-
-
-
-
-    const lat1 =
-
-        a.latitude *
-
-        Math.PI /
-
-        180;
-
-
-
-
-    const lat2 =
-
-        b.latitude *
-
-        Math.PI /
-
-        180;
-
-
-
-
-
-    const deltaLat =
-
-        (
-
-            b.latitude -
-
-            a.latitude
-
-        )
-
-        *
-
-        Math.PI /
-
-        180;
-
-
-
-
-
-    const deltaLon =
-
-        (
-
-            b.longitude -
-
-            a.longitude
-
-        )
-
-        *
-
-        Math.PI /
-
-        180;
-
-
-
-
-
-    const value =
-
-
-        Math.sin(
-            deltaLat / 2
-        )
-
-        ** 2
-
-
-
-        +
-
-
-
-        Math.cos(lat1)
-
-        *
-
-        Math.cos(lat2)
-
-        *
-
-        Math.sin(
-            deltaLon / 2
-        )
-
-        ** 2;
-
-
-
-
-
-    return
-
-
-        earthRadius
-
-        *
-
-        2
-
-        *
-
-        Math.atan2(
-
-            Math.sqrt(value),
-
-            Math.sqrt(1 - value)
-
-        );
-
-}
-
-// =====================================================
-// POPUP GPS
-// =====================================================
-
-
-/**
- * Creează popup-ul OpenLayers.
- *
- * Popup-ul este folosit pentru afișarea
- * informațiilor unui punct GPS.
- *
- * @returns {void}
- */
-function createPopup()
-{
-
-    const element =
-        document.createElement(
-            "div"
-        );
-
-
-    element.className =
-        "track-popup";
-
-
-
-    popupOverlay =
-        new Overlay({
-
-            element,
-
-            positioning:
-                "bottom-center",
-
-            offset:[
-                0,
-                -15
-            ],
-
-            stopEvent:
-                false
-
-        });
-
-
-
-    map.addOverlay(
-        popupOverlay
-    );
-
-}
-
-
-
-
-// Inițializare popup după crearea hărții
-createPopup();
-
-
-
-
-
-// =====================================================
-// CLICK PE HARTĂ
-// =====================================================
-
-
-/**
- * Eveniment click pe hartă.
- *
- * Caută punctul GPS cel mai apropiat
- * de poziția selectată și afișează
- * informațiile lui.
- */
-map.on(
-    "click",
-    event =>
+    /**
+     * Formula Haversine.
+     *
+     * @returns {number}
+     */
+    haversine(a,b)
     {
 
 
-        if(!currentTrackPoints.length)
-        {
-            return;
-        }
+        const R =
+            6371000;
+
+
+
+        const lat1 =
+
+            a.latitude *
+
+            Math.PI /
+
+            180;
+
+
+
+        const lat2 =
+
+            b.latitude *
+
+            Math.PI /
+
+            180;
 
 
 
 
-        const point =
-            findNearestPoint(
-                event.coordinate
+        const dLat =
+
+            (
+
+                b.latitude -
+
+                a.latitude
+
+            )
+
+            *
+
+            Math.PI /
+
+            180;
+
+
+
+
+
+        const dLon =
+
+            (
+
+                b.longitude -
+
+                a.longitude
+
+            )
+
+            *
+
+            Math.PI /
+
+            180;
+
+
+
+
+
+
+        const x =
+
+            Math.sin(dLat/2) ** 2
+
+            +
+
+            Math.cos(lat1)
+
+            *
+
+            Math.cos(lat2)
+
+            *
+
+            Math.sin(dLon/2) ** 2;
+
+
+
+
+
+
+
+        return
+
+            R *
+
+            2 *
+
+            Math.atan2(
+
+                Math.sqrt(x),
+
+                Math.sqrt(1-x)
+
+            );
+
+
+    }
+
+
+
+
+
+
+    /**
+     * Formatare durată.
+     *
+     * @param {number} seconds
+     *
+     * @returns {string}
+     */
+    formatDuration(seconds)
+    {
+
+
+        const h =
+
+            Math.floor(
+
+                seconds / 3600
+
+            );
+
+
+
+        const m =
+
+            Math.floor(
+
+                seconds % 3600 / 60
+
             );
 
 
 
 
 
-        if(!point)
+        return `${h}h ${m}m`;
+
+    }
+
+
+}
+
+
+
+
+
+
+
+
+// =====================================================
+// POPUP CLASS
+// =====================================================
+
+
+/**
+ * Popup pentru punct GPS.
+ */
+class TrackPopup
+{
+
+
+    /**
+     * @param {TrackMap} map
+     */
+    constructor(map)
+    {
+
+
+        this.map =
+            map;
+
+
+        this.overlay =
+            null;
+
+
+
+        this.init();
+
+    }
+
+
+
+
+
+
+    /**
+     * Inițializează popup.
+     */
+    init()
+    {
+
+
+        const element =
+
+            document.createElement(
+                "div"
+            );
+
+
+
+        element.className =
+            "track-popup";
+
+
+
+
+
+        this.overlay =
+
+            new Overlay({
+
+                element,
+
+                positioning:
+                    "bottom-center",
+
+
+                offset:
+                [
+                    0,
+                    -15
+                ]
+
+            });
+
+
+
+
+
+        this.map.map.addOverlay(
+
+            this.overlay
+
+        );
+
+
+    }
+
+
+
+
+
+
+    /**
+     * Afișează punct.
+     *
+     * @param {Object} point
+     *
+     * @param {Array} coordinate
+     */
+    show(point,coordinate)
+    {
+
+
+        const element =
+
+            this.overlay.getElement();
+
+
+
+
+
+        element.innerHTML = `
+
+            <strong>
+                GPS Point
+            </strong>
+
+            <br>
+
+            🕒
+            ${point.timestamp.toLocaleString()}
+
+            <br>
+
+            🚗
+            ${point.speed.toFixed(1)}
+            km/h
+
+            <br>
+
+            ⛰
+            ${point.altitude}
+            m
+
+        `;
+
+
+
+
+
+        this.overlay.setPosition(
+
+            coordinate
+
+        );
+
+
+    }
+
+
+}
+
+// =====================================================
+// PLAYER CLASS
+// =====================================================
+
+
+/**
+ * Motor playback traseu GPS.
+ *
+ * Folosește requestAnimationFrame
+ * pentru mișcare fluidă.
+ */
+class TrackPlayer
+{
+
+
+    /**
+     * @param {TrackMap} map
+     */
+    constructor(map)
+    {
+
+
+        this.map =
+            map;
+
+
+        this.points =
+            [];
+
+
+        this.marker =
+            null;
+
+
+        this.index =
+            0;
+
+
+        this.running =
+            false;
+
+
+        this.frame =
+            null;
+
+
+        this.speed =
+            1;
+
+
+    }
+
+
+
+
+
+
+
+    /**
+     * Încarcă traseul.
+     *
+     * @param {Array} points
+     */
+    load(points)
+    {
+
+
+        this.points =
+            points;
+
+
+        this.index =
+            0;
+
+
+        this.createMarker();
+
+
+
+        if(points.length)
+        {
+            this.moveTo(
+                points[0]
+            );
+        }
+
+
+    }
+
+
+
+
+
+
+
+    /**
+     * Creează marker playback.
+     */
+    createMarker()
+    {
+
+
+        if(this.marker)
         {
             return;
         }
@@ -1318,34 +1233,577 @@ map.on(
 
 
 
-        showPointInfo(
+        this.marker =
 
-            point,
+            new Feature({
 
-            event.coordinate
+                geometry:
+
+                    new Point(
+
+                        fromLonLat([
+
+                            0,
+
+                            0
+
+                        ])
+
+                    )
+
+            });
+
+
+
+
+
+
+        this.marker.setStyle(
+
+            new Style({
+
+                image:
+
+                    new Circle({
+
+                        radius:
+                            10,
+
+
+                        fill:
+
+                            new Fill({
+
+                                color:
+                                    "#0d6efd"
+
+                            })
+
+                    })
+
+            })
+
+        );
+
+
+
+
+
+
+        this.map.playerSource.addFeature(
+
+            this.marker
 
         );
 
 
     }
-);
+
+
+
+
+
+
+
+
+    /**
+     * Start playback.
+     */
+    play()
+    {
+
+
+        console.log("PLAY pressed");
+        console.log("points:", this.points.length);
+        console.log("index:", this.index);
+
+        if(!this.points.length)
+        {
+            console.warn("No points loaded");
+            return;
+        }
+
+        this.running =
+            true;
+
+
+
+        this.animate();
+
+
+    }
+
+
+
+
+
+
+    /**
+     * Stop playback.
+     */
+    pause()
+    {
+
+
+        this.running =
+            false;
+
+
+
+
+        if(this.frame)
+        {
+
+            cancelAnimationFrame(
+
+                this.frame
+
+            );
+
+        }
+
+    }
+
+
+
+
+
+
+    /**
+     * Reset playback.
+     */
+    reset()
+    {
+
+
+        this.pause();
+
+
+        this.index =
+            0;
+
+
+
+        if(this.points.length)
+        {
+
+            this.moveTo(
+
+                this.points[0]
+
+            );
+
+        }
+
+
+    }
+
+
+
+
+
+
+    /**
+     * Animația principală.
+     */
+    animate()
+    {
+
+
+        if(!this.running)
+        {
+            return;
+        }
+
+
+
+
+
+        if(
+            this.index >=
+            this.points.length - 1
+        )
+        {
+
+            this.pause();
+
+            return;
+
+        }
+
+
+
+
+
+
+        const start =
+
+            this.points[
+                this.index
+            ];
+
+
+
+        const end =
+
+            this.points[
+                this.index + 1
+            ];
+
+
+
+
+
+
+
+        const duration =
+
+            Math.max(
+
+                (
+
+                    end.timestamp -
+
+                    start.timestamp
+
+                )
+
+                /
+
+                this.speed,
+
+
+                500
+
+            );
+
+
+
+
+
+        const begin =
+            performance.now();
+
+
+
+
+
+
+
+        const step =
+
+            now =>
+            {
+
+
+                const progress =
+
+                    Math.min(
+
+                        (
+
+                            now -
+
+                            begin
+
+                        )
+
+                        /
+
+                        duration,
+
+
+                        1
+
+                    );
+
+
+
+
+
+                const position =
+
+                    this.interpolate(
+
+                        start,
+
+                        end,
+
+                        progress
+
+                    );
+
+
+
+
+
+
+                this.moveTo(
+
+                    position
+
+                );
+
+
+
+
+
+
+                if(progress < 1)
+                {
+
+                    this.frame =
+
+                        requestAnimationFrame(
+
+                            step
+
+                        );
+
+                }
+                else
+                {
+
+                    this.index++;
+
+
+                    this.animate();
+
+                }
+
+
+            };
+
+
+
+
+
+
+        this.frame =
+
+            requestAnimationFrame(
+
+                step
+
+            );
+
+
+    }
+
+
+
+
+
+
+
+    /**
+     * Interpolare coordonate.
+     *
+     * @returns {Object}
+     */
+    interpolate(a,b,t)
+    {
+
+
+        return {
+
+            latitude:
+
+                a.latitude +
+
+                (
+
+                    b.latitude -
+
+                    a.latitude
+
+                )
+
+                *
+
+                t,
+
+
+
+            longitude:
+
+                a.longitude +
+
+                (
+
+                    b.longitude -
+
+                    a.longitude
+
+                )
+
+                *
+
+                t
+
+
+        };
+
+
+    }
+
+
+
+
+
+
+
+    /**
+     * Mută marker.
+     *
+     * @param {Object} point
+     */
+    moveTo(point)
+    {
+
+
+        if(!this.marker)
+        {
+            return;
+        }
+
+
+
+        this.marker
+
+            .getGeometry()
+
+            .setCoordinates(
+
+                fromLonLat([
+
+                    point.longitude,
+
+                    point.latitude
+
+                ])
+
+            );
+
+
+    }
+
+
+}
+
+
 
 
 
 
 
 // =====================================================
-// IDENTIFICARE PUNCT APROPIAT
+// INITIALIZARE UNICĂ
+// =====================================================
+
+
+const trackMap =
+    new TrackMap();
+
+
+const loader =
+    new TrackLoader();
+
+
+const renderer =
+    new TrackRenderer(
+        trackMap
+    );
+
+
+const markers =
+    new TrackMarkers(
+        trackMap
+    );
+
+
+const statistics =
+    new TrackStatistics();
+
+
+const popup =
+    new TrackPopup(
+        trackMap
+    );
+
+
+const player =
+    new TrackPlayer(
+        trackMap
+    );
+
+
+
+
+
+let currentPoints = [];
+
+
+
+
+
+
+
+// =====================================================
+// HELPERS UI
 // =====================================================
 
 
 /**
- * Găsește punctul GPS cel mai apropiat
- * de coordonata selectată pe hartă.
+ * Actualizează statisticile.
  *
- * @param {number[]} coordinate
- *
- * @returns {TrackPoint|null}
+ * @param {Object} data
+ */
+function showStats(data)
+{
+
+
+    if(!statsBox)
+    {
+        return;
+    }
+
+
+
+
+    statsBox.innerHTML = `
+
+        <div>
+            📏 ${data.distance} km
+        </div>
+
+        <div>
+            ⏱ ${data.duration}
+        </div>
+
+        <div>
+            🚗 ${data.avgSpeed} km/h
+        </div>
+
+        <div>
+            ⚡ ${data.maxSpeed} km/h
+        </div>
+
+        <div>
+            ⛰ ${data.elevation} m
+        </div>
+
+    `;
+
+}
+
+
+
+
+
+
+/**
+ * Caută punct GPS apropiat.
  */
 function findNearestPoint(coordinate)
 {
@@ -1355,25 +1813,24 @@ function findNearestPoint(coordinate)
         null;
 
 
-
-    let minimumDistance =
+    let min =
         Infinity;
 
 
 
 
 
-    currentTrackPoints.forEach(point =>
+    currentPoints.forEach(point =>
     {
 
 
-        const pointCoordinate =
+        const gps =
 
             fromLonLat([
 
-                Number(point.longitude),
+                point.longitude,
 
-                Number(point.latitude)
+                point.latitude
 
             ]);
 
@@ -1388,7 +1845,7 @@ function findNearestPoint(coordinate)
                 Math.pow(
 
                     coordinate[0] -
-                    pointCoordinate[0],
+                    gps[0],
 
                     2
 
@@ -1399,7 +1856,7 @@ function findNearestPoint(coordinate)
                 Math.pow(
 
                     coordinate[1] -
-                    pointCoordinate[1],
+                    gps[1],
 
                     2
 
@@ -1411,11 +1868,10 @@ function findNearestPoint(coordinate)
 
 
 
-
-        if(distance < minimumDistance)
+        if(distance < min)
         {
 
-            minimumDistance =
+            min =
                 distance;
 
 
@@ -1439,359 +1895,238 @@ function findNearestPoint(coordinate)
 
 
 
-// =====================================================
-// AFIȘARE INFORMAȚII PUNCT
-// =====================================================
-
-
-/**
- * Afișează datele punctului selectat.
- *
- * @param {TrackPoint} point
- *
- * @param {number[]} coordinate
- *
- * @returns {void}
- */
-function showPointInfo(point, coordinate)
-{
-
-
-    const element =
-        popupOverlay.getElement();
-
-
-
-
-    element.innerHTML = `
-
-        <div>
-
-            <strong>
-                GPS Point
-            </strong>
-
-            <br><br>
-
-
-            🕒
-            ${formatDate(point.timestamp)}
-
-
-            <br>
-
-
-            🚗
-            ${Number(point.speed || 0)
-                .toFixed(1)}
-            km/h
-
-
-            <br>
-
-
-            ⛰
-            ${Number(point.altitude || 0)}
-            m
-
-
-            <br>
-
-
-            📍
-            ${Number(point.latitude)
-                .toFixed(6)},
-
-            ${Number(point.longitude)
-                .toFixed(6)}
-
-        </div>
-
-    `;
-
-
-
-
-    popupOverlay.setPosition(
-        coordinate
-    );
-
-}
-
-
 
 
 
 // =====================================================
-// HELPERS
+// EVENTS
 // =====================================================
 
 
-/**
- * Curăță traseul și markerii.
- *
- * @returns {void}
- */
-function clearMap()
-{
+trackDay?.addEventListener(
 
-    trackSource.clear();
+    "change",
 
-    markerSource.clear();
-
-}
-
-
-
-
-/**
- * Afișează statisticile traseului.
- *
- * @param {TrackStats} stats
- *
- * @returns {void}
- */
-function showStats(stats)
-{
-
-    if(!statsBox)
+    async event =>
     {
-        return;
-    }
+
+
+        const date =
+            event.target.value;
+
+
+
+        if(!date)
+        {
+            return;
+        }
+
+
+
+        const sessions =
+
+            await loader.sessions(
+
+                date
+
+            );
 
 
 
 
-    statsBox.innerHTML = `
+        trackSelect.innerHTML =
 
-
-        <div>
-            📏
-            ${stats.distance} km
-        </div>
-
-
-        <div>
-            ⏱
-            ${stats.duration}
-        </div>
-
-
-        <div>
-            🚗
-            ${stats.avgSpeed} km/h
-        </div>
-
-
-        <div>
-            ⚡
-            ${stats.maxSpeed} km/h
-        </div>
-
-
-        <div>
-            ⛰
-            ${stats.elevation} m
-        </div>
-
-
-    `;
-
-}
-
-
-
-
-/**
- * Formatează data.
- *
- * @param {string|Date} value
- *
- * @returns {string}
- */
-function formatDate(value)
-{
-
-    return new Date(value)
-        .toLocaleString();
-
-}
+            `
+            <option value="">
+                Select Track
+            </option>
+            `;
 
 
 
 
 
-/**
- * Formatează ora.
- *
- * @param {string|Date} value
- *
- * @returns {string}
- */
-function formatTime(value)
-{
+        sessions.forEach(session =>
+        {
 
-    if(!value)
-    {
-        return "...";
-    }
+
+            const option =
+
+                document.createElement(
+                    "option"
+                );
 
 
 
-    return new Date(value)
-        .toLocaleTimeString([], {
+            option.value =
+                session.id;
 
-            hour:
-                "2-digit",
 
-            minute:
-                "2-digit"
+
+            option.textContent =
+
+                new Date(
+
+                    session.started_at
+
+                )
+
+                .toLocaleString();
+
+
+
+
+            trackSelect.appendChild(
+                option
+            );
+
 
         });
 
-}
+
+    }
+
+);
+
+
+trackSelect?.addEventListener(
+
+    "change",
+
+    async event =>
+    {
+
+
+        const id =
+            event.target.value;
 
 
 
+        if(!id)
+        {
+            return;
+        }
 
+        currentPoints =
 
-/**
- * Formatează durata.
- *
- * @param {number} seconds
- *
- * @returns {string}
- */
-function formatDuration(seconds)
-{
+            await loader.points(
 
-    const hours =
-        Math.floor(
-            seconds / 3600
+                id
+
+            );
+
+        trackMap.clear();
+
+        renderer.draw(
+
+            currentPoints
+
         );
 
+        markers.draw(
 
+            currentPoints
 
-    const minutes =
-        Math.floor(
+        );
 
-            (
+        showStats(
 
-                seconds % 3600
+            statistics.calculate(
+
+                currentPoints
 
             )
 
-            /
-
-            60
-
         );
 
+        player.load(
 
+            currentPoints
 
-    return `${hours}h ${minutes}m`;
-
-}
-
-
-
-
-// =====================================================
-// EVENIMENTE UI
-// =====================================================
-
-
-/**
- * Schimbare zi.
- *
- * Încarcă sesiunile disponibile.
- */
-trackDay?.addEventListener(
-    "change",
-    event =>
-    {
-
-        if(!event.target.value)
-        {
-            return;
-        }
-
-
-
-        loadSessions(
-            event.target.value
         );
-
-
     }
 );
 
+trackMap.map.on(
 
+    "click",
 
-
-
-/**
- * Schimbare sesiune.
- *
- * Desenează traseul selectat.
- */
-trackSelect?.addEventListener(
-    "change",
     event =>
     {
 
 
-        if(!event.target.value)
+        const point =
+
+            findNearestPoint(
+
+                event.coordinate
+
+            );
+
+        if(point)
         {
 
-            clearMap();
+            popup.show(
 
-            currentTrackPoints = [];
+                point,
 
-            return;
+                event.coordinate
 
+            );
         }
+    }
+);
 
+playButton?.addEventListener(
 
+    "click",
 
+    () =>
+    {
 
-        drawTrack(
-            event.target.value
-        );
-
+        player.play();
 
     }
 );
 
+pauseButton?.addEventListener(
 
+    "click",
 
+    () =>
+    {
 
+        player.pause();
 
-// =====================================================
-// PLAYBACK - PLACEHOLDER
-// =====================================================
+    }
+);
 
+resetButton?.addEventListener(
 
-/**
- * Punct de extensie pentru playback.
- *
- * Datele necesare există deja:
- *
- * currentTrackPoints
- *
- * Următorul pas:
- *
- * - marker animat;
- * - sincronizare timestamp;
- * - butoane Play/Pause.
- *
- * @returns {void}
- */
-function startPlayback()
-{
+    "click",
 
-    console.log(
-        "Playback ready"
-    );
+    () =>
+    {
 
-}
+        player.reset();
+
+    }
+);
+
+speedSelect?.addEventListener(
+
+    "change",
+
+    event =>
+    {
+
+        player.speed =
+
+            Number(
+
+                event.target.value
+
+            );
+
+    }
+);
