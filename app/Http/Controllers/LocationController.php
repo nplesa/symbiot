@@ -20,7 +20,7 @@ class LocationController extends Controller
 
         return response()->json([
             'success' => true,
-            'tracking' => $user->tracking,
+            'location' => $user->location,
         ]);
     }
 

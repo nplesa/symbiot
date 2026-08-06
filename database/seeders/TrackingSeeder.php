@@ -20,7 +20,7 @@ class TrackingSeeder extends Seeder
                 'end' => [
                     25.551000, // longitude Poiana Brașov
                     45.595000, // latitude
-                ], 
+                ],
             ],
             [
                 'start' => [
@@ -30,31 +30,30 @@ class TrackingSeeder extends Seeder
                 'end' => [
                     25.458500, // longitude Centrul Târgoviște
                     44.925000, // latitude
-                ], 
+                ],
             ],
         ];
 
         $i = 0;
         foreach ($margins as $margin) {
             $i++;
-            $rows = $this->buildTrack($i, 
+            $rows = $this->buildTrack($i,
                 $margin['start'],
                 $margin['end']
             );
 
             DB::table('trackings')
                 ->insert($rows);
-            }
+        }
     }
 
-
     /**
-     * @param int $i
-     * @param array{0: float, 1: float} $start
-     * @param array{0: float, 1: float} $end
+     * @param  array{0: float, 1: float}  $start
+     * @param  array{0: float, 1: float}  $end
      * @return array<int, array<string, mixed>>
      */
-    private function buildTrack(int $i, array $start, array $end): array {
+    private function buildTrack(int $i, array $start, array $end): array
+    {
         // OSRM route
         $url =
             'https://router.project-osrm.org/route/v1/driving/' .

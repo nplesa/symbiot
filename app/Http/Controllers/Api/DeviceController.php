@@ -23,7 +23,6 @@ class DeviceController extends Controller
             'battery' => ['nullable', 'integer', 'min:0', 'max:100'],
         ]);
 
-
         $device = Device::where('uuid', $data['uuid'])->firstOrFail();
 
         if ($device && $device->user_id !== $request->user()->id) {

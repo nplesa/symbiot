@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TrackingSession extends Model
 {
+    public $timestamps = false;
+
     protected $fillable = [
         'user_id',
         'started_at',
