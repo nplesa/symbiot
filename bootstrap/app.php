@@ -4,10 +4,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
-
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__ . '/../routes/web.php',
@@ -16,15 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        RateLimiter::for('login', function (Request $request) {
-            return [
-                Limit::perMinute(5)->by(
-                    strtolower($request->input('email')).'|'.$request->ip()
-                ),
-            ];
-        });
+        dd('1');
+
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        dd('2');
         $exceptions->render(function (
             \Illuminate\Http\Exceptions\ThrottleRequestsException $e
         ) {
