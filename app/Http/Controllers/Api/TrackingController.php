@@ -55,8 +55,8 @@ class TrackingController extends Controller
         $data = $request->validate([
             'session_id' => ['required', 'integer', 'exists:tracking_sessions,id'],
 
-            'latitude' => ['required', 'numeric'],
-            'longitude' => ['required', 'numeric'],
+            'latitude' => ['required','numeric','between:-90,90'],
+            'longitude' => ['required','numeric','between:-180,180'],
 
             'accuracy' => ['nullable', 'numeric'],
             'speed' => ['nullable', 'numeric'],

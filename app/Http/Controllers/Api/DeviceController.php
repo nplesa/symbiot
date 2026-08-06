@@ -19,9 +19,16 @@ class DeviceController extends Controller
             'device_name' => ['nullable', 'string', 'max:100'],
             'os_version' => ['nullable', 'string', 'max:50'],
             'app_version' => ['nullable', 'string', 'max:50'],
-            'push_token' => ['nullable', 'string'],
+            'push_token' => ['nullable', 'string', 'max:1000'],
             'battery' => ['nullable', 'integer', 'min:0', 'max:100'],
         ]);
+
+
+        $device = Device::where('uuid', $data['uuid'])->firstOrFail();
+
+        if ($device && $device->user_id !== $request->user()->id) {
+            abort(409);
+        }
 
         $device = Device::updateOrCreate(
             [
