@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\TrackingController;
+use App\Http\Controllers\PlannedRouteController;
 use Illuminate\Support\Facades\Route;
+
 
 Route::prefix('v1')->group(function () {
 
@@ -13,60 +15,145 @@ Route::prefix('v1')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post(
+        '/login',
+        [AuthController::class, 'login']
+    )
+    ->middleware('throttle:login');
 
-    Route::middleware('auth:sanctum')->group(function () {
 
-        Route::post('/logout', [AuthController::class, 'logout']);
+    Route::middleware('auth:sanctum')
+        ->group(function () {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Device
-        |--------------------------------------------------------------------------
-        */
 
-        Route::prefix('device')
-            ->controller(DeviceController::class)
-            ->group(function () {
+            /*
+            |--------------------------------------------------------------------------
+            | Logout
+            |--------------------------------------------------------------------------
+            */
 
-                Route::get('/', 'show');
+            Route::post(
+                '/logout',
+                [AuthController::class, 'logout']
+            );
 
-                Route::post('/register', 'register');
 
-                Route::put('/', 'update');
+            /*
+            |--------------------------------------------------------------------------
+            | Device
+            |--------------------------------------------------------------------------
+            */
 
-            });
+            Route::prefix('device')
+                ->controller(DeviceController::class)
+                ->group(function () {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Tracking
-        |--------------------------------------------------------------------------
-        */
+                    Route::get(
+                        '/',
+                        'show'
+                    );
 
-        Route::prefix('tracking')
-            ->controller(TrackingController::class)
-            ->group(function () {
+                    Route::post(
+                        '/register',
+                        'register'
+                    );
 
-                Route::get('/status', 'status');
+                    Route::put(
+                        '/',
+                        'update'
+                    );
 
-                Route::get('/sessions', 'sessions');
+                });
 
-                Route::get('/{session}', 'show');
 
-                Route::get('/{session}/points', 'points');
+            /*
+            |--------------------------------------------------------------------------
+            | Tracking
+            |--------------------------------------------------------------------------
+            */
 
-                Route::get('/{session}/route', 'route');
+            Route::prefix('tracking')
+                ->group(function () {
 
-                Route::post('/start', 'start');
 
-                Route::post('/location', 'location');
+                    /*
+                    |--------------------------------------------------------------------------
+                    | GPS Tracking
+                    |--------------------------------------------------------------------------
+                    */
 
-                Route::post('/stop', 'stop');
+                    Route::controller(TrackingController::class)
+                        ->group(function () {
 
-                Route::delete('/{session}', 'destroy');
+                            Route::get(
+                                '/status',
+                                'status'
+                            );
 
-            });
+                            Route::get(
+                                '/sessions',
+                                'sessions'
+                            );
 
-    });
+                            Route::post(
+                                '/start',
+                                'start'
+                            );
+
+                            Route::post(
+                                '/location',
+                                'location'
+                            );
+
+                            Route::post(
+                                '/stop',
+                                'stop'
+                            );
+
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Replay / Route
+                            |--------------------------------------------------------------------------
+                            */
+
+                            Route::get(
+                                '/{session}',
+                                'show'
+                            );
+
+                            Route::get(
+                                '/{session}/points',
+                                'points'
+                            );
+
+                            Route::get(
+                                '/{session}/route',
+                                'route'
+                            );
+
+
+                            Route::delete(
+                                '/{session}',
+                                'destroy'
+                            );
+
+                        });
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Planned Routes
+                    |--------------------------------------------------------------------------
+                    */
+
+                    Route::post(
+                        '/planned',
+                        [PlannedRouteController::class, 'store']
+                    );
+
+                });
+
+        });
 
 });

@@ -2,107 +2,30 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use App\Models\Tracking;
 use App\Models\TrackingSession;
-use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Http;
-use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
 
 class TrackingController extends Controller
 {
+
     /**
-     * Display a listing of the resource.
+     * Pornește sau oprește tracking-ul pentru utilizatorul autentificat.
+     *
+     * La pornirea tracking-ului:
+     * - activează tracking-ul pe utilizator;
+     * - creează o sesiune nouă de tracking.
+     *
+     * La oprirea tracking-ului:
+     * - dezactivează tracking-ul;
+     * - închide sesiunea activă prin completarea câmpului ended_at.
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
-    public function index(): View
-    {
-        return view('tracking.index');
-    }
-
-    public function route(TrackingSession $session): JsonResponse
-    {
-        abort_if($session->user_id !== auth()->id(), 403);
-
-        $points = $session->trackings()
-            ->orderBy('tracked_at')
-            ->get([
-                'latitude',
-                'longitude',
-            ]);
-
-        if ($points->count() < 2) {
-            return response()->json([
-                'type' => 'FeatureCollection',
-                'features' => [],
-            ]);
-        }
-
-        /** @var array<int, array{0: float, 1: float}> $coordinates */
-        $coordinates = [];
-
-        /** @var array{0: float, 1: float}|null $last */
-        $last = null;
-
-        foreach ($points as $point) {
-
-            $current = [
-                round((float) $point->longitude, 6),
-                round((float) $point->latitude, 6),
-            ];
-
-            if ($current !== $last) {
-                $coordinates[] = $current;
-                $last = $current;
-            }
-        }
-
-        if (count($coordinates) < 2) {
-            return response()->json([
-                'type' => 'FeatureCollection',
-                'features' => [],
-            ]);
-        }
-
-        $response = Http::timeout(20)
-            ->post(
-                'https://api.geoapify.com/v1/routing?apiKey=' . config('services.geoapify.key'),
-                [
-                    'mode' => 'drive',
-                    'waypoints' => $coordinates,
-                    'details' => ['instruction_details'],
-                ]
-            );
-
-        if (! $response->successful()) {
-            return response()->json([
-                'message' => 'Geoapify routing failed.',
-                'error' => $response->body(),
-            ], 500);
-        }
-
-        return response()->json($response->json());
-    }
-
-    public function tile(int $z, int $x, int $y): Response
-    {
-        $url = sprintf(
-            'https://maps.geoapify.com/v1/tile/osm-carto/%d/%d/%d.png?apiKey=%s',
-            $z,
-            $x,
-            $y,
-            config('services.geoapify.key')
-        );
-
-        $response = Http::get($url);
-
-        return response($response->body(), $response->status())
-            ->header('Content-Type', 'image/png')
-            ->header('Cache-Control', 'public, max-age=86400');
-    }
-
     public function toggle(Request $request): JsonResponse
     {
         $request->validate([
@@ -111,57 +34,86 @@ class TrackingController extends Controller
 
         $user = $request->user();
 
-        $user->tracking = $request->boolean('trackingmyself');
+        $tracking = $request->boolean('trackingmyself');
+
+        $user->tracking = $tracking;
         $user->save();
 
-        return response()->json([
-            'success' => true,
-            'tracking' => $user->tracking,
-        ]);
-    }
+        if ($tracking) {
 
-    public function start(Request $request): JsonResponse
-    {
-        // dacă există deja o sesiune activă nu mai creez alta
-        if (session()->has('tracking_session_id')) {
+            // Evită crearea mai multor sesiuni active pentru același user
+            $activeSession = TrackingSession::where('user_id', $user->id)
+                ->whereNull('ended_at')
+                ->latest('started_at')
+                ->first();
+
+            if (! $activeSession) {
+                $activeSession = TrackingSession::create([
+                    'user_id' => $user->id,
+                    'started_at' => now(),
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
+                'tracking' => true,
+                'session_id' => $activeSession->id,
             ]);
         }
 
-        $session = TrackingSession::create([
-            'user_id' => auth()->id(),
-            'started_at' => now(),
-        ]);
 
-        session([
-            'tracking_session_id' => $session->id,
-        ]);
+        // Oprire tracking
+        $activeSession = TrackingSession::where('user_id', $user->id)
+            ->whereNull('ended_at')
+            ->latest('started_at')
+            ->first();
+
+        if ($activeSession) {
+            $activeSession->update([
+                'ended_at' => now(),
+            ]);
+        }
 
         return response()->json([
             'success' => true,
+            'tracking' => false,
         ]);
     }
 
+
+    /**
+     * Salvează un punct GPS în sesiunea activă de tracking.
+     *
+     * Punctul GPS este asociat automat cu ultima sesiune
+     * activă a utilizatorului autentificat.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
     public function point(Request $request): JsonResponse
     {
         $request->validate([
-            'latitude' => 'required|numeric',
-            'longitude' => 'required|numeric',
-            'tracked_at' => 'required|date',
+            'latitude' => ['required', 'numeric'],
+            'longitude' => ['required', 'numeric'],
+            'tracked_at' => ['required', 'date'],
         ]);
 
-        $sessionId = session('tracking_session_id');
+        $user = $request->user();
 
-        if (! $sessionId) {
+        $session = TrackingSession::where('user_id', $user->id)
+            ->whereNull('ended_at')
+            ->latest('started_at')
+            ->first();
+
+        if (! $session) {
             return response()->json([
                 'success' => false,
                 'message' => 'No active tracking session.',
             ], 409);
         }
 
-        Tracking::create([
-            'tracking_session_id' => $sessionId,
+        $point = Tracking::create([
+            'tracking_session_id' => $session->id,
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'tracked_at' => $request->tracked_at,
@@ -169,69 +121,278 @@ class TrackingController extends Controller
 
         return response()->json([
             'success' => true,
+            'point_id' => $point->id,
         ]);
     }
 
-    public function stop(Request $request): JsonResponse
+    /**
+     * Returnează statusul tracking-ului curent.
+     */
+    public function status(Request $request)
     {
-        $sessionId = session('tracking_session_id');
+        $session = TrackingSession::where('user_id', $request->user()->id)
+            ->whereNull('ended_at')
+            ->latest('started_at')
+            ->first();
 
-        if ($sessionId) {
+        return response()->json([
+            'active' => (bool) $session,
+            'session' => $session,
+        ]);
+    }
 
-            TrackingSession::whereKey($sessionId)
-                ->update([
-                    'ended_at' => now(),
-                ]);
 
-            session()->forget('tracking_session_id');
+    /**
+     * Lista sesiunilor utilizatorului.
+     */
+    public function sessions(Request $request)
+    {
+        $sessions = TrackingSession::where(
+                'user_id',
+                $request->user()->id
+            )
+            ->latest('started_at')
+            ->get();
+
+        return response()->json($sessions);
+    }
+
+
+    /**
+     * Detalii sesiune.
+     */
+    public function show(
+        Request $request,
+        TrackingSession $session
+    ) {
+        $this->authorizeSession($request, $session);
+
+        return response()->json($session);
+    }
+
+
+    /**
+     * Returnează punctele unei sesiuni.
+     */
+    public function points(
+        Request $request,
+        TrackingSession $session
+    ) {
+        $this->authorizeSession($request, $session);
+
+        $points = $session
+            ->trackings()
+            ->ordered()
+            ->get();
+
+        return response()->json($points);
+    }
+
+
+    /**
+     * Returnează traseul pentru hartă.
+     *
+     * Pentru trasee planificate folosește GeoJSON.
+     * Pentru GPS construiește LineString.
+     */
+    public function route(
+        Request $request,
+        TrackingSession $session
+    ) {
+        $this->authorizeSession($request, $session);
+
+
+        if ($session->isPlanned()) {
+
+            return response()->json([
+                'type' => 'Feature',
+                'geometry' => $session->route_geojson,
+            ]);
         }
+
+
+        $coordinates = $session
+            ->trackings()
+            ->orderBy('tracked_at')
+            ->get()
+            ->map(function (Tracking $point) {
+
+                return [
+                    $point->longitude,
+                    $point->latitude,
+                ];
+
+            });
+
+
+        return response()->json([
+            'type' => 'Feature',
+            'geometry' => [
+                'type' => 'LineString',
+                'coordinates' => $coordinates,
+            ],
+        ]);
+    }
+
+
+    /**
+     * Pornește un tracking GPS.
+     */
+    public function start(Request $request)
+    {
+        $session = TrackingSession::create([
+
+            'user_id' => $request->user()->id,
+
+            'device_id' => $request->device_id,
+
+            'type' => 'gps',
+
+            'status' => 'active',
+
+            'started_at' => now(),
+
+        ]);
+
+
+        return response()->json($session, 201);
+    }
+
+
+    /**
+     * Primește o poziție GPS.
+     */
+    public function location(Request $request)
+    {
+        $data = $request->validate([
+
+            'tracking_session_id' => [
+                'required',
+                'exists:tracking_sessions,id',
+            ],
+
+            'latitude' => [
+                'required',
+                'numeric',
+            ],
+
+            'longitude' => [
+                'required',
+                'numeric',
+            ],
+
+            'accuracy' => [
+                'nullable',
+                'numeric',
+            ],
+
+            'speed' => [
+                'nullable',
+                'numeric',
+            ],
+
+            'heading' => [
+                'nullable',
+                'numeric',
+            ],
+
+            'altitude' => [
+                'nullable',
+                'numeric',
+            ],
+
+        ]);
+
+
+        $tracking = Tracking::create([
+
+            'tracking_session_id' =>
+                $data['tracking_session_id'],
+
+            'type' => 'gps',
+
+            'source' => 'device',
+
+            ...$data,
+
+            'tracked_at' => now(),
+
+        ]);
+
+
+        return response()->json($tracking, 201);
+    }
+
+
+    /**
+     * Oprește tracking-ul.
+     */
+    public function stop(
+        Request $request
+    ) {
+
+        $session = TrackingSession::where(
+                'user_id',
+                $request->user()->id
+            )
+            ->whereNull('ended_at')
+            ->latest('started_at')
+            ->firstOrFail();
+
+
+        $session->update([
+
+            'ended_at' => now(),
+
+            'status' => 'completed',
+
+        ]);
+
+
+        return response()->json($session);
+    }
+
+
+    /**
+     * Șterge o sesiune.
+     */
+    public function destroy(
+        Request $request,
+        TrackingSession $session
+    ) {
+        $this->authorizeSession($request, $session);
+
+
+        DB::transaction(function () use ($session) {
+
+            $session
+                ->trackings()
+                ->delete();
+
+            $session
+                ->delete();
+
+        });
+
 
         return response()->json([
             'success' => true,
         ]);
     }
 
-    /**
-     * @return Collection<int, Tracking>
-     */
-    public function show(TrackingSession $session): Collection
-    {
-        abort_if($session->user_id !== auth()->id(), 403);
-
-        return $session->trackings()
-            ->orderBy('tracked_at')
-            ->get();
-    }
 
     /**
-     * @return Collection<int, TrackingSession>
+     * Verifică proprietarul sesiunii.
      */
-    public function sessions(Request $request): Collection
-    {
-        $date = Carbon::parse($request->date);
+    private function authorizeSession(
+        Request $request,
+        TrackingSession $session
+    ): void {
 
-        return TrackingSession::where('user_id', auth()->id())
-            ->whereDate('started_at', $date)
-            ->orderBy('started_at')
-            ->get([
-                'id',
-                'started_at',
-                'ended_at',
-            ]);
-    }
-
-    public function points(TrackingSession $session): JsonResponse
-    {
-        abort_if($session->user_id !== auth()->id(), 403);
-
-        return response()->json(
-            $session->trackings()
-                ->orderBy('tracked_at')
-                ->get([
-                    'latitude',
-                    'longitude',
-                    'tracked_at',
-                ])
+        abort_unless(
+            $session->user_id === $request->user()->id,
+            403
         );
+
     }
 }
