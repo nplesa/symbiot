@@ -71,4 +71,99 @@ class UpdateLocationTest extends TestCase
         $this->post('/location/update')
             ->assertRedirect('/login');
     }
+
+    public function test_latitude_must_be_between_minus_90_and_90(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/location/update', [
+                'lat' => 91,
+                'lon' => 25.0,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('lat');
+    }
+
+    public function test_latitude_cannot_be_less_than_minus_90(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/location/update', [
+                'lat' => -91,
+                'lon' => 25.0,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('lat');
+    }
+
+    public function test_longitude_must_be_between_minus_180_and_180(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/location/update', [
+                'lat' => 45.0,
+                'lon' => 181,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('lon');
+    }
+
+    public function test_longitude_cannot_be_less_than_minus_180(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/location/update', [
+                'lat' => 45.0,
+                'lon' => -181,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('lon');
+    }
+
+    public function test_heading_must_be_between_zero_and_360(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/location/update', [
+                'lat' => 45.0,
+                'lon' => 25.0,
+                'heading' => 361,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('heading');
+    }
+
+    public function test_heading_cannot_be_negative(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/location/update', [
+                'lat' => 45.0,
+                'lon' => 25.0,
+                'heading' => -1,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('heading');
+    }
+
+    public function test_active_must_be_boolean(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/location/update', [
+                'lat' => 45.0,
+                'lon' => 25.0,
+                'active' => 'not-a-boolean',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('active');
+    }
+
 }

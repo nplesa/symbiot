@@ -26,6 +26,14 @@ class LocationController extends Controller
 
     public function update(Request $request): JsonResponse
     {
+        $request->validate(
+            [ 
+                'lat' => ['required', 'numeric', 'between:-90,90'], 
+                'lon' => ['required', 'numeric', 'between:-180,180'], 
+                'heading' => ['nullable', 'numeric', 'between:0,360'], 
+                'active' => ['nullable', 'boolean'], 
+            ]);
+
         $user = auth()->user();
 
         cache()->put(

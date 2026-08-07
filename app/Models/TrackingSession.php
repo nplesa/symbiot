@@ -12,15 +12,23 @@ class TrackingSession extends Model
 
     protected $fillable = [
         'user_id',
+        'device_id',
+        'status',
         'started_at',
         'ended_at',
+        'duration',
+        'distance',
+        'route_geojson',
         'processed_at',
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
-        'processed_at' => 'datetime',
         'ended_at' => 'datetime',
+        'processed_at' => 'datetime',
+        'duration' => 'integer',
+        'distance' => 'float',
+        'route_geojson' => 'array',
     ];
 
     /**
