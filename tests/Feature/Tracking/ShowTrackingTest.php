@@ -32,9 +32,8 @@ class ShowTrackingTest extends TestCase
             ->actingAs($user)
             ->get(route('app.tracking.show', $session));
 
-        $response->assertOk();
-
-        $this->assertCount(1, $response->json());
+        $response->assertOk()
+            ->assertJsonPath('id', $session->id);
     }
 
     public function test_user_cannot_view_other_users_tracking(): void

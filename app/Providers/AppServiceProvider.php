@@ -30,5 +30,17 @@ class AppServiceProvider extends ServiceProvider
                 ),
             ];
         });
+
+        RateLimiter::for('device-register', function (Request $request) {
+            return Limit::perMinute(10)->by((string) $request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('tracking-control', function (Request $request) {
+            return Limit::perMinute(20)->by((string) $request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('tracking-location', function (Request $request) {
+            return Limit::perMinute(180)->by((string) $request->user()?->id ?: $request->ip());
+        });
     }
 }

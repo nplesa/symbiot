@@ -33,6 +33,7 @@ class Tracking extends Model
 
         'type',
         'source',
+        'provider',
         'sequence',
 
         'latitude',
@@ -42,6 +43,7 @@ class Tracking extends Model
         'speed',
         'heading',
         'altitude',
+        'battery',
 
         'tracked_at',
     ];
@@ -55,6 +57,7 @@ class Tracking extends Model
         'speed' => 'float',
         'heading' => 'float',
         'altitude' => 'float',
+        'battery' => 'integer',
 
         'sequence' => 'integer',
 
@@ -111,7 +114,8 @@ class Tracking extends Model
         return $query
             ->orderByRaw('sequence IS NULL')
             ->orderBy('sequence')
-            ->orderBy('tracked_at');
+            ->orderBy('tracked_at')
+            ->orderBy('id');
     }
 
 

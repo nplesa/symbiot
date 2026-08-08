@@ -56,7 +56,7 @@ Route::prefix('v1')->group(function () {
                     Route::post(
                         '/register',
                         'register'
-                    );
+                    )->middleware('throttle:device-register');
 
                     Route::put(
                         '/',
@@ -98,17 +98,17 @@ Route::prefix('v1')->group(function () {
                             Route::post(
                                 '/start',
                                 'start'
-                            );
+                            )->middleware('throttle:tracking-control');
 
                             Route::post(
                                 '/location',
                                 'location'
-                            );
+                            )->middleware('throttle:tracking-location');
 
                             Route::post(
                                 '/stop',
                                 'stop'
-                            );
+                            )->middleware('throttle:tracking-control');
 
 
                             /*

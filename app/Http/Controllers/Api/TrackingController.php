@@ -3,17 +3,22 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\ProcessTrackingSessionJob;
 use App\Models\Device;
 use App\Models\Tracking;
 use App\Models\TrackingSession;
 use App\Traits\ApiResponse;
+use App\Services\TrackingSessionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Http\Requests\Tracking\StoreTrackingPointRequest;
 
 class TrackingController extends Controller
 {
     use ApiResponse;
+
+    public function __construct(
+        private readonly TrackingSessionService $trackingSessions
+    ) {}
 
     /**
      * Începe o sesiune de tracking.
@@ -25,21 +30,9 @@ class TrackingController extends Controller
         ]);
 
         $device = $this->device($request, $data['uuid']);
+        $session = $this->trackingSessions->start($request->user(), $device->id);
 
-        $session = TrackingSession::firstOrCreate(
-            [
-                'device_id' => $device->id,
-                'status' => 'active',
-            ],
-            [
-                'user_id' => $request->user()->id,
-                'started_at' => now(),
-            ]
-        );
-
-        $device->update([
-            'last_seen' => now(),
-        ]);
+        $device->touchLastSeen();
 
         return $this->success([
             'session_id' => $session->id,
@@ -50,55 +43,16 @@ class TrackingController extends Controller
     /**
      * Primește o poziție GPS.
      */
-    public function location(Request $request): JsonResponse
+    public function location(StoreTrackingPointRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'session_id' => ['required', 'integer', 'exists:tracking_sessions,id'],
-
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
-
-            'accuracy' => ['nullable', 'numeric'],
-            'speed' => ['nullable', 'numeric'],
-            'heading' => ['nullable', 'numeric'],
-            'altitude' => ['nullable', 'numeric'],
-
-            'battery' => ['nullable', 'integer', 'min:0', 'max:100'],
-
-            'provider' => ['nullable', 'string', 'max:20'],
-
-            'tracked_at' => ['required', 'date'],
-        ]);
+        $data = $request->validated() + ['session_id' => $request->integer('session_id')];
 
         $session = $this->session($request, $data['session_id']);
+        $tracking = $this->trackingSessions->addPoint($request->user(), $session, $data);
 
-        Tracking::create([
-            'tracking_session_id' => $session->id,
+        $session->device?->touchLastSeen($data['battery'] ?? null);
 
-            'provider' => $data['provider'] ?? null,
-
-            'latitude' => $data['latitude'],
-            'longitude' => $data['longitude'],
-
-            'accuracy' => $data['accuracy'] ?? null,
-            'speed' => $data['speed'] ?? null,
-            'heading' => $data['heading'] ?? null,
-            'altitude' => $data['altitude'] ?? null,
-
-            'battery' => $data['battery'] ?? null,
-
-            'tracked_at' => $data['tracked_at'],
-        ]);
-
-        $session->device?->update([
-            'last_seen' => now(),
-            'battery' => $data['battery'] ?? $session->device->battery,
-        ]);
-
-        return $this->success(
-            null,
-            'Location stored.'
-        );
+        return $this->success($tracking, 'Location stored.');
     }
 
     /**
@@ -111,25 +65,84 @@ class TrackingController extends Controller
         ]);
 
         $session = $this->session($request, $data['session_id']);
+        $stopped = $this->trackingSessions->stop($request->user(), $session);
 
-        $endedAt = now();
+        return $this->success($stopped, 'Tracking stopped.');
+    }
 
-        $session->update([
-            'ended_at' => $endedAt,
-            'status' => 'completed',
-            'duration' => $session->started_at->diffInSeconds($endedAt),
+    public function status(Request $request): JsonResponse
+    {
+        $session = TrackingSession::query()
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'active')
+            ->whereNull('ended_at')
+            ->latest('started_at')
+            ->first();
+
+        return $this->success([
+            'active' => $session !== null,
+            'session' => $session,
         ]);
+    }
 
-        $session->device?->update([
-            'last_seen' => now(),
-        ]);
-
-        ProcessTrackingSessionJob::dispatch($session->id);
-
+    public function sessions(Request $request): JsonResponse
+    {
         return $this->success(
-            null,
-            'Tracking stopped.'
+            TrackingSession::query()
+                ->where('user_id', $request->user()->id)
+                ->latest('started_at')
+                ->get()
         );
+    }
+
+    public function show(Request $request, TrackingSession $session): JsonResponse
+    {
+        $this->trackingSessions->authorize($request->user(), $session);
+
+        return $this->success($session);
+    }
+
+    public function points(Request $request, TrackingSession $session): JsonResponse
+    {
+        $this->trackingSessions->authorize($request->user(), $session);
+
+        return $this->success($session->trackings()->ordered()->get());
+    }
+
+    public function route(Request $request, TrackingSession $session): JsonResponse
+    {
+        $this->trackingSessions->authorize($request->user(), $session);
+
+        $geometry = $session->route_geojson;
+
+        if (! $geometry) {
+            $geometry = [
+                'type' => 'LineString',
+                'coordinates' => $session->trackings()
+                    ->orderBy('tracked_at')
+                    ->orderBy('id')
+                    ->get()
+                    ->map(fn (Tracking $point): array => [
+                        (float) $point->longitude,
+                        (float) $point->latitude,
+                    ])
+                    ->values()
+                    ->all(),
+            ];
+        }
+
+        return $this->success([
+            'type' => 'Feature',
+            'geometry' => $geometry,
+        ]);
+    }
+
+    public function destroy(Request $request, TrackingSession $session): JsonResponse
+    {
+        $this->trackingSessions->authorize($request->user(), $session);
+        $session->delete();
+
+        return $this->success(null, 'Tracking session deleted.');
     }
 
     /**

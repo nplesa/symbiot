@@ -145,6 +145,29 @@ class ProcessTrackingSessionJobTest extends TestCase
         $this->assertLessThanOrEqual(301, $session->duration);
     }
 
+    public function test_active_session_is_not_processed_by_the_job(): void
+    {
+        $session = $this->createSession();
+        $session->update([
+            'status' => 'active',
+            'ended_at' => null,
+        ]);
+
+        Tracking::create([
+            'tracking_session_id' => $session->id,
+            'latitude' => 45.6486,
+            'longitude' => 25.6061,
+            'tracked_at' => now(),
+        ]);
+
+        (new ProcessTrackingSessionJob($session->id))
+            ->handle(app(TrackProcessingService::class));
+
+        $session->refresh();
+
+        $this->assertNull($session->processed_at);
+    }
+
     private function createSession(): TrackingSession
     {
         $user = User::factory()->create();

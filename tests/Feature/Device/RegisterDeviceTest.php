@@ -185,4 +185,25 @@ class RegisterDeviceTest extends TestCase
             'battery' => 90,
         ]);
     }
+    public function test_device_registration_is_rate_limited(): void
+    {
+        $user = User::factory()->create();
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->actingAs($user)
+                ->postJson('/api/v1/device/register', [
+                    'uuid' => (string) Str::uuid(),
+                    'platform' => 'android',
+                ])
+                ->assertOk();
+        }
+
+        $this->actingAs($user)
+            ->postJson('/api/v1/device/register', [
+                'uuid' => (string) Str::uuid(),
+                'platform' => 'android',
+            ])
+            ->assertStatus(429);
+    }
+
 }

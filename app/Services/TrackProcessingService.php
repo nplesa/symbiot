@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 class TrackProcessingService
 {
     /**
-     * Procesează punctele GPS.
+     * Procesează punctele GPS în ordinea temporală deterministă.
      *
      * @param  Collection<int, Tracking>  $points
      * @return array{
@@ -21,10 +21,44 @@ class TrackProcessingService
      */
     public function process(Collection $points): array
     {
+        $ordered = $this->orderPoints($points);
+
         return [
-            'distance' => $this->calculateDistance($points),
-            'geojson' => $this->buildGeoJson($points),
+            'distance' => $this->calculateDistance($ordered),
+            'geojson' => $this->buildGeoJson($ordered),
         ];
+    }
+
+    /**
+     * Ordinea trebuie să fie stabilă chiar când două puncte au același tracked_at.
+     * ID-ul este folosit ca tie-breaker pentru a evita trasee nedeterministe.
+     *
+     * @param  Collection<int, Tracking>  $points
+     * @return Collection<int, Tracking>
+     */
+    private function orderPoints(Collection $points): Collection
+    {
+        return $points
+            ->values()
+            ->sort(function (Tracking $a, Tracking $b): int {
+                $aTime = $a->tracked_at?->getTimestamp();
+                $bTime = $b->tracked_at?->getTimestamp();
+
+                if ($aTime === $bTime) {
+                    return ((int) $a->id) <=> ((int) $b->id);
+                }
+
+                if ($aTime === null) {
+                    return 1;
+                }
+
+                if ($bTime === null) {
+                    return -1;
+                }
+
+                return $aTime <=> $bTime;
+            })
+            ->values();
     }
 
     /**
@@ -57,7 +91,7 @@ class TrackProcessingService
         float $lat2,
         float $lon2
     ): float {
-        $earthRadius = 6371000;
+        $earthRadius = 6371000.0;
 
         $dLat = deg2rad($lat2 - $lat1);
         $dLon = deg2rad($lon2 - $lon1);
@@ -67,6 +101,9 @@ class TrackProcessingService
             cos(deg2rad($lat1)) *
             cos(deg2rad($lat2)) *
             sin($dLon / 2) ** 2;
+
+        // Protejează sqrt/asin împotriva erorilor de rotunjire floating-point.
+        $a = min(1.0, max(0.0, $a));
 
         return 2 * $earthRadius * asin(sqrt($a));
     }

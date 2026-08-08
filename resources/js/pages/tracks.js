@@ -4,7 +4,7 @@ import View from "ol/View";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 
-import XYZ from "ol/source/XYZ";
+import OSM from "ol/source/OSM";
 import VectorSource from "ol/source/Vector";
 
 import Feature from "ol/Feature";
@@ -74,10 +74,7 @@ class TrackMap {
             target: "track_map",
             layers: [
                 new TileLayer({
-                    source: new XYZ({
-                        url:
-                        "/map/tiles/{z}/{x}/{y}"
-                    })
+                    source: new OSM()
                 }),
                 new VectorLayer({
                     source: this.trackSource

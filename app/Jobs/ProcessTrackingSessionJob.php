@@ -4,10 +4,11 @@ namespace App\Jobs;
 
 use App\Models\TrackingSession;
 use App\Services\TrackProcessingService;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class ProcessTrackingSessionJob implements ShouldQueue
+class ProcessTrackingSessionJob implements ShouldQueue, ShouldBeUnique
 {
     use Queueable;
 
@@ -15,11 +16,16 @@ class ProcessTrackingSessionJob implements ShouldQueue
         public int $sessionId
     ) {}
 
+    public function uniqueId(): string
+    {
+        return (string) $this->sessionId;
+    }
+
     public function handle(TrackProcessingService $trackingService): void
     {
         $session = $this->loadSession();
 
-        if (! $session) {
+        if (! $session || $session->processed_at !== null || $session->status !== 'completed') {
             return;
         }
 
@@ -41,7 +47,9 @@ class ProcessTrackingSessionJob implements ShouldQueue
     private function loadSession(): ?TrackingSession
     {
         return TrackingSession::with([
-            'trackings' => fn ($query) => $query->orderBy('tracked_at'),
+            'trackings' => fn ($query) => $query
+                ->orderBy('tracked_at')
+                ->orderBy('id'),
         ])->find($this->sessionId);
     }
 

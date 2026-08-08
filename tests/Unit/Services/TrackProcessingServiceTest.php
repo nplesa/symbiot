@@ -122,6 +122,50 @@ class TrackProcessingServiceTest extends TestCase
         ], $result['geojson']['coordinates']);
     }
 
+    public function test_points_are_sorted_by_tracked_at_and_id(): void
+    {
+        $service = new TrackProcessingService();
+
+        $first = $this->point(45.0, 25.0);
+        $first->id = 1;
+        $first->tracked_at = now()->subMinute();
+
+        $sameTimeLaterId = $this->point(46.0, 26.0);
+        $sameTimeLaterId->id = 3;
+        $sameTimeLaterId->tracked_at = $first->tracked_at->copy();
+
+        $sameTimeEarlierId = $this->point(45.5, 25.5);
+        $sameTimeEarlierId->id = 2;
+        $sameTimeEarlierId->tracked_at = $first->tracked_at->copy();
+
+        $result = $service->process(collect([
+            $sameTimeLaterId,
+            $first,
+            $sameTimeEarlierId,
+        ]));
+
+        $this->assertSame([
+            [25.0, 45.0],
+            [25.5, 45.5],
+            [26.0, 46.0],
+        ], $result['geojson']['coordinates']);
+    }
+
+    public function test_distance_is_finite_for_normal_coordinates(): void
+    {
+        $service = new TrackProcessingService();
+
+        $points = collect([
+            $this->point(0.0, 0.0),
+            $this->point(0.0, 180.0),
+        ]);
+
+        $result = $service->process($points);
+
+        $this->assertTrue(is_finite($result['distance']));
+        $this->assertEqualsWithDelta(20003900.0, $result['distance'], 1000.0);
+    }
+
     private function point(float $latitude, float $longitude): Tracking
     {
         $point = new Tracking();
