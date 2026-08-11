@@ -39,8 +39,8 @@ return new class extends Migration
         }
 
         Schema::table('devices', function (Blueprint $table): void {
-            // MariaDB may use the composite unique index to satisfy the user_id FK.
-            // Keep a standalone user_id index before removing that unique constraint.
+            
+            
             $table->index('user_id');
         });
 
@@ -55,7 +55,7 @@ return new class extends Migration
         });
 
         Schema::table('trackings', function (Blueprint $table): void {
-            // Preserve an index usable by the tracking_session_id FK.
+            
             $table->index('tracking_session_id');
         });
 

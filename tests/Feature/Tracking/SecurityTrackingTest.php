@@ -92,8 +92,8 @@ class SecurityTrackingTest extends TestCase
             ])
             ->assertUnauthorized();
 
-        // API auth is intentionally covered by the API test suite; this
-        // assertion keeps this test focused on the model's mass assignment.
+        
+        
         Tracking::create([
             'tracking_session_id' => $session->id,
             'latitude' => 45.0,

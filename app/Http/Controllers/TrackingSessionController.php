@@ -10,59 +10,45 @@ use Illuminate\View\View;
 
 class TrackingSessionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    
     public function index(): View
     {
-        abort(501); // Not implemented
+        abort(501); 
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
+    
     public function create(): View
     {
-        abort(501); // Not implemented
+        abort(501); 
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    
     public function store(Request $request): RedirectResponse
     {
-        abort(501); // Not implemented
+        abort(501); 
     }
 
-    /**
-     * Display the specified resource.
-     */
+    
     public function show(TrackingSession $trackingSession): View
     {
-        abort(501); // Not implemented
+        abort(501); 
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
+    
     public function edit(TrackingSession $trackingSession): View
     {
-        abort(501); // Not implemented
+        abort(501); 
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
+    
     public function update(Request $request, TrackingSession $trackingSession): RedirectResponse
     {
-        abort(501); // Not implemented
+        abort(501); 
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+    
     public function destroy(TrackingSession $trackingSession): Response
     {
-        abort(501); // Not implemented
+        abort(501); 
     }
 }

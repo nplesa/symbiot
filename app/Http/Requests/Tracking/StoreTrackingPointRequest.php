@@ -21,7 +21,7 @@ class StoreTrackingPointRequest extends FormRequest
                     'tracked_at' => CarbonImmutable::parse($this->input('tracked_at'))->utc()->format('Y-m-d H:i:s'),
                 ]);
             } catch (\Throwable) {
-                // Let the date rule report the validation error.
+                
             }
         }
     }

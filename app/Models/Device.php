@@ -27,28 +27,23 @@ class Device extends Model
         'battery' => 'integer',
     ];
 
-    /**
-     * @return BelongsTo<User, $this>
-     */
+    
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * @return HasMany<TrackingSession, $this>
-     */
+    
     public function trackingSessions(): HasMany
     {
         return $this->hasMany(TrackingSession::class);
     }
 
-    /**
-     * @return HasMany<TrackingSession, $this>
-     */
+    
     public function activeSession(): HasMany
     {
         return $this->hasMany(TrackingSession::class)
+            ->where('status', 'active')
             ->whereNull('ended_at');
     }
 

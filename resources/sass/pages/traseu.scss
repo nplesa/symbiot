@@ -1,0 +1,290 @@
+.trasee-panel { border: 1px solid rgba(0,0,0,.08); border-radius: .75rem; background: #fff; padding: 1rem; }
+.trasee-panel__header { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
+.trasee-list { display:flex; flex-direction:column; gap:.5rem; }
+.trasee-item { width:100%; display:flex; align-items:center; gap:.75rem; text-align:left; border:1px solid rgba(0,0,0,.08); border-radius:.5rem; background:#fff; padding:.75rem; cursor:pointer; }
+.trasee-item.is-selected { border-color: rgba(13,110,253,.5); background: rgba(13,110,253,.04); }
+.trasee-item__content { display:flex; flex-direction:column; flex:1 1 auto; min-width:0; overflow:hidden; }
+.trasee-item__content strong, .trasee-item__content small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.trasee-item__actions { margin-left:auto; flex:0 0 auto; display:flex; align-items:center; justify-content:flex-end; gap:.4rem; }
+.trasee-item__selected { flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; color:#0d6efd; }
+.trasee-item__content small { color:#6c757d; }
+.trasee-item__delete { margin-left:0; flex:0 0 28px; width:28px; height:28px; min-width:28px; padding:0 !important; display:inline-flex; align-items:center; justify-content:center; border-radius:.35rem; font-size:.78rem; }
+.trasee-item__delete i { margin:0 !important; }
+.trasee-empty { text-align:center; padding:2rem 1rem; color:#6c757d; }
+.trasee-map-container { position:relative; min-height:420px; overflow:hidden; border-radius:.75rem; background:#eef1f4; }
+.traseu-map { width:100%; min-height:420px; height:100%; display:grid; }
+.traseu-map-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:.5rem; color:#6c757d; pointer-events:none; }
+.traseu-selected-info { position:absolute; left:1rem; right:1rem; bottom:1rem; z-index:5; background:rgba(255,255,255,.95); border-radius:.5rem; padding:.75rem; box-shadow:0 .25rem 1rem rgba(0,0,0,.12); }
+.traseu-selected-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.traseu-selected-info__details {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+.traseu-selected-info__actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+.traseu-selected-info__actions .btn {
+    white-space: nowrap;
+}
+.traseu-route-meta { display:flex; gap:1.5rem; margin-top:.5rem; }
+.traseu-route-meta div { display:flex; flex-direction:column; }
+.traseu-route-meta span { font-size:.75rem; color:#6c757d; }
+
+
+
+
+.trasee-item__actions {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    flex: 0 0 auto;
+}
+.trasee-item__export {
+    width: 28px;
+    height: 28px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: .4rem;
+    color: var(--bs-secondary-color);
+    text-decoration: none;
+    font-size: .8rem;
+}
+.trasee-item__export:hover {
+    color: var(--bs-primary);
+    background: var(--bs-light);
+}
+
+
+.trasee-page {
+    --trasee-gap: 1.25rem;
+}
+
+.trasee-page > .row {
+    align-items: flex-start;
+}
+
+.trasee-page .trasee-panel {
+    padding: 1.25rem;
+}
+
+.trasee-route-list-panel {
+    min-height: 100%;
+}
+
+.trasee-page .trasee-panel__header {
+    padding-bottom: .25rem;
+}
+
+.trasee-page .trasee-list {
+    gap: .7rem;
+}
+
+.trasee-page .trasee-item {
+    padding: .9rem;
+    transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+
+.trasee-page .trasee-item:hover {
+    border-color: rgba(13, 110, 253, .3);
+    box-shadow: 0 .15rem .6rem rgba(0, 0, 0, .05);
+}
+
+.trasee-page .trasee-google-import {
+    margin-top: 1.25rem;
+    padding: 1.1rem;
+    border: 1px solid rgba(13, 110, 253, .18);
+    border-radius: .75rem;
+    background: rgba(13, 110, 253, .035);
+}
+
+.trasee-page .trasee-import-form {
+    margin-top: 1rem;
+}
+
+.trasee-page .trasee-import-divider {
+    margin: 1.5rem 0;
+}
+
+.trasee-page .trasee-map-container {
+    margin-top: 1rem;
+}
+
+.trasee-page .trasee-actions {
+    margin-top: 1rem;
+    padding: 1rem 0 .1rem;
+    border-top: 1px solid rgba(0, 0, 0, .07);
+}
+
+
+.trasee-icon {
+    display: inline-block;
+    flex: 0 0 auto;
+    vertical-align: -0.15em;
+}
+.trasee-item__icon {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 32px;
+    color: var(--bs-primary);
+}
+.trasee-google-import__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* /trasee reference layout */
+.trasee-page {
+    --trasee-gap: 1.25rem;
+}
+
+.trasee-page .row {
+    align-items: stretch;
+}
+
+.trasee-page .trasee-panel {
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: .65rem;
+    background: #fff;
+    padding: 1rem;
+}
+
+.trasee-page .trasee-panel__header {
+    margin-bottom: .85rem;
+    padding-bottom: .65rem;
+    border-bottom: 1px solid rgba(0, 0, 0, .08);
+}
+
+.trasee-route-list-panel {
+    min-height: 690px;
+}
+
+.trasee-page .trasee-google-import {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid rgba(13, 110, 253, .20);
+    border-radius: .7rem;
+    background: rgba(13, 110, 253, .035);
+}
+
+.trasee-google-import__title {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+}
+
+.trasee-google-import__icon {
+    width: 2.15rem;
+    height: 2.15rem;
+    flex: 0 0 2.15rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(13, 110, 253, .15);
+    border-radius: .5rem;
+    background: #fff;
+}
+
+.trasee-page .trasee-import-form .input-group-lg > .form-control {
+    font-size: 1rem;
+}
+
+.trasee-page .trasee-import-form .btn {
+    white-space: nowrap;
+}
+
+.trasee-page .trasee-import-divider {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin: 1.55rem 0 1rem;
+    color: #6c757d;
+    font-size: .72rem;
+    font-weight: 500;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.trasee-page .trasee-import-divider::before,
+.trasee-page .trasee-import-divider::after {
+    content: '';
+    height: 1px;
+    flex: 1 1 auto;
+    background: rgba(0, 0, 0, .10);
+}
+
+.trasee-page .trasee-import-divider span {
+    flex: 0 0 auto;
+}
+
+.trasee-page .trasee-map-container {
+    margin-top: 0;
+}
+
+@media (max-width: 575.98px) {
+    .traseu-selected-info {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .traseu-selected-info__actions {
+        justify-content: flex-start;
+    }
+
+    .traseu-selected-info__actions .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .trasee-route-list-panel {
+        min-height: 0;
+    }
+}
+
+/* Google Maps import: compact and readable on phones */
+@media (max-width: 575.98px) {
+    .trasee-page .trasee-import-form .input-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+    }
+
+    .trasee-page .trasee-import-form .input-group > .form-control,
+    .trasee-page .trasee-import-form .input-group > .btn {
+        flex: 0 0 100%;
+        width: 100%;
+        max-width: 100%;
+        margin: 0 !important;
+        border-radius: .55rem !important;
+    }
+
+    .trasee-page .trasee-import-form .input-group > .btn {
+        min-height: 2.8rem;
+        height: auto;
+        padding: .65rem .8rem;
+        white-space: normal;
+        line-height: 1.25;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .trasee-page .trasee-import-form .input-group > #generate-google-maps-kml-submit {
+        min-height: 3rem;
+    }
+}

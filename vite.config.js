@@ -78,8 +78,10 @@ export default defineConfig({
         host: "0.0.0.0",
         port: 5173,
         https: {
-            key: fs.readFileSync("/etc/letsencrypt/live/symbiot.npsoft.ro/privkey.pem"),
-            cert: fs.readFileSync("/etc/letsencrypt/live/symbiot.npsoft.ro/fullchain.pem"),
+            // key: fs.readFileSync("/etc/letsencrypt/live/symbiot.npsoft.ro/privkey.pem"),
+            // cert: fs.readFileSync("/etc/letsencrypt/live/symbiot.npsoft.ro/fullchain.pem"),
+            key: fs.readFileSync("C:\\Developer\\PhpWebStudy-Data\\server\\CA\\1786422883336\\CA-1786422883336.key"),
+            cert: fs.readFileSync("C:\\Developer\\PhpWebStudy-Data\\server\\CA\\1786422883336\\CA-1786422883336.crt"),
         },
         cors: true,
     },

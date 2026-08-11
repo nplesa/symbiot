@@ -4,7 +4,7 @@ import View from "ol/View";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 
-import OSM from "ol/source/OSM";
+import XYZ from "ol/source/XYZ";
 import VectorSource from "ol/source/Vector";
 
 import Feature from "ol/Feature";
@@ -23,7 +23,7 @@ import {
 import { fromLonLat } from "ol/proj";
 
 
-// DOM
+
 
 const trackDay =
     document.getElementById("trackDay");
@@ -47,7 +47,7 @@ const statsBox =
     document.getElementById("trackStats");
 
 
-// CONFIG
+
 
 const API = {
     sessions: "/tracking/sessions",
@@ -55,7 +55,7 @@ const API = {
 };
 
 
-// MAP
+
 
 class TrackMap {
 
@@ -74,7 +74,7 @@ class TrackMap {
             target: "track_map",
             layers: [
                 new TileLayer({
-                    source: new OSM()
+                    source: new XYZ({ url: '/map/tiles/{z}/{x}/{y}' })
                 }),
                 new VectorLayer({
                     source: this.trackSource
@@ -120,7 +120,7 @@ class TrackMap {
     }
 }
 
-// LOADER
+
 
 class TrackLoader {
 
@@ -182,7 +182,7 @@ class TrackLoader {
     }
 }
 
-// RENDER
+
 
 class TrackRenderer {
 
@@ -222,7 +222,7 @@ class TrackRenderer {
     }
 }
 
-// MARKERS
+
 
 class TrackMarkers {
 
@@ -272,7 +272,7 @@ class TrackMarkers {
     }
 }
 
-// STATISTICS
+
 
 class TrackStatistics {
 
@@ -333,7 +333,7 @@ class TrackStatistics {
     }
 }
 
-// POPUP
+
 
 class TrackPopup {
 
@@ -383,7 +383,7 @@ class TrackPopup {
     }
 }
 
-// PLAYER
+
 
 class TrackPlayer {
 
@@ -519,7 +519,7 @@ class TrackPlayer {
     }
 }
 
-// INIT
+
 
 const trackMap =
     new TrackMap();
@@ -544,7 +544,7 @@ const player =
 
 let currentPoints=[];
 
-// EVENTS
+
 
 trackDay?.addEventListener(
 "change",
@@ -627,7 +627,7 @@ player.speed =
 Number(e.target.value)
 );
 
-// CLICK GPS
+
 
 trackMap.map.on(
 "click",

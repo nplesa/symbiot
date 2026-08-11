@@ -16,7 +16,7 @@
 
     <!-- Scripts -->
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
-    <!-- @livewireStyles -->
+    @livewireStyles
     @stack('css')
 </head>
 <body>
@@ -64,6 +64,9 @@
                                     <a class="dropdown-item" href="{{ route('app.trackings.index') }}">
                                         Tracks
                                     </a>
+                                    <a class="dropdown-item" href="{{ route('app.trasee.index') }}">
+                                        Trasee
+                                    </a>
 
                                     <a class="dropdown-item" href="{{ route('logout') }}"
                                        onclick="event.preventDefault();
@@ -89,7 +92,7 @@
         @stack('lazy_css')
         @routes()
         @stack('lazy_js')
-        <!-- @livewireScripts -->
+        @livewireScripts
         @stack('js')
 
     </div>

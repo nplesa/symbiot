@@ -47,9 +47,7 @@ class TrackingSessionService
         });
     }
 
-    /**
-     * @param array<string, mixed> $data
-     */
+    
     public function addPoint(User $user, TrackingSession $session, array $data): Tracking
     {
         $this->authorize($user, $session);

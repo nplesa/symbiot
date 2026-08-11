@@ -14,22 +14,22 @@ class TrackingSeeder extends Seeder
         $margins = [
             [
                 'start' => [
-                    25.759500, // longitude Tărlungeni, Str. Zizinului 979A
-                    45.642700, // latitude
+                    25.759500, 
+                    45.642700, 
                 ],
                 'end' => [
-                    25.551000, // longitude Poiana Brașov
-                    45.595000, // latitude
+                    25.551000, 
+                    45.595000, 
                 ],
             ],
             [
                 'start' => [
-                    25.759500, // longitude Tărlungeni, Str. Zizinului 979A
-                    45.642700, // latitude
+                    25.759500, 
+                    45.642700, 
                 ],
                 'end' => [
-                    25.458500, // longitude Centrul Târgoviște
-                    44.925000, // latitude
+                    25.458500, 
+                    44.925000, 
                 ],
             ],
         ];
@@ -47,14 +47,10 @@ class TrackingSeeder extends Seeder
         }
     }
 
-    /**
-     * @param  array{0: float, 1: float}  $start
-     * @param  array{0: float, 1: float}  $end
-     * @return array<int, array<string, mixed>>
-     */
+    
     private function buildTrack(int $i, array $start, array $end): array
     {
-        // OSRM route
+        
         $url =
             'https://router.project-osrm.org/route/v1/driving/' .
             "{$start[0]},{$start[1]};{$end[0]},{$end[1]}" .
@@ -70,7 +66,7 @@ class TrackingSeeder extends Seeder
 
         $geometry = $data['routes'][0]['geometry']['coordinates'];
 
-        // luam 100 puncte egale
+        
         $points = $this->samplePoints(
             $geometry,
             100
@@ -89,7 +85,7 @@ class TrackingSeeder extends Seeder
 
                 'provider' => 'gps',
 
-                // OSRM vine [lng,lat]
+                
                 'latitude' => round($point[1], 7),
 
                 'longitude' => round($point[0], 7),
@@ -115,10 +111,7 @@ class TrackingSeeder extends Seeder
         return $rows;
     }
 
-    /**
-     * @param  array<int, array{0: float, 1: float}>  $coordinates
-     * @return array<int, array{0: float, 1: float}>
-     */
+    
     private function samplePoints(
         array $coordinates,
         int $count

@@ -55,15 +55,9 @@ class TransportPoiController extends Controller
         }
     }
 
-    /**
-     * =====================================================
-     * GEOAPIFY FETCH (handles >500 limit)
-     * =====================================================
-     */
+    
 
-    /**
-     * @return array<int, array<string, mixed>>
-     */
+    
     private function fetchFromGeoapify(float $lat, float $lon, int $radius, string $categories): array
     {
         $points = $this->buildGridPoints($lat, $lon);
@@ -98,18 +92,12 @@ class TransportPoiController extends Controller
         return $this->deduplicate($all);
     }
 
-    /**
-     * =====================================================
-     * GRID (fixes 500 limit issue)
-     * =====================================================
-     */
+    
 
-    /**
-     * @return array<int, array{0: float, 1: float}>
-     */
+    
     private function buildGridPoints(float $lat, float $lon): array
     {
-        $delta = 0.25; // ~20-25km
+        $delta = 0.25; 
 
         return [
             [$lat, $lon],
@@ -121,16 +109,9 @@ class TransportPoiController extends Controller
         ];
     }
 
-    /**
-     * =====================================================
-     * DEDUPLICATION
-     * =====================================================
-     */
+    
 
-    /**
-     * @param  array<int, array<string, mixed>>  $features
-     * @return array<int, array<string, mixed>>
-     */
+    
     private function deduplicate(array $features): array
     {
         return collect($features)
@@ -139,11 +120,7 @@ class TransportPoiController extends Controller
             ->all();
     }
 
-    /**
-     * =====================================================
-     * CATEGORIES
-     * =====================================================
-     */
+    
     private function buildCategories(Request $request): string
     {
         $map = [
@@ -172,7 +149,7 @@ class TransportPoiController extends Controller
                 ->all()
             : (json_decode(config('services.geoapify.locations', '[]'), true) ?? []);
 
-        /** @var array<int, string> $types */
+        
         $categories = collect($types)
             ->filter(fn ($t) => isset($map[$t]))
             ->flatMap(fn ($t) => $map[$t])
@@ -184,16 +161,9 @@ class TransportPoiController extends Controller
             : $categories->implode(',');
     }
 
-    /**
-     * =====================================================
-     * TRANSFORM
-     * =====================================================
-     */
+    
 
-    /**
-     * @param  array<int, array<string, mixed>>  $features
-     * @return array<int, array<string, mixed>>
-     */
+    
     private function transform(array $features, float $userLat, float $userLon): array
     {
         $out = [];
@@ -248,15 +218,9 @@ class TransportPoiController extends Controller
         return $out;
     }
 
-    /**
-     * =====================================================
-     * TYPE DETECTION
-     * =====================================================
-     */
+    
 
-    /**
-     * @param  array<int, string>  $categories
-     */
+    
     private function detectType(array $categories): string
     {
         foreach ($categories as $c) {
@@ -296,11 +260,7 @@ class TransportPoiController extends Controller
         return 'transport';
     }
 
-    /**
-     * =====================================================
-     * HAVERSINE
-     * =====================================================
-     */
+    
     private function distance(float $lat1, float $lon1, float $lat2, float $lon2): float
     {
         $R = 6371000;

@@ -15,7 +15,7 @@ let options = {
     timeout: 10000
 };
 
-//----------------------------------------------------
+
 
 function showError(error) {
 
@@ -38,7 +38,7 @@ function showError(error) {
     }
 }
 
-//----------------------------------------------------
+
 
 function distanceInMeters(lat1, lon1, lat2, lon2) {
 
@@ -58,7 +58,7 @@ function distanceInMeters(lat1, lon1, lat2, lon2) {
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-//----------------------------------------------------
+
 
 async function post(url, body = {}) {
 
@@ -77,7 +77,7 @@ async function post(url, body = {}) {
 
 }
 
-//----------------------------------------------------
+
 
 async function savePosition(coords) {
 
@@ -95,7 +95,7 @@ async function savePosition(coords) {
 
 }
 
-//----------------------------------------------------
+
 
 async function onPosition(position) {
 
@@ -139,7 +139,7 @@ async function onPosition(position) {
     lastSavedTime = now;
 }
 
-//----------------------------------------------------
+
 
 async function startTracking() {
 
@@ -154,7 +154,7 @@ async function startTracking() {
                 trackingStarted = true;
                 document.getElementById("i_tracking").classList.add("rotate3d-y");
 
-                // primul punct se salvează întotdeauna
+
                 await savePosition(position.coords);
 
                 lastPosition = position.coords;
@@ -174,7 +174,7 @@ async function startTracking() {
 
 }
 
-//----------------------------------------------------
+
 
 async function stopTracking() {
 
@@ -196,7 +196,7 @@ async function stopTracking() {
     lastSavedTime = null;
 }
 
-//----------------------------------------------------
+
 
 trackingSwitch?.addEventListener('change', async function () {
 
@@ -207,7 +207,7 @@ trackingSwitch?.addEventListener('change', async function () {
         return;
     }
 
-    // salvează preferința utilizatorului
+
     await post('/tracking/toggle', {
         trackingmyself: this.checked
     });

@@ -43,17 +43,17 @@ class StartTrackingTest extends TestCase
 
         $this->actingAs($user);
 
-        // Prima pornire
+        
         $this->post(route('app.tracking.start'));
 
-        // Preluăm ID-ul sesiunii create și îl punem în sesiunea HTTP,
-        // simulând același browser.
+        
+        
         $trackingSession = TrackingSession::first();
 
         $this->startSession();
         session()->put('tracking_session_id', $trackingSession->id);
 
-        // A doua pornire
+        
         $response = $this->post(route('app.tracking.start'));
 
         $response->assertOk()

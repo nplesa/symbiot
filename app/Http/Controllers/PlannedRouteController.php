@@ -13,7 +13,12 @@ class PlannedRouteController extends Controller
     {
         $data = $request->validate([
             'name' => ['nullable', 'string', 'max:150'],
-            'coordinates' => ['required', 'array', 'min:2'],
+            'coordinates' => [
+                'required',
+                'array',
+                'min:2',
+                'max:' . (int) config('tracking.planned_route_max_coordinates', 10000),
+            ],
             'coordinates.*' => ['required', 'array', 'size:2'],
             'coordinates.*.0' => ['required', 'numeric', 'between:-180,180'],
             'coordinates.*.1' => ['required', 'numeric', 'between:-90,90'],
@@ -39,15 +44,24 @@ class PlannedRouteController extends Controller
                 ],
             ]);
 
+            $rows = [];
+
             foreach ($data['coordinates'] as $sequence => $coordinate) {
-                $session->trackings()->create([
+                $rows[] = [
+                    'tracking_session_id' => $session->id,
                     'type' => 'planned',
                     'source' => 'manual',
                     'sequence' => $sequence,
                     'latitude' => $coordinate[1],
                     'longitude' => $coordinate[0],
                     'tracked_at' => $now,
-                ]);
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            foreach (array_chunk($rows, 1000) as $chunk) {
+                $session->trackings()->insert($chunk);
             }
 
             return $session;

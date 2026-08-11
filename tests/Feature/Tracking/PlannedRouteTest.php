@@ -55,6 +55,19 @@ class PlannedRouteTest extends TestCase
             ->assertJsonValidationErrors('coordinates');
     }
 
+    public function test_planned_route_rejects_excessive_coordinate_count(): void
+    {
+        $user = User::factory()->create();
+        $coordinates = array_fill(0, 10001, [25.60, 45.65]);
+
+        $this->actingAs($user)
+            ->postJson('/api/v1/tracking/planned', [
+                'coordinates' => $coordinates,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('coordinates');
+    }
+
     public function test_guest_cannot_create_a_planned_route(): void
     {
         $this->postJson('/api/v1/tracking/planned', [

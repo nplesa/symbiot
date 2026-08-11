@@ -10,19 +10,13 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
-    /**
-     * Determine if the request is authorized.
-     */
+    
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules.
-     *
-     * @return array<string, array<int, string>>
-     */
+    
     public function rules(): array
     {
         return [
@@ -31,11 +25,7 @@ class LoginRequest extends FormRequest
         ];
     }
 
-    /**
-     * Authenticate the incoming request.
-     *
-     * @throws ValidationException
-     */
+    
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
@@ -51,11 +41,7 @@ class LoginRequest extends FormRequest
         RateLimiter::clear($this->throttleKey());
     }
 
-    /**
-     * Ensure the request has not exceeded the allowed login attempts.
-     *
-     * @throws ValidationException
-     */
+    
     protected function ensureIsNotRateLimited(): void
     {
         if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
@@ -71,9 +57,7 @@ class LoginRequest extends FormRequest
         ]);
     }
 
-    /**
-     * Get the rate limiter key for the current request.
-     */
+    
     protected function throttleKey(): string
     {
         return Str::transliterate(

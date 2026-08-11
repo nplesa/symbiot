@@ -60,9 +60,7 @@ class ProcessTrackingSessionJob implements ShouldQueue, ShouldBeUnique
         ]);
     }
 
-    /**
-     * @param  array<string, mixed>  $geojson
-     */
+    
     private function saveResult(
         TrackingSession $session,
         float $distance,

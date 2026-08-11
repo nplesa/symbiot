@@ -20,20 +20,7 @@ class TrackingController extends Controller
         private readonly TrackingSessionService $trackingSessions
     ) {}
 
-    /**
-     * Pornește sau oprește tracking-ul pentru utilizatorul autentificat.
-     *
-     * La pornirea tracking-ului:
-     * - activează tracking-ul pe utilizator;
-     * - creează o sesiune nouă de tracking.
-     *
-     * La oprirea tracking-ului:
-     * - dezactivează tracking-ul;
-     * - închide sesiunea activă prin completarea câmpului ended_at.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
+    
     public function index(): \Illuminate\Contracts\View\View
     {
         return view('tracking.index');
@@ -112,15 +99,7 @@ class TrackingController extends Controller
         ]);
     }
 
-    /**
-     * Salvează un punct GPS în sesiunea activă de tracking.
-     *
-     * Punctul GPS este asociat automat cu ultima sesiune
-     * activă a utilizatorului autentificat.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
+    
     public function point(StoreTrackingPointRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -148,9 +127,7 @@ class TrackingController extends Controller
         ]);
     }
 
-    /**
-     * Returnează statusul tracking-ului curent.
-     */
+    
     public function status(Request $request)
     {
         $session = TrackingSession::where('user_id', $request->user()->id)
@@ -165,9 +142,7 @@ class TrackingController extends Controller
     }
 
 
-    /**
-     * Lista sesiunilor utilizatorului.
-     */
+    
     public function sessions(Request $request)
     {
         $query = TrackingSession::query()
@@ -182,15 +157,17 @@ class TrackingController extends Controller
             ]);
         }
 
-        $sessions = $query->latest('started_at')->get();
+        $sessions = $query
+            ->latest('started_at')
+            ->latest('id')
+            ->limit(max(1, (int) config('tracking.web_session_list_max', 500)))
+            ->get();
 
         return response()->json($sessions);
     }
 
 
-    /**
-     * Detalii sesiune.
-     */
+    
     public function show(
         Request $request,
         TrackingSession $session
@@ -201,9 +178,7 @@ class TrackingController extends Controller
     }
 
 
-    /**
-     * Returnează punctele unei sesiuni.
-     */
+    
     public function points(
         Request $request,
         TrackingSession $session
@@ -213,18 +188,14 @@ class TrackingController extends Controller
         $points = $session
             ->trackings()
             ->ordered()
+            ->limit(max(1, (int) config('tracking.web_points_max', 10000)))
             ->get();
 
         return response()->json($points);
     }
 
 
-    /**
-     * Returnează traseul pentru hartă.
-     *
-     * Pentru trasee planificate folosește GeoJSON.
-     * Pentru GPS construiește LineString.
-     */
+    
     public function route(
         Request $request,
         TrackingSession $session
@@ -245,6 +216,7 @@ class TrackingController extends Controller
             ->trackings()
             ->orderBy('tracked_at')
             ->orderBy('id')
+            ->limit(max(1, (int) config('tracking.web_points_max', 10000)))
             ->get()
             ->map(function (Tracking $point) {
 
@@ -266,9 +238,7 @@ class TrackingController extends Controller
     }
 
 
-    /**
-     * Pornește un tracking GPS.
-     */
+    
     public function start(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -286,9 +256,7 @@ class TrackingController extends Controller
         ]);
     }
 
-    /**
-     * Primește o poziție GPS.
-     */
+    
     public function location(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -309,9 +277,7 @@ class TrackingController extends Controller
         return response()->json($tracking, 201);
     }
 
-    /**
-     * Oprește tracking-ul.
-     */
+    
     public function stop(Request $request): JsonResponse
     {
         $session = $this->trackingSessions->stop($request->user());
@@ -327,9 +293,7 @@ class TrackingController extends Controller
         return response()->json($session);
     }
 
-    /**
-     * Șterge o sesiune.
-     */
+    
     public function destroy(
         Request $request,
         TrackingSession $session
@@ -355,9 +319,7 @@ class TrackingController extends Controller
     }
 
 
-    /**
-     * Verifică proprietarul sesiunii.
-     */
+    
     private function authorizeSession(
         Request $request,
         TrackingSession $session

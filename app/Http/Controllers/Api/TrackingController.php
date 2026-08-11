@@ -20,9 +20,7 @@ class TrackingController extends Controller
         private readonly TrackingSessionService $trackingSessions
     ) {}
 
-    /**
-     * Începe o sesiune de tracking.
-     */
+    
     public function start(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -40,9 +38,7 @@ class TrackingController extends Controller
         ], 'Tracking started.');
     }
 
-    /**
-     * Primește o poziție GPS.
-     */
+    
     public function location(StoreTrackingPointRequest $request): JsonResponse
     {
         $data = $request->validated() + ['session_id' => $request->integer('session_id')];
@@ -55,9 +51,7 @@ class TrackingController extends Controller
         return $this->success($tracking, 'Location stored.');
     }
 
-    /**
-     * Oprește tracking-ul.
-     */
+    
     public function stop(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -87,12 +81,17 @@ class TrackingController extends Controller
 
     public function sessions(Request $request): JsonResponse
     {
-        return $this->success(
-            TrackingSession::query()
-                ->where('user_id', $request->user()->id)
-                ->latest('started_at')
-                ->get()
-        );
+        $validated = $request->validate([
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $sessions = TrackingSession::query()
+            ->where('user_id', $request->user()->id)
+            ->latest('started_at')
+            ->latest('id')
+            ->paginate($validated['per_page'] ?? 25);
+
+        return $this->success($sessions);
     }
 
     public function show(Request $request, TrackingSession $session): JsonResponse
@@ -106,7 +105,15 @@ class TrackingController extends Controller
     {
         $this->trackingSessions->authorize($request->user(), $session);
 
-        return $this->success($session->trackings()->ordered()->get());
+        $validated = $request->validate([
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:500'],
+        ]);
+
+        $points = $session->trackings()
+            ->ordered()
+            ->paginate($validated['per_page'] ?? 500);
+
+        return $this->success($points);
     }
 
     public function route(Request $request, TrackingSession $session): JsonResponse
@@ -121,6 +128,7 @@ class TrackingController extends Controller
                 'coordinates' => $session->trackings()
                     ->orderBy('tracked_at')
                     ->orderBy('id')
+                    ->limit(max(1, (int) config('tracking.web_points_max', 10000)))
                     ->get()
                     ->map(fn (Tracking $point): array => [
                         (float) $point->longitude,
@@ -145,9 +153,7 @@ class TrackingController extends Controller
         return $this->success(null, 'Tracking session deleted.');
     }
 
-    /**
-     * Returnează dispozitivul utilizatorului.
-     */
+    
     private function device(Request $request, string $uuid): Device
     {
         return Device::where('uuid', $uuid)
@@ -155,9 +161,7 @@ class TrackingController extends Controller
             ->firstOrFail();
     }
 
-    /**
-     * Returnează sesiunea activă.
-     */
+    
     private function session(Request $request, int $sessionId): TrackingSession
     {
         return TrackingSession::whereKey($sessionId)

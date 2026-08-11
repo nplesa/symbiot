@@ -6,7 +6,7 @@ import View from 'ol/View.js';
 import TileLayer from 'ol/layer/Tile.js';
 import VectorLayer from 'ol/layer/Vector.js';
 
-import OSM from 'ol/source/OSM.js';
+import XYZ from 'ol/source/XYZ.js';
 import VectorSource from 'ol/source/Vector.js';
 import Cluster from 'ol/source/Cluster.js';
 
@@ -29,9 +29,9 @@ import Circle from 'ol/geom/Circle.js';
 import Polygon from 'ol/geom/Polygon.js';
 import { circular } from 'ol/geom/Polygon.js';
 
-// =====================================================
-// STATE
-// =====================================================
+
+
+
 
 let tracking = false;
 let watchId = null;
@@ -167,9 +167,9 @@ function filterByRadius(data, lat, lon, radiusMeters) {
     });
 }
 
-// =====================================================
-// SOURCES
-// =====================================================
+
+
+
 
 const vectorSource = new VectorSource();
 
@@ -183,9 +183,9 @@ const clusterSource = new Cluster({
 });
 
 
-// =====================================================
-// STYLES
-// =====================================================
+
+
+
 
 const userStyle = new Style({
     image: new Icon({
@@ -213,12 +213,12 @@ const radiusStyle = new Style({
         width: 2
     })
 });
-// =====================================================
-// LAYERS
-// =====================================================
+
+
+
 
 const baseLayer = new TileLayer({
-    source: new OSM()
+    source: new XYZ({ url: '/map/tiles/{z}/{x}/{y}' })
 });
 
 const clusterLayer = new VectorLayer({
@@ -301,9 +301,9 @@ const vectorLayer = new VectorLayer({
 });
 
 
-// =====================================================
-// MAP
-// =====================================================
+
+
+
 
 const map = new Map({
 
@@ -323,18 +323,18 @@ const map = new Map({
 });
 
 
-// =====================================================
-// CSRF
-// =====================================================
+
+
+
 
 const csrfToken = document
     .querySelector('meta[name="csrf-token"]')
     ?.getAttribute('content');
 
 
-// =====================================================
-// INIT LOCAL FEATURES
-// =====================================================
+
+
+
 
 function initLocalFeatures() {
 
@@ -378,9 +378,9 @@ function initLocalFeatures() {
     vectorSource.addFeature(userFeature);
 }
 
-// =====================================================
-// UPDATE USERS
-// =====================================================
+
+
+
 
 function updateUserOnMap(userId, lat, lon) {
 
@@ -406,9 +406,9 @@ function updateUserOnMap(userId, lat, lon) {
 }
 
 
-// =====================================================
-// RENDER POI
-// =====================================================
+
+
+
 
 function renderPOI(data = [], userLat, userLon) {
 
@@ -450,9 +450,9 @@ function renderPOI(data = [], userLat, userLon) {
     poiSource.addFeatures(features);
 }
 
-// =====================================================
-// LOCATION
-// =====================================================
+
+
+
 
 function getLocation() {
 
@@ -498,9 +498,9 @@ function getLocation() {
     });
 }
 
-// =====================================================
-// TURISM POI
-// =====================================================
+
+
+
 
 async function loadTourismPOI() {
 
@@ -526,9 +526,9 @@ async function loadTourismPOI() {
 }
 
 
-// =====================================================
-// SHARE LOCATION
-// =====================================================
+
+
+
 
 function getGoogleMapsUrl() {
 
@@ -581,9 +581,9 @@ async function shareLocationWhatsApp() {
     );
 }
 
-// =====================================================
-// SHARE LOCATION
-// =====================================================
+
+
+
 
 async function shareLocation() {
 
@@ -603,7 +603,7 @@ async function shareLocation() {
     const googleMapsUrl =
         `https://www.google.com/maps?q=${lat},${lon}`;
 
-    // MOBILE SHARE API
+
     if (navigator.share) {
 
         try {
@@ -625,7 +625,7 @@ async function shareLocation() {
         }
     }
 
-    // WHATSAPP FALLBACK
+
     const text = encodeURIComponent(
         `📍 My current location:\n${googleMapsUrl}`
     );
@@ -641,18 +641,18 @@ async function shareLocation() {
 
 
 
-// =====================================================
-// TURISM BUTTON EVENT
-// =====================================================
+
+
+
 
 let turismBtn = document.getElementById('turismLocations')
 turismBtn?.addEventListener('click', () => {
     loadTourismPOI();
 });
 
-// =====================================================
-// SHARE BUTTON EVENT
-// =====================================================
+
+
+
 
 const shareBtn =
     document.getElementById('shareLocation');
@@ -684,9 +684,9 @@ function createInputLocationElement(create) {
 }
 
 
-// =====================================================
-// GPS TRACKING
-// =====================================================
+
+
+
 
 document
     .getElementById('toggleLocation')
@@ -704,7 +704,7 @@ document
         let turismBtn = document.getElementById('turismLocations');
         let autoDetectLocation = document.getElementById('auto_detect_location');    
 
-        // salvează preferința utilizatorului
+
 
         await fetch(
             '/location/toggle',
@@ -937,9 +937,9 @@ document
     });
 
 
-// =====================================================
-// RESET
-// =====================================================
+
+
+
 
 function resetMap() {
 
@@ -1004,9 +1004,9 @@ function resetMap() {
     });
 }
 
-// =====================================================
-// POI BUTTON
-// =====================================================
+
+
+
 
     let poiBtn = document.getElementById('auto_detect_location');
     poiBtn?.addEventListener('click', () => {
@@ -1048,18 +1048,18 @@ function resetMap() {
             cardContainer.classList.remove('d-none');
         }
 
-        // clear cards
+
         container.querySelectorAll('.card').forEach(card => {
             const body = card.querySelector('.card-body');
             if (body) body.innerHTML = '';
         });
 
-        // sort SAFE (backend is source of truth)
+
         const sorted = [...items].sort(
             (a, b) => (a.distance?.meters ?? Infinity) - (b.distance?.meters ?? Infinity)
         );
 
-        // group by type
+
         const grouped = {};
 
         sorted.forEach(item => {
@@ -1068,7 +1068,7 @@ function resetMap() {
             grouped[type].push(item);
         });
 
-        // render
+
         Object.keys(grouped).forEach(type => {
 
             const card = document.getElementById(type);
@@ -1080,7 +1080,7 @@ function resetMap() {
                 color = getColorForType(type);
                 let span = header.querySelector('.category-color');
                 span.style.backgroundColor = color;
-                // header.style.color = getTextColorForBackground(color);
+
             }
 
 
@@ -1214,9 +1214,9 @@ function resetMap() {
 
 
 
-// =====================================================
-// LOAD POI
-// =====================================================
+
+
+
 
 async function loadNearby(checked) {
 
@@ -1274,21 +1274,21 @@ async function loadNearby(checked) {
     }    
 }
 
-// =====================================================
-// SORT DATA
-// =====================================================
 
-// sortare dupa nume ASC
-// locations = sortLocations(locations, 'name', 'asc');
 
-// sortare dupa nume DESC
-// locations = sortLocations(locations, 'name', 'desc');
 
-// sortare dupa distanta ASC
-// locations = sortLocations(locations, 'distance', 'asc');
 
-// sortare dupa distanta DESC
-// locations = sortLocations(locations, 'distance', 'desc');
+
+
+
+
+
+
+
+
+
+
+
 
 function sortLocations(locations, sortBy = 'name', direction = 'asc') {
 
@@ -1327,15 +1327,15 @@ function sortLocations(locations, sortBy = 'name', direction = 'asc') {
     });
 }
 
-// =====================================================
-// SHOW DATA
-// =====================================================
+
+
+
 function applyPOIFilters(catFilters, data) {
     console.log(catFilters, data);
 
     if (!Array.isArray(data)) return [];
 
-    // dacă nu ai filtre active → returnezi tot
+
     if (!Array.isArray(catFilters) || catFilters.length === 0) {
         return data;
     }
@@ -1472,9 +1472,9 @@ function addUserEvents () {
     });
 }
 
-// =====================================================
-// ENRICH POI
-// =====================================================
+
+
+
 
 function enrichPOIWithDistance(poiList, userLat, userLon) {
     return poiList.map((item) => {
@@ -1505,9 +1505,9 @@ function enrichPOIWithDistance(poiList, userLat, userLon) {
     });
 }
 
-// =====================================================
-// DISTANCE
-// =====================================================
+
+
+
 
 function getDistanceMeters(lat1, lon1, lat2, lon2) {
 

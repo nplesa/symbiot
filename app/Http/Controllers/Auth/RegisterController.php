@@ -13,9 +13,7 @@ class RegisterController extends Controller
 {
     use RegistersUsers;
 
-    /**
-     * Where to redirect users after registration.
-     */
+    
     protected string $redirectTo = '/home';
 
     public function __construct()
@@ -23,11 +21,7 @@ class RegisterController extends Controller
         $this->middleware('guest');
     }
 
-    /**
-     * Get a validator for an incoming registration request.
-     *
-     * @param  array<string, mixed>  $data
-     */
+    
     protected function validator(array $data): Validator
     {
         return ValidatorFacade::make($data, [
@@ -37,11 +31,7 @@ class RegisterController extends Controller
         ]);
     }
 
-    /**
-     * Create a new user instance after a valid registration.
-     *
-     * @param  array<string, mixed>  $data
-     */
+    
     protected function create(array $data): User
     {
         return User::create([

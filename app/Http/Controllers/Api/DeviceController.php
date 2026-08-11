@@ -54,7 +54,7 @@ class DeviceController extends Controller
                 );
             });
         } catch (UniqueConstraintViolationException) {
-            // Two concurrent registrations may race on the unique UUID.
+            
             $device = Device::where('uuid', $data['uuid'])->first();
 
             if (! $device || (int) $device->user_id !== (int) $request->user()->id) {
@@ -110,8 +110,8 @@ class DeviceController extends Controller
             ], 404);
         }
 
-        // UUID-ul identifică device-ul și nu trebuie schimbat
-        // prin endpoint-ul de update.
+        
+        
         unset($data['uuid']);
 
         $device->fill($data);

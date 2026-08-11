@@ -7,18 +7,7 @@ use Illuminate\Support\Collection;
 
 class TrackProcessingService
 {
-    /**
-     * Procesează punctele GPS în ordinea temporală deterministă.
-     *
-     * @param  Collection<int, Tracking>  $points
-     * @return array{
-     *     distance: float,
-     *     geojson: array{
-     *         type: string,
-     *         coordinates: array<int, array{0: float, 1: float}>
-     *     }
-     * }
-     */
+    
     public function process(Collection $points): array
     {
         $ordered = $this->orderPoints($points);
@@ -29,13 +18,7 @@ class TrackProcessingService
         ];
     }
 
-    /**
-     * Ordinea trebuie să fie stabilă chiar când două puncte au același tracked_at.
-     * ID-ul este folosit ca tie-breaker pentru a evita trasee nedeterministe.
-     *
-     * @param  Collection<int, Tracking>  $points
-     * @return Collection<int, Tracking>
-     */
+    
     private function orderPoints(Collection $points): Collection
     {
         return $points
@@ -61,11 +44,7 @@ class TrackProcessingService
             ->values();
     }
 
-    /**
-     * Calculează distanța totală.
-     *
-     * @param  Collection<int, Tracking>  $points
-     */
+    
     private function calculateDistance(Collection $points): float
     {
         $distance = 0.0;
@@ -82,9 +61,7 @@ class TrackProcessingService
         return $distance;
     }
 
-    /**
-     * Formula Haversine.
-     */
+    
     private function haversine(
         float $lat1,
         float $lon1,
@@ -102,21 +79,13 @@ class TrackProcessingService
             cos(deg2rad($lat2)) *
             sin($dLon / 2) ** 2;
 
-        // Protejează sqrt/asin împotriva erorilor de rotunjire floating-point.
+        
         $a = min(1.0, max(0.0, $a));
 
         return 2 * $earthRadius * asin(sqrt($a));
     }
 
-    /**
-     * Construiește GeoJSON.
-     *
-     * @param  Collection<int, Tracking>  $points
-     * @return array{
-     *     type: string,
-     *     coordinates: array<int, array{0: float, 1: float}>
-     * }
-     */
+    
     private function buildGeoJson(Collection $points): array
     {
         return [

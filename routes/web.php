@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\GoogleMapsKmlController;
+
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\TrackingController;
@@ -19,6 +21,8 @@ Route::name('app.')->middleware(['auth'])->group(function () {
     Route::post('/tracking/toggle', [TrackingController::class, 'toggle'])->name('user.tracking.toggle');
 
     Route::get('/tracking/index', [TrackingController::class, 'index'])->name('trackings.index');
+    Route::get('/trasee', fn () => view('trasee'))->name('trasee.index');
+    Route::get('/trasee/{route}/export-kml', [\App\Http\Controllers\RouteKmlController::class, 'export'])->name('trasee.export-kml');
     Route::post('/tracking/start', [TrackingController::class, 'start'])->name('tracking.start');
     Route::post('/tracking/point', [TrackingController::class, 'point'])->name('tracking.point');
     Route::post('/tracking/stop', [TrackingController::class, 'stop'])->name('tracking.stop');
@@ -29,3 +33,10 @@ Route::name('app.')->middleware(['auth'])->group(function () {
     Route::get('/tracking/{session}/points', [TrackingController::class, 'points'])->name('tracking.points');
     Route::get('/tracking/{session}/route', [TrackingController::class, 'route'])->name('tracking.route');
 });
+
+Route::middleware('auth')->get('/api/google-maps/resolve', [\App\Http\Controllers\GoogleMapsController::class, 'resolve'])
+    ->name('api.google-maps.resolve');
+
+
+Route::middleware('auth')->post('/api/trasee/google-maps-kml', GoogleMapsKmlController::class)
+    ->name('api.trasee.google-maps-kml');

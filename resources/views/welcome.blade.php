@@ -10,7 +10,7 @@
 </head>
 <body class="bg-light">
 
-    <!-- Navbar -->
+    
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container">
             <a class="navbar-brand fw-bold" href="#">
@@ -51,7 +51,7 @@
         </div>
     </nav>
 
-    <!-- Hero -->
+    
     <section class="py-5">
         <div class="container">
 
@@ -66,7 +66,7 @@
         </div>
     </section>
 
-    <!-- Footer -->
+    
     <footer class="bg-dark text-white py-3 position-absolute w-100 bottom-0">
         <div class="container text-center">
             <small>

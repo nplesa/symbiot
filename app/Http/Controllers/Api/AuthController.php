@@ -9,9 +9,7 @@ use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    /**
-     * Authenticate the user and issue a Sanctum access token.
-     */
+    
     public function login(LoginRequest $request): JsonResponse
     {
         $request->authenticate();
@@ -31,9 +29,7 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Revoke the current Sanctum access token.
-     */
+    
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()?->delete();
