@@ -14,28 +14,24 @@ return new class extends Migration
                 'gps',
                 'planned',
             ])
-            ->default('gps')
-            ->after('id');
-
+                ->default('gps')
+                ->after('id');
 
             $table->string('source')
                 ->default('device')
                 ->after('type');
 
-
             $table->unsignedInteger('sequence')
                 ->nullable()
                 ->after('source');
 
-
             $table->index([
                 'tracking_session_id',
-                'sequence'
+                'sequence',
             ]);
 
         });
     }
-
 
     public function down(): void
     {
@@ -43,9 +39,8 @@ return new class extends Migration
 
             $table->dropIndex([
                 'tracking_session_id',
-                'sequence'
+                'sequence',
             ]);
-
 
             $table->dropColumn([
                 'type',

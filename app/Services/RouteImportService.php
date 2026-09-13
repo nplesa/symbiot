@@ -6,6 +6,7 @@ use RuntimeException;
 
 class RouteImportService
 {
+    /** @return array<string, mixed> */
     public function import(string $path, string $extension): array
     {
         $extension = strtolower($extension);
@@ -20,6 +21,7 @@ class RouteImportService
         };
     }
 
+    /** @return array<string, mixed> */
     private function fromXmlFile(string $path, string $format): array
     {
         $xml = @file_get_contents($path);
@@ -27,25 +29,41 @@ class RouteImportService
             throw new RuntimeException('Fișierul nu poate fi citit.');
         }
 
-        
         $xml = $this->normalizeXmlInput($xml);
 
         return $this->fromXml($xml, $format);
     }
 
+    /** @return array<string, mixed> */
     private function fromKmz(string $path): array
     {
         if (! class_exists('ZipArchive')) {
             throw new RuntimeException('Extensia PHP ZipArchive este necesară pentru KMZ.');
         }
 
-        $zip = new \ZipArchive();
+        $zip = new \ZipArchive;
         if ($zip->open($path) !== true) {
             throw new RuntimeException('Arhiva KMZ nu poate fi deschisă.');
         }
 
+        $maxFiles = 100;
+        $maxUncompressed = 50 * 1024 * 1024;
+        if ($zip->numFiles > $maxFiles) {
+            $zip->close();
+            throw new RuntimeException('Arhiva KMZ conține prea multe fișiere.');
+        }
+
+        $totalUncompressed = 0;
         $xml = null;
         for ($i = 0; $i < $zip->numFiles; $i++) {
+            $stat = $zip->statIndex($i);
+            $size = (int) ($stat['size'] ?? 0);
+            if ($size < 0 || $size > $maxUncompressed || $totalUncompressed + $size > $maxUncompressed) {
+                $zip->close();
+                throw new RuntimeException('Arhiva KMZ este prea mare după decomprimare.');
+            }
+            $totalUncompressed += $size;
+
             $name = $zip->getNameIndex($i);
             if (is_string($name) && strtolower(pathinfo($name, PATHINFO_EXTENSION)) === 'kml') {
                 $xml = $zip->getFromIndex($i);
@@ -61,13 +79,11 @@ class RouteImportService
         return $this->fromXml($xml, 'kml');
     }
 
-    
     private function normalizeXmlInput(string $xml): string
     {
-        
+
         $xml = preg_replace('/^\xEF\xBB\xBF/', '', $xml) ?? $xml;
 
-        
         if (function_exists('mb_convert_encoding') && (str_starts_with($xml, "\xFF\xFE") || str_starts_with($xml, "\xFE\xFF"))) {
             $converted = @mb_convert_encoding($xml, 'UTF-8', 'UTF-16');
             if (is_string($converted) && $converted !== '') {
@@ -75,7 +91,6 @@ class RouteImportService
             }
         }
 
-        
         if (function_exists('mb_convert_encoding') && (str_starts_with($xml, "\xFF\xFE\x00\x00") || str_starts_with($xml, "\x00\x00\xFE\xFF"))) {
             $converted = @mb_convert_encoding($xml, 'UTF-8', 'UTF-32');
             if (is_string($converted) && $converted !== '') {
@@ -83,17 +98,9 @@ class RouteImportService
             }
         }
 
-        
-        
-        
         $xml = str_replace("\0", '', $xml);
         $xml = preg_replace('/[\x01-\x08\x0B\x0C\x0E-\x1F]/', '', $xml) ?? $xml;
 
-        
-        
-        
-        
-        
         $xml = ltrim($xml, "\xEF\xBB\xBF\x20\x09\x0A\x0D");
         $xmlStart = stripos($xml, '<?xml');
         $kmlStart = stripos($xml, '<kml');
@@ -106,12 +113,12 @@ class RouteImportService
             }
         }
 
-        
         $xml = str_replace("\xEF\xBB\xBF", '', $xml);
 
         return trim($xml);
     }
 
+    /** @return array<string, mixed> */
     private function fromXml(string $xml, string $format): array
     {
         if (! class_exists('DOMDocument')) {
@@ -120,7 +127,7 @@ class RouteImportService
 
         $previous = libxml_use_internal_errors(true);
         try {
-            $dom = new \DOMDocument();
+            $dom = new \DOMDocument;
             $dom->preserveWhiteSpace = false;
             if (! @$dom->loadXML($xml, LIBXML_NONET | LIBXML_NOBLANKS)) {
                 $errors = libxml_get_errors();
@@ -139,10 +146,7 @@ class RouteImportService
             $xpath = new \DOMXPath($dom);
 
             if ($format === 'gpx') {
-                
-                
-                
-                
+
                 $trackNodes = $xpath->query('//*[local-name()="trkpt"]') ?: [];
                 $routeNodes = $xpath->query('//*[local-name()="rtept"]') ?: [];
                 $nodes = $trackNodes->length > 0 ? $trackNodes : $routeNodes;
@@ -159,7 +163,7 @@ class RouteImportService
                     $text = trim((string) $node->textContent);
                     foreach (preg_split('/\s+/', $text) ?: [] as $tuple) {
                         $parts = array_map('trim', explode(',', $tuple));
-                        if (count($parts) >= 2 && $this->validCoordinate($parts[1] ?? null, $parts[0] ?? null)) {
+                        if (count($parts) >= 2 && $this->validCoordinate($parts[1], $parts[0])) {
                             $points[] = $this->point((float) $parts[0], (float) $parts[1], isset($parts[2]) && is_numeric($parts[2]) ? (float) $parts[2] : null);
                         }
                     }
@@ -173,6 +177,7 @@ class RouteImportService
         return $this->normalize($points, strtoupper($format));
     }
 
+    /** @return array<string, mixed> */
     private function fromGeoJson(string $json): array
     {
         $data = json_decode($json, true);
@@ -186,17 +191,27 @@ class RouteImportService
         return $this->normalize($points, 'GEOJSON');
     }
 
+    /**
+     * @param  array<string, mixed>  $value
+     * @param  list<array{latitude: float, longitude: float, elevation: float|null}>  $points
+     */
     private function collectGeoJsonPoints(array $value, array &$points): void
     {
         if (($value['type'] ?? null) === 'FeatureCollection') {
             foreach (($value['features'] ?? []) as $feature) {
-                if (is_array($feature)) $this->collectGeoJsonPoints($feature, $points);
+                if (is_array($feature)) {
+                    $this->collectGeoJsonPoints($feature, $points);
+                }
             }
+
             return;
         }
 
         if (($value['type'] ?? null) === 'Feature') {
-            if (is_array($value['geometry'] ?? null)) $this->collectGeoJsonPoints($value['geometry'], $points);
+            if (is_array($value['geometry'] ?? null)) {
+                $this->collectGeoJsonPoints($value['geometry'], $points);
+            }
+
             return;
         }
 
@@ -210,25 +225,32 @@ class RouteImportService
             }
         } elseif ($type === 'MultiLineString' && is_array($coordinates)) {
             foreach ($coordinates as $line) {
-                if (is_array($line)) $this->collectGeoJsonPoints(['type' => 'LineString', 'coordinates' => $line], $points);
+                if (is_array($line)) {
+                    $this->collectGeoJsonPoints(['type' => 'LineString', 'coordinates' => $line], $points);
+                }
             }
         } elseif ($type === 'Point' && is_array($coordinates) && count($coordinates) >= 2) {
             $points[] = $this->point((float) $coordinates[0], (float) $coordinates[1], isset($coordinates[2]) && is_numeric($coordinates[2]) ? (float) $coordinates[2] : null);
         }
     }
 
+    /** @return array<string, mixed> */
     private function fromCsv(string $csv): array
     {
         $stream = fopen('php://temp', 'r+');
         fwrite($stream, $csv);
         rewind($stream);
         $headers = fgetcsv($stream);
-        if (! is_array($headers)) throw new RuntimeException('CSV gol sau invalid.');
+        if (! is_array($headers)) {
+            throw new RuntimeException('CSV gol sau invalid.');
+        }
         $headers = array_map(fn ($v) => strtolower(trim((string) $v)), $headers);
         $latIndex = $this->firstIndex($headers, ['lat', 'latitude', 'y']);
         $lonIndex = $this->firstIndex($headers, ['lon', 'lng', 'longitude', 'x']);
         $eleIndex = $this->firstIndex($headers, ['ele', 'elevation', 'altitude', 'alt']);
-        if ($latIndex === null || $lonIndex === null) throw new RuntimeException('CSV-ul trebuie să conțină coloane latitude/longitude sau lat/lon.');
+        if ($latIndex === null || $lonIndex === null) {
+            throw new RuntimeException('CSV-ul trebuie să conțină coloane latitude/longitude sau lat/lon.');
+        }
 
         $points = [];
         while (($row = fgetcsv($stream)) !== false) {
@@ -244,6 +266,10 @@ class RouteImportService
         return $this->normalize($points, 'CSV');
     }
 
+    /**
+     * @param  list<array{latitude: float, longitude: float, elevation: float|null}>  $points
+     * @return array<string, mixed>
+     */
     private function normalize(array $points, string $format): array
     {
         if (count($points) < 2) {
@@ -255,7 +281,9 @@ class RouteImportService
             $originalLast = $points[array_key_last($points)];
             $step = (int) ceil(count($points) / $max);
             $points = array_values(array_filter($points, fn ($point, $i) => $i % $step === 0, ARRAY_FILTER_USE_BOTH));
-            if ($points[array_key_last($points)] !== $originalLast) $points[] = $originalLast;
+            if ($points[array_key_last($points)] !== $originalLast) {
+                $points[] = $originalLast;
+            }
         }
 
         $distance = 0.0;
@@ -267,8 +295,12 @@ class RouteImportService
                 $distance += $this->haversine($previous['latitude'], $previous['longitude'], $point['latitude'], $point['longitude']);
                 if ($previous['elevation'] !== null && $point['elevation'] !== null) {
                     $delta = $point['elevation'] - $previous['elevation'];
-                    if ($delta > 0) $gain += $delta;
-                    if ($delta < 0) $loss += abs($delta);
+                    if ($delta > 0) {
+                        $gain += $delta;
+                    }
+                    if ($delta < 0) {
+                        $loss += abs($delta);
+                    }
                 }
             }
             $previous = $point;
@@ -285,12 +317,13 @@ class RouteImportService
         ];
     }
 
+    /** @return array{latitude: float, longitude: float, elevation: float|null} */
     private function point(float $longitude, float $latitude, ?float $elevation = null): array
     {
         return ['latitude' => $latitude, 'longitude' => $longitude, 'elevation' => $elevation];
     }
 
-    private function validCoordinate($lat, $lon): bool
+    private function validCoordinate(mixed $lat, mixed $lon): bool
     {
         return is_numeric($lat) && is_numeric($lon) && (float) $lat >= -90 && (float) $lat <= 90 && (float) $lon >= -180 && (float) $lon <= 180;
     }
@@ -302,6 +335,7 @@ class RouteImportService
                 return (float) trim($child->textContent);
             }
         }
+
         return null;
     }
 
@@ -311,15 +345,23 @@ class RouteImportService
         $dLat = deg2rad($lat2 - $lat1);
         $dLon = deg2rad($lon2 - $lon1);
         $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
+
         return 2 * $earth * asin(min(1, sqrt($a)));
     }
 
+    /**
+     * @param  list<string>  $headers
+     * @param  list<string>  $names
+     */
     private function firstIndex(array $headers, array $names): ?int
     {
         foreach ($names as $name) {
             $index = array_search($name, $headers, true);
-            if ($index !== false) return $index;
+            if ($index !== false) {
+                return $index;
+            }
         }
+
         return null;
     }
 }

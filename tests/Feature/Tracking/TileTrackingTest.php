@@ -4,6 +4,7 @@ namespace Tests\Feature\Tracking;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -29,10 +30,11 @@ class TileTrackingTest extends TestCase
 
         $response->assertHeader('Content-Type', 'image/png');
     }
+
     public function test_tile_returns_service_unavailable_when_provider_cannot_be_reached(): void
     {
         Http::fake([
-            '*' => fn () => throw new \Illuminate\Http\Client\ConnectionException('Geoapify unavailable'),
+            '*' => fn () => throw new ConnectionException('Geoapify unavailable'),
         ]);
 
         config(['services.geoapify.key' => 'test-key']);
@@ -80,5 +82,4 @@ class TileTrackingTest extends TestCase
         $response->assertNotFound();
         Http::assertNothingSent();
     }
-
 }

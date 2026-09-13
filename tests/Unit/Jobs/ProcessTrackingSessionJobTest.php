@@ -3,10 +3,10 @@
 namespace Tests\Unit\Jobs;
 
 use App\Jobs\ProcessTrackingSessionJob;
+use App\Models\Device;
 use App\Models\Tracking;
 use App\Models\TrackingSession;
 use App\Models\User;
-use App\Models\Device;
 use App\Services\TrackProcessingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;

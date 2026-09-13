@@ -165,5 +165,4 @@ class UpdateLocationTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors('active');
     }
-
 }

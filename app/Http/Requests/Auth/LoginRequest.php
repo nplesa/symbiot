@@ -10,13 +10,12 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
-    
     public function authorize(): bool
     {
         return true;
     }
 
-    
+    /** @return array<string, list<string>> */
     public function rules(): array
     {
         return [
@@ -25,7 +24,6 @@ class LoginRequest extends FormRequest
         ];
     }
 
-    
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
@@ -41,7 +39,6 @@ class LoginRequest extends FormRequest
         RateLimiter::clear($this->throttleKey());
     }
 
-    
     protected function ensureIsNotRateLimited(): void
     {
         if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
@@ -57,7 +54,6 @@ class LoginRequest extends FormRequest
         ]);
     }
 
-    
     protected function throttleKey(): string
     {
         return Str::transliterate(

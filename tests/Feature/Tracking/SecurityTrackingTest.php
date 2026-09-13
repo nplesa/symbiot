@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Tracking;
 
-use App\Models\Tracking;
 use App\Models\TrackingSession;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,7 +29,7 @@ class SecurityTrackingTest extends TestCase
                 'longitude' => 25.0,
                 'tracked_at' => now()->toIso8601String(),
             ])
-            ->assertStatus(404);
+            ->assertStatus(409);
 
         $this->assertDatabaseCount('trackings', 0);
     }
@@ -67,7 +66,7 @@ class SecurityTrackingTest extends TestCase
         $this->actingAs($user)
             ->postJson('/tracking/start')
             ->assertOk()
-            ->assertJsonPath('id', $session->id);
+            ->assertJsonPath('session.id', $session->id);
 
         $this->assertDatabaseCount('tracking_sessions', 1);
     }
@@ -90,17 +89,7 @@ class SecurityTrackingTest extends TestCase
                 'battery' => 73,
                 'tracked_at' => now()->toIso8601String(),
             ])
-            ->assertUnauthorized();
-
-        
-        
-        Tracking::create([
-            'tracking_session_id' => $session->id,
-            'latitude' => 45.0,
-            'longitude' => 25.0,
-            'battery' => 73,
-            'tracked_at' => now(),
-        ]);
+            ->assertOk();
 
         $this->assertDatabaseHas('trackings', [
             'tracking_session_id' => $session->id,

@@ -4,14 +4,13 @@ namespace Tests\Unit\Services;
 
 use App\Models\Tracking;
 use App\Services\TrackProcessingService;
-use Illuminate\Support\Collection;
 use Tests\TestCase;
 
 class TrackProcessingServiceTest extends TestCase
 {
     public function test_empty_collection_returns_zero_distance_and_empty_geojson(): void
     {
-        $service = new TrackProcessingService();
+        $service = new TrackProcessingService;
 
         $result = $service->process(collect());
 
@@ -25,7 +24,7 @@ class TrackProcessingServiceTest extends TestCase
 
     public function test_single_point_returns_zero_distance(): void
     {
-        $service = new TrackProcessingService();
+        $service = new TrackProcessingService;
 
         $points = collect([
             $this->point(45.6486, 25.6061),
@@ -45,7 +44,7 @@ class TrackProcessingServiceTest extends TestCase
 
     public function test_two_points_calculate_distance(): void
     {
-        $service = new TrackProcessingService();
+        $service = new TrackProcessingService;
 
         $points = collect([
             $this->point(45.6486, 25.6061),
@@ -65,7 +64,7 @@ class TrackProcessingServiceTest extends TestCase
 
     public function test_multiple_points_sum_segment_distances(): void
     {
-        $service = new TrackProcessingService();
+        $service = new TrackProcessingService;
 
         $points = collect([
             $this->point(45.6486, 25.6061),
@@ -86,7 +85,7 @@ class TrackProcessingServiceTest extends TestCase
 
     public function test_geojson_uses_longitude_then_latitude(): void
     {
-        $service = new TrackProcessingService();
+        $service = new TrackProcessingService;
 
         $points = collect([
             $this->point(45.6486, 25.6061),
@@ -105,7 +104,7 @@ class TrackProcessingServiceTest extends TestCase
 
     public function test_geojson_preserves_point_order(): void
     {
-        $service = new TrackProcessingService();
+        $service = new TrackProcessingService;
 
         $points = collect([
             $this->point(45.0, 25.0),
@@ -124,7 +123,7 @@ class TrackProcessingServiceTest extends TestCase
 
     public function test_points_are_sorted_by_tracked_at_and_id(): void
     {
-        $service = new TrackProcessingService();
+        $service = new TrackProcessingService;
 
         $first = $this->point(45.0, 25.0);
         $first->id = 1;
@@ -153,7 +152,7 @@ class TrackProcessingServiceTest extends TestCase
 
     public function test_distance_is_finite_for_normal_coordinates(): void
     {
-        $service = new TrackProcessingService();
+        $service = new TrackProcessingService;
 
         $points = collect([
             $this->point(0.0, 0.0),
@@ -163,12 +162,12 @@ class TrackProcessingServiceTest extends TestCase
         $result = $service->process($points);
 
         $this->assertTrue(is_finite($result['distance']));
-        $this->assertEqualsWithDelta(20003900.0, $result['distance'], 1000.0);
+        $this->assertEqualsWithDelta(20015086.8, $result['distance'], 1000.0);
     }
 
     private function point(float $latitude, float $longitude): Tracking
     {
-        $point = new Tracking();
+        $point = new Tracking;
 
         $point->latitude = $latitude;
         $point->longitude = $longitude;

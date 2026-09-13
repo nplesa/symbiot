@@ -21,11 +21,12 @@ class StoreTrackingPointRequest extends FormRequest
                     'tracked_at' => CarbonImmutable::parse($this->input('tracked_at'))->utc()->format('Y-m-d H:i:s'),
                 ]);
             } catch (\Throwable) {
-                
+
             }
         }
     }
 
+    /** @return array<string, list<string>> */
     public function rules(): array
     {
         return [

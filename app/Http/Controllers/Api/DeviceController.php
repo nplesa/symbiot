@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Device;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 class DeviceController extends Controller
@@ -54,7 +54,7 @@ class DeviceController extends Controller
                 );
             });
         } catch (UniqueConstraintViolationException) {
-            
+
             $device = Device::where('uuid', $data['uuid'])->first();
 
             if (! $device || (int) $device->user_id !== (int) $request->user()->id) {
@@ -103,15 +103,13 @@ class DeviceController extends Controller
             ->latest('id')
             ->first();
 
-        if (!$device) {
+        if (! $device) {
             return response()->json([
                 'success' => false,
                 'message' => 'Device not found.',
             ], 404);
         }
 
-        
-        
         unset($data['uuid']);
 
         $device->fill($data);
@@ -123,5 +121,4 @@ class DeviceController extends Controller
             'device' => $device->fresh(),
         ]);
     }
-
 }

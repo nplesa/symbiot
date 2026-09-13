@@ -4,10 +4,14 @@ namespace App\Livewire\Trasee;
 
 use App\Models\Route as PlannedRoute;
 use App\Services\RouteImportService;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -15,9 +19,12 @@ class Index extends Component
 {
     use WithFileUploads;
 
-    public $file;
+    public mixed $file = null;
+
     public ?string $name = null;
+
     public string $googleMapsUrl = '';
+
     public ?int $selectedRouteId = null;
 
     public function mount(): void
@@ -25,7 +32,7 @@ class Index extends Component
         $this->selectedRouteId = null;
     }
 
-    public function render()
+    public function render(): View
     {
         $routes = $this->ownedRoutes();
 
@@ -33,9 +40,6 @@ class Index extends Component
             ? $routes->firstWhere('id', $this->selectedRouteId)
             : null;
 
-        
-        
-        
         if ($this->selectedRouteId !== null && $selectedRoute === null) {
             $this->selectedRouteId = null;
         }
@@ -57,9 +61,7 @@ class Index extends Component
         $route = $this->ownedRoute($routeId);
 
         DB::transaction(function () use ($route): void {
-            
-            
-            
+
             if (Schema::hasTable('route_points')) {
                 DB::table('route_points')->where('route_id', $route->id)->delete();
             }
@@ -73,6 +75,7 @@ class Index extends Component
 
     }
 
+    /** @param array<string, mixed> $payload */
     public function importGoogleMapsRouteFromClient(array $payload): int
     {
         $data = validator($payload, [
@@ -88,11 +91,12 @@ class Index extends Component
 
         $geometry = $data['geometry'];
         $coordinates = $geometry['coordinates'];
-        $distance = (float) ($data['distance'] ?? 0);
+        $pointCount = $this->validateClientGeometry($geometry);
+        $distance = $this->calculateGeometryDistanceKm($geometry);
         $duration = (int) ($data['duration'] ?? 0);
 
-        $route = DB::transaction(function () use ($data, $geometry, $coordinates, $distance, $duration): PlannedRoute {
-            $route = new PlannedRoute();
+        $route = DB::transaction(function () use ($data, $geometry, $distance, $duration): PlannedRoute {
+            $route = new PlannedRoute;
             $route->user_id = auth()->id();
             $route->name = $data['name'] ?? null;
             $route->format = 'geojson';
@@ -120,20 +124,21 @@ class Index extends Component
     {
         if (! $this->selectedRouteId) {
             $this->addError('selectedRouteId', 'Selectează mai întâi un traseu.');
+
             return;
         }
 
         $route = $this->ownedRoute($this->selectedRouteId);
-        session()->flash('success', 'Traseul „'.($route->name ?: 'fără nume').'” este selectat.');
+        session()->flash('success', 'Traseul „' . ($route->name ?: 'fără nume') . '” este selectat.');
     }
 
     public function importRoute(?string $importToken = null): void
     {
         // Un singur request poate procesa un token de import. Protejează baza de date
         // de submit-uri/upload-uri duplicate (inclusiv request-uri concurente).
-        $importToken = $importToken ?: (string) \Illuminate\Support\Str::uuid();
-        $lockKey = 'trasee:file-import:lock:'.auth()->id().':'.$importToken;
-        $doneKey = 'trasee:file-import:done:'.auth()->id().':'.$importToken;
+        $importToken = $importToken ?: (string) Str::uuid();
+        $lockKey = 'trasee:file-import:lock:' . auth()->id() . ':' . $importToken;
+        $doneKey = 'trasee:file-import:done:' . auth()->id() . ':' . $importToken;
 
         if (Cache::has($doneKey)) {
             return;
@@ -145,84 +150,85 @@ class Index extends Component
         }
 
         try {
-        $this->validate([
-            'file' => ['required', 'file', 'max:10240'],
-            'name' => ['required', 'string', 'max:255'],
-        ]);
-
-        $extension = strtolower($this->file->getClientOriginalExtension());
-        if (! in_array($extension, ['gpx', 'kml', 'kmz', 'geojson', 'json', 'csv'], true)) {
-            $this->addError('file', 'Format nesuportat. Folosește GPX, KML, KMZ, GeoJSON sau CSV.');
-            return;
-        }
-
-        try {
-            $parsed = app(RouteImportService::class)->import($this->file->getRealPath(), $extension);
-
-            $route = DB::transaction(function () use ($parsed): PlannedRoute {
-                $route = new PlannedRoute();
-                $route->user_id = auth()->id();
-                $route->name = $this->name ?: pathinfo($this->file->getClientOriginalName(), PATHINFO_FILENAME);
-                $route->format = strtolower($parsed['format']);
-                $route->geometry = $parsed['geometry'];
-                $route->distance = $parsed['distance'];
-                $route->duration = $parsed['duration'];
-                $route->elevation_gain = $parsed['elevation_gain'];
-                $route->elevation_loss = $parsed['elevation_loss'];
-                $route->source = 'file_import';
-                $route->source_url = null;
-                $route->save();
-
-                if (Schema::hasTable('route_points')) {
-                    $rows = [];
-                    foreach ($parsed['points'] as $sequence => $point) {
-                        $rows[] = [
-                            'route_id' => $route->id,
-                            'sequence' => $sequence,
-                            'longitude' => (float) $point['longitude'],
-                            'latitude' => (float) $point['latitude'],
-                            'elevation' => isset($point['elevation']) ? (float) $point['elevation'] : null,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ];
-                    }
-
-                    foreach (array_chunk($rows, 1000) as $chunk) {
-                        if ($chunk !== []) {
-                            DB::table('route_points')->insert($chunk);
-                        }
-                    }
-                }
-
-                return $route;
-            });
-
-            $route = $route->fresh();
-            // Importul prin formular adaugă traseul în listă, dar NU îl selectează.
-            // Preview-ul trebuie afișat doar după ce utilizatorul apasă pe traseul din listă.
-            $this->selectedRouteId = null;
-            $this->file = null;
-            $this->name = null;
-            Cache::put($doneKey, $route->id, now()->addMinutes(10));
-            $this->dispatch('route-imported', route: $route->toArray(), source: 'file');
-        } catch (\Throwable $e) {
-            Log::warning('Route file import failed.', [
-                'user_id' => auth()->id(),
-                'extension' => $extension,
-                'error' => $e->getMessage(),
+            $this->validate([
+                'file' => ['required', 'file', 'max:10240'],
+                'name' => ['required', 'string', 'max:255'],
             ]);
 
-            $message = $e->getMessage() ?: 'Fișierul de traseu nu a putut fi importat.';
-            $this->addError('file', $message);
-            $this->dispatch('route-import-failed', message: $message);
-        }
+            $extension = strtolower($this->file->getClientOriginalExtension());
+            if (! in_array($extension, ['gpx', 'kml', 'kmz', 'geojson', 'json', 'csv'], true)) {
+                $this->addError('file', 'Format nesuportat. Folosește GPX, KML, KMZ, GeoJSON sau CSV.');
+
+                return;
+            }
+
+            try {
+                $parsed = app(RouteImportService::class)->import($this->file->getRealPath(), $extension);
+
+                $route = DB::transaction(function () use ($parsed): PlannedRoute {
+                    $route = new PlannedRoute;
+                    $route->user_id = auth()->id();
+                    $route->name = $this->name ?: pathinfo($this->file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $route->format = strtolower($parsed['format']);
+                    $route->geometry = $parsed['geometry'];
+                    $route->distance = $parsed['distance'];
+                    $route->duration = $parsed['duration'];
+                    $route->elevation_gain = $parsed['elevation_gain'];
+                    $route->elevation_loss = $parsed['elevation_loss'];
+                    $route->source = 'file_import';
+                    $route->source_url = null;
+                    $route->save();
+
+                    if (Schema::hasTable('route_points')) {
+                        $rows = [];
+                        foreach ($parsed['points'] as $sequence => $point) {
+                            $rows[] = [
+                                'route_id' => $route->id,
+                                'sequence' => $sequence,
+                                'longitude' => (float) $point['longitude'],
+                                'latitude' => (float) $point['latitude'],
+                                'elevation' => isset($point['elevation']) ? (float) $point['elevation'] : null,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ];
+                        }
+
+                        foreach (array_chunk($rows, 1000) as $chunk) {
+                            if ($chunk !== []) {
+                                DB::table('route_points')->insert($chunk);
+                            }
+                        }
+                    }
+
+                    return $route;
+                });
+
+                $route = $route->fresh();
+                // Importul prin formular adaugă traseul în listă, dar NU îl selectează.
+                // Preview-ul trebuie afișat doar după ce utilizatorul apasă pe traseul din listă.
+                $this->selectedRouteId = null;
+                $this->file = null;
+                $this->name = null;
+                Cache::put($doneKey, $route->id, now()->addMinutes(10));
+                $this->dispatch('route-imported', route: $route->toArray(), source: 'file');
+            } catch (\Throwable $e) {
+                Log::warning('Route file import failed.', [
+                    'user_id' => auth()->id(),
+                    'extension' => $extension,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $message = $e->getMessage() ?: 'Fișierul de traseu nu a putut fi importat.';
+                $this->addError('file', $message);
+                $this->dispatch('route-import-failed', message: $message);
+            }
         } finally {
             $lock->release();
         }
     }
 
-    
-    private function ownedRoutes()
+    /** @return Collection<int, PlannedRoute> */
+    private function ownedRoutes(): Collection
     {
         return PlannedRoute::query()
             ->where('user_id', auth()->id())
@@ -232,7 +238,8 @@ class Index extends Component
             ->get();
     }
 
-    public function downloadGoogleMapsKml(array $payload)
+    /** @param array<string, mixed> $payload */
+    public function downloadGoogleMapsKml(array $payload): Response
     {
         $data = validator($payload, [
             'geometry' => ['required', 'array'],
@@ -264,7 +271,7 @@ class Index extends Component
         foreach ($lines as $line) {
             $points = [];
             foreach ($line as $point) {
-                if (!is_array($point) || count($point) < 2) {
+                if (! is_array($point) || count($point) < 2) {
                     continue;
                 }
 
@@ -324,6 +331,71 @@ KML;
         ]);
     }
 
+    /** @param array<string, mixed> $geometry */
+    private function validateClientGeometry(array $geometry): int
+    {
+        $coordinates = $geometry['coordinates'] ?? null;
+        if (! is_array($coordinates)) {
+            throw new \InvalidArgumentException('Geometria traseului este invalidă.');
+        }
+
+        $lines = $geometry['type'] === 'MultiLineString' ? $coordinates : [$coordinates];
+        $total = 0;
+        foreach ($lines as $line) {
+            if (! is_array($line) || count($line) < 2) {
+                throw new \InvalidArgumentException('Fiecare segment al traseului trebuie să conțină cel puțin două puncte.');
+            }
+            foreach ($line as $point) {
+                if (! is_array($point) || count($point) < 2 || ! is_numeric($point[0]) || ! is_numeric($point[1])) {
+                    throw new \InvalidArgumentException('Geometria conține un punct GPS invalid.');
+                }
+                $lon = (float) $point[0];
+                $lat = (float) $point[1];
+                if (! is_finite($lon) || ! is_finite($lat) || $lon < -180 || $lon > 180 || $lat < -90 || $lat > 90) {
+                    throw new \InvalidArgumentException('Geometria conține coordonate GPS în afara limitelor.');
+                }
+                if (isset($point[2]) && (! is_numeric($point[2]) || ! is_finite((float) $point[2]))) {
+                    throw new \InvalidArgumentException('Altitudinea GPS este invalidă.');
+                }
+                $total++;
+                if ($total > (int) config('tracking.planned_route_max_coordinates', 10000)) {
+                    throw new \InvalidArgumentException('Traseul depășește numărul maxim de puncte.');
+                }
+            }
+        }
+
+        return $total;
+    }
+
+    /** @param array<string, mixed> $geometry */
+    private function calculateGeometryDistanceKm(array $geometry): float
+    {
+        $lines = $geometry['type'] === 'MultiLineString' ? $geometry['coordinates'] : [$geometry['coordinates']];
+        $distance = 0.0;
+        foreach ($lines as $line) {
+            $previous = null;
+            foreach ($line as $point) {
+                $current = [(float) $point[1], (float) $point[0]];
+                if ($previous !== null) {
+                    $distance += $this->haversineKm($previous[0], $previous[1], $current[0], $current[1]);
+                }
+                $previous = $current;
+            }
+        }
+
+        return round($distance, 3);
+    }
+
+    private function haversineKm(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $earth = 6371.0088;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
+
+        return $earth * 2 * asin(min(1.0, sqrt($a)));
+    }
+
     private function ownedRoute(int $routeId): PlannedRoute
     {
         return PlannedRoute::query()
@@ -331,7 +403,7 @@ KML;
             ->findOrFail($routeId);
     }
 
-
+    /** @param array<string, mixed> $geometry */
     private function insertRoutePointsFromGeometry(PlannedRoute $route, array $geometry): void
     {
         if (! Schema::hasTable('route_points')) {
@@ -354,13 +426,27 @@ KML;
             }
 
             $row = [];
-            if (in_array('route_id', $columns, true)) $row['route_id'] = $route->id;
-            if (in_array('sequence', $columns, true)) $row['sequence'] = $sequence++;
-            if (in_array('longitude', $columns, true)) $row['longitude'] = (float) $point[0];
-            if (in_array('latitude', $columns, true)) $row['latitude'] = (float) $point[1];
-            if (isset($point[2]) && in_array('elevation', $columns, true)) $row['elevation'] = (float) $point[2];
-            if (in_array('created_at', $columns, true)) $row['created_at'] = $now;
-            if (in_array('updated_at', $columns, true)) $row['updated_at'] = $now;
+            if (in_array('route_id', $columns, true)) {
+                $row['route_id'] = $route->id;
+            }
+            if (in_array('sequence', $columns, true)) {
+                $row['sequence'] = $sequence++;
+            }
+            if (in_array('longitude', $columns, true)) {
+                $row['longitude'] = (float) $point[0];
+            }
+            if (in_array('latitude', $columns, true)) {
+                $row['latitude'] = (float) $point[1];
+            }
+            if (isset($point[2]) && in_array('elevation', $columns, true)) {
+                $row['elevation'] = (float) $point[2];
+            }
+            if (in_array('created_at', $columns, true)) {
+                $row['created_at'] = $now;
+            }
+            if (in_array('updated_at', $columns, true)) {
+                $row['updated_at'] = $now;
+            }
 
             $rows[] = $row;
         }

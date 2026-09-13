@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tracking\StoreTrackingPointRequest;
 use App\Models\Device;
 use App\Models\Tracking;
 use App\Models\TrackingSession;
-use App\Traits\ApiResponse;
 use App\Services\TrackingSessionService;
+use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Http\Requests\Tracking\StoreTrackingPointRequest;
 
 class TrackingController extends Controller
 {
@@ -20,7 +20,6 @@ class TrackingController extends Controller
         private readonly TrackingSessionService $trackingSessions
     ) {}
 
-    
     public function start(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -38,7 +37,6 @@ class TrackingController extends Controller
         ], 'Tracking started.');
     }
 
-    
     public function location(StoreTrackingPointRequest $request): JsonResponse
     {
         $data = $request->validated() + ['session_id' => $request->integer('session_id')];
@@ -51,7 +49,6 @@ class TrackingController extends Controller
         return $this->success($tracking, 'Location stored.');
     }
 
-    
     public function stop(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -153,7 +150,6 @@ class TrackingController extends Controller
         return $this->success(null, 'Tracking session deleted.');
     }
 
-    
     private function device(Request $request, string $uuid): Device
     {
         return Device::where('uuid', $uuid)
@@ -161,7 +157,6 @@ class TrackingController extends Controller
             ->firstOrFail();
     }
 
-    
     private function session(Request $request, int $sessionId): TrackingSession
     {
         return TrackingSession::whereKey($sessionId)

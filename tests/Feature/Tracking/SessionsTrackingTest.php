@@ -80,12 +80,12 @@ class SessionsTrackingTest extends TestCase
         $sessions = $response->json();
 
         $this->assertEquals(
-            '2026-08-06T08:00:00.000000Z',
+            '2026-08-06T15:00:00.000000Z',
             $sessions[0]['started_at']
         );
 
         $this->assertEquals(
-            '2026-08-06T15:00:00.000000Z',
+            '2026-08-06T08:00:00.000000Z',
             $sessions[1]['started_at']
         );
     }

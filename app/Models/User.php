@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -18,12 +17,11 @@ class User extends Authenticatable
 {
     use HasApiTokens;
 
-    
+    /** @use HasFactory<UserFactory> */
     use HasFactory;
 
     use Notifiable;
 
-    
     #[\Override]
     protected function casts(): array
     {
@@ -33,19 +31,13 @@ class User extends Authenticatable
         ];
     }
 
-    
-    public function tracking(): HasMany
-    {
-        return $this->hasMany(Tracking::class);
-    }
-
-    
+    /** @return HasMany<Device, $this> */
     public function devices(): HasMany
     {
         return $this->hasMany(Device::class);
     }
 
-    
+    /** @return HasMany<TrackingSession, $this> */
     public function trackingSessions(): HasMany
     {
         return $this->hasMany(TrackingSession::class);

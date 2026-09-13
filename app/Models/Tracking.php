@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-
 class Tracking extends Model
 {
     protected $fillable = [
@@ -29,7 +28,6 @@ class Tracking extends Model
         'tracked_at',
     ];
 
-
     protected $casts = [
         'latitude' => 'float',
         'longitude' => 'float',
@@ -45,8 +43,7 @@ class Tracking extends Model
         'tracked_at' => 'datetime',
     ];
 
-
-    
+    /** @return BelongsTo<TrackingSession, $this> */
     public function session(): BelongsTo
     {
         return $this->belongsTo(
@@ -55,22 +52,28 @@ class Tracking extends Model
         );
     }
 
-
-    
+    /**
+     * @param  Builder<Tracking>  $query
+     * @return Builder<Tracking>
+     */
     public function scopeGps(Builder $query): Builder
     {
         return $query->where('type', 'gps');
     }
 
-
-    
+    /**
+     * @param  Builder<Tracking>  $query
+     * @return Builder<Tracking>
+     */
     public function scopePlanned(Builder $query): Builder
     {
         return $query->where('type', 'planned');
     }
 
-
-    
+    /**
+     * @param  Builder<Tracking>  $query
+     * @return Builder<Tracking>
+     */
     public function scopeOrdered(Builder $query): Builder
     {
         return $query
@@ -80,22 +83,16 @@ class Tracking extends Model
             ->orderBy('id');
     }
 
-
-    
     public function isGps(): bool
     {
         return $this->type === 'gps';
     }
 
-
-    
     public function isPlanned(): bool
     {
         return $this->type === 'planned';
     }
 
-
-    
     public function isManual(): bool
     {
         return $this->source === 'manual';

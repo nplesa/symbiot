@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\GoogleMapsUrlResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -75,7 +76,6 @@ class GoogleMapsKmlController extends Controller
                     continue;
                 }
 
-                
                 $points[] = sprintf('%.8F,%.8F,%.3F', (float) $lon, (float) $lat, (float) $alt);
             }
 
@@ -115,9 +115,8 @@ class GoogleMapsKmlController extends Controller
             ], 422);
         }
 
-        
         $kml = $dom->saveXML();
-        $check = new \DOMDocument();
+        $check = new \DOMDocument;
         $check->preserveWhiteSpace = false;
         $previous = libxml_use_internal_errors(true);
         $valid = $check->loadXML($kml, LIBXML_NONET | LIBXML_NOBLANKS);
@@ -171,6 +170,7 @@ class GoogleMapsKmlController extends Controller
             return $this->kmlResponse($routed['geometry'], $name);
         } catch (\Throwable $e) {
             report($e);
+
             return response()->json([
                 'message' => $e->getMessage() ?: 'Nu am putut converti linkul Google Maps în KML.',
             ], 422);
@@ -179,49 +179,10 @@ class GoogleMapsKmlController extends Controller
 
     private function resolveShortLink(string $url): string
     {
-        $url = trim($url);
-        $host = strtolower(preg_replace('/^www\./', '', parse_url($url, PHP_URL_HOST) ?: ''));
-        if (! in_array($host, ['maps.app.goo.gl', 'goo.gl'], true)) {
-            return $url;
-        }
-
-        $current = $url;
-        for ($i = 0; $i < 6; $i++) {
-            $response = Http::withHeaders([
-                'User-Agent' => 'Mozilla/5.0 (compatible; Symbiot/1.0)',
-                'Accept' => 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
-            ])->timeout(15)->withOptions(['allow_redirects' => false])->get($current);
-
-            if ($response->redirect()) {
-                $location = $response->header('Location');
-                if (! is_string($location) || $location === '') break;
-                $current = $this->absoluteUrl($current, $location);
-                continue;
-            }
-
-            if (! $response->successful()) {
-                throw new \RuntimeException('Google Maps a returnat HTTP '.$response->status().'.');
-            }
-
-            $html = $response->body();
-            foreach ([
-                '/<link[^>]+rel=["\']canonical["\'][^>]+href=["\']([^"\']+)["\']/i',
-                '/<meta[^>]+property=["\']og:url["\'][^>]+content=["\']([^"\']+)["\']/i',
-            ] as $pattern) {
-                if (preg_match($pattern, $html, $m)) {
-                    $candidate = html_entity_decode($m[1], ENT_QUOTES | ENT_HTML5);
-                    if (str_contains(strtolower($candidate), '/maps')) {
-                        $current = $candidate;
-                        break 2;
-                    }
-                }
-            }
-            break;
-        }
-
-        return $current;
+        return app(GoogleMapsUrlResolver::class)->resolve($url);
     }
 
+    /** @return array<string, mixed> */
     private function parseGoogleMapsUrl(string $url): array
     {
         $parsed = parse_url($url);
@@ -298,8 +259,12 @@ class GoogleMapsKmlController extends Controller
             }
         }
 
-        if ($origin && ($c = $this->coordinateFromText($origin))) $origin = $c;
-        if ($destination && ($c = $this->coordinateFromText($destination))) $destination = $c;
+        if ($origin && ($c = $this->coordinateFromText($origin))) {
+            $origin = $c;
+        }
+        if ($destination && ($c = $this->coordinateFromText($destination))) {
+            $destination = $c;
+        }
 
         // Never allow a Google map viewport to become a waypoint.
         $waypoints = array_values(array_filter(
@@ -354,11 +319,16 @@ class GoogleMapsKmlController extends Controller
         return compact('origin', 'destination', 'waypoints');
     }
 
+    /** @return array{latitude: float, longitude: float} */
     private function geocode(mixed $location): array
     {
-        if (is_array($location)) return $location;
+        if (is_array($location)) {
+            return $location;
+        }
         $text = $this->normalizeLocation($location);
-        if ($coordinates = $this->coordinateFromText($text)) return $coordinates;
+        if ($coordinates = $this->coordinateFromText($text)) {
+            return $coordinates;
+        }
 
         $response = Http::timeout(15)->get('https://api.geoapify.com/v1/geocode/search', [
             'text' => $text,
@@ -367,14 +337,21 @@ class GoogleMapsKmlController extends Controller
             'lang' => 'ro',
             'apiKey' => config('services.geoapify.key'),
         ]);
-        if (! $response->successful()) throw new \RuntimeException('Geoapify nu a putut localiza „'.$text.'”.');
+        if (! $response->successful()) {
+            throw new \RuntimeException('Geoapify nu a putut localiza „' . $text . '”.');
+        }
         $result = $response->json('results.0');
         if (! is_array($result) || ! isset($result['lat'], $result['lon'])) {
-            throw new \RuntimeException('Geoapify nu a găsit locația „'.$text.'”.');
+            throw new \RuntimeException('Geoapify nu a găsit locația „' . $text . '”.');
         }
+
         return ['latitude' => (float) $result['lat'], 'longitude' => (float) $result['lon']];
     }
 
+    /**
+     * @param  list<array{latitude: float, longitude: float}>  $coordinates
+     * @return array{geometry: array<string, mixed>}
+     */
     private function route(array $coordinates, string $travelMode): array
     {
         $mode = match ($travelMode) {
@@ -382,7 +359,7 @@ class GoogleMapsKmlController extends Controller
             'walking', 'hiking' => 'walk',
             default => 'drive',
         };
-        $waypoints = implode('|', array_map(fn ($p) => $p['latitude'].','.$p['longitude'], $coordinates));
+        $waypoints = implode('|', array_map(fn ($p) => $p['latitude'] . ',' . $p['longitude'], $coordinates));
         $response = Http::timeout(30)->get('https://api.geoapify.com/v1/routing', [
             'waypoints' => $waypoints,
             'mode' => $mode,
@@ -396,7 +373,9 @@ class GoogleMapsKmlController extends Controller
             'format' => 'geojson',
             'apiKey' => config('services.geoapify.key'),
         ]);
-        if (! $response->successful()) throw new \RuntimeException('Geoapify nu a putut calcula traseul.');
+        if (! $response->successful()) {
+            throw new \RuntimeException('Geoapify nu a putut calcula traseul.');
+        }
         $feature = $response->json('features.0');
         $geometry = $feature['geometry'] ?? null;
         if (! is_array($geometry) || empty($geometry['coordinates'])) {
@@ -429,28 +408,38 @@ class GoogleMapsKmlController extends Controller
         return ['geometry' => $geometry];
     }
 
+    /**
+     * @param  array<string, mixed>  $geometry
+     * @return array{latitude: float, longitude: float}|null
+     */
     private function lastGeometryPoint(array $geometry): ?array
     {
         $coordinates = $geometry['coordinates'] ?? [];
 
         if (($geometry['type'] ?? null) === 'LineString') {
             $point = $coordinates[array_key_last($coordinates)] ?? null;
+
             return $this->geoPoint($point);
         }
 
         if (($geometry['type'] ?? null) === 'MultiLineString') {
             for ($i = count($coordinates) - 1; $i >= 0; $i--) {
                 $line = $coordinates[$i] ?? [];
-                if ($line === []) continue;
+                if ($line === []) {
+                    continue;
+                }
                 $point = $line[array_key_last($line)] ?? null;
                 $geoPoint = $this->geoPoint($point);
-                if ($geoPoint !== null) return $geoPoint;
+                if ($geoPoint !== null) {
+                    return $geoPoint;
+                }
             }
         }
 
         return null;
     }
 
+    /** @return array{latitude: float, longitude: float}|null */
     private function geoPoint(mixed $point): ?array
     {
         if (! is_array($point) || count($point) < 2 || ! is_numeric($point[0]) || ! is_numeric($point[1])) {
@@ -474,6 +463,7 @@ class GoogleMapsKmlController extends Controller
         return $earthKm * 2 * asin(min(1, sqrt($a)));
     }
 
+    /** @param array<string, mixed> $geometry */
     private function kmlResponse(array $geometry, string $name): Response
     {
         $safeFilename = preg_replace('/[^A-Za-z0-9ăâîșțĂÂÎȘȚ _-]+/u', '-', $name) ?: 'traseu-google-maps';
@@ -490,14 +480,20 @@ class GoogleMapsKmlController extends Controller
         foreach ($lines as $line) {
             $points = [];
             foreach ($line as $point) {
-                if (! is_array($point) || count($point) < 2) continue;
+                if (! is_array($point) || count($point) < 2) {
+                    continue;
+                }
                 $lon = filter_var($point[0], FILTER_VALIDATE_FLOAT);
                 $lat = filter_var($point[1], FILTER_VALIDATE_FLOAT);
-                if ($lon === false || $lat === false || $lon < -180 || $lon > 180 || $lat < -90 || $lat > 90) continue;
+                if ($lon === false || $lat === false || $lon < -180 || $lon > 180 || $lat < -90 || $lat > 90) {
+                    continue;
+                }
                 $alt = isset($point[2]) && is_numeric($point[2]) ? (float) $point[2] : 0.0;
                 $points[] = sprintf('%.8F,%.8F,%.3F', $lon, $lat, $alt);
             }
-            if (count($points) < 2) continue;
+            if (count($points) < 2) {
+                continue;
+            }
             $placemark = $xml->createElement('Placemark');
             $placemark->appendChild($xml->createElement('name'))->appendChild($xml->createTextNode($name));
             $lineString = $xml->createElement('LineString');
@@ -507,11 +503,14 @@ class GoogleMapsKmlController extends Controller
             $document->appendChild($placemark);
             $valid++;
         }
-        if ($valid === 0) throw new \RuntimeException('Traseul nu conține suficiente puncte pentru KML.');
+        if ($valid === 0) {
+            throw new \RuntimeException('Traseul nu conține suficiente puncte pentru KML.');
+        }
         $content = $xml->saveXML();
+
         return response($content, 200, [
             'Content-Type' => 'application/vnd.google-earth.kml+xml; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="'.$safeFilename.'.kml"',
+            'Content-Disposition' => 'attachment; filename="' . $safeFilename . '.kml"',
             'Cache-Control' => 'no-store, no-cache, must-revalidate',
         ]);
     }
@@ -521,11 +520,16 @@ class GoogleMapsKmlController extends Controller
         return trim(preg_replace('/\s+/u', ' ', str_replace('+', ' ', urldecode((string) $value))));
     }
 
+    /** @return array{latitude: float, longitude: float}|null */
     private function coordinateFromText(string $value): ?array
     {
         $value = preg_replace('/^[^@]*@(?=-?\d)/', '@', $value);
-        if (! preg_match('/^@?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/', $value, $m)) return null;
-        $lat = (float) $m[1]; $lon = (float) $m[2];
+        if (! preg_match('/^@?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/', $value, $m)) {
+            return null;
+        }
+        $lat = (float) $m[1];
+        $lon = (float) $m[2];
+
         return ($lat >= -90 && $lat <= 90 && $lon >= -180 && $lon <= 180)
             ? ['latitude' => $lat, 'longitude' => $lon] : null;
     }
@@ -533,8 +537,10 @@ class GoogleMapsKmlController extends Controller
     /**
      * Extract only coordinates that Google embeds as part of a place/route
      * payload. Unlike extractCoordinates(), this intentionally ignores
+     *
      * @LAT,LON viewport coordinates.
      */
+    /** @return list<array{latitude: float, longitude: float}> */
     private function extractRouteCoordinates(string $url): array
     {
         $result = [];
@@ -590,58 +596,4 @@ class GoogleMapsKmlController extends Controller
 
         return $result;
     }
-
-    private function extractCoordinates(string $url): array
-    {
-        $result = [];
-        $add = function ($lat, $lon) use (&$result): void {
-            $lat = (float) $lat;
-            $lon = (float) $lon;
-            if ($lat < -90 || $lat > 90 || $lon < -180 || $lon > 180) return;
-            foreach ($result as $p) {
-                if (abs($p['latitude'] - $lat) < 1e-7 && abs($p['longitude'] - $lon) < 1e-7) return;
-            }
-            $result[] = ['latitude' => $lat, 'longitude' => $lon];
-        };
-
-        // Google Maps place/route data commonly contains longitude first:
-        // !1d25.4558274!2d44.9118218
-        if (preg_match_all('/!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/', $url, $m, PREG_SET_ORDER)) {
-            foreach ($m as $x) $add($x[2], $x[1]);
-        }
-
-        // Some variants use latitude/longitude explicitly:
-        // !3d44.9118218!4d25.4558274
-        if (preg_match_all('/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/', $url, $m, PREG_SET_ORDER)) {
-            foreach ($m as $x) $add($x[1], $x[2]);
-        }
-
-        // API-style links may contain `lat,lon` pairs in query parameters.
-        if (preg_match_all('/(?:^|[=,;])(-?\d{1,3}\.\d{4,})[ ,]+(-?\d{1,3}\.\d{4,})(?:$|[&;,])/', $url, $m, PREG_SET_ORDER)) {
-            foreach ($m as $x) {
-                $lat = (float) $x[1];
-                $lon = (float) $x[2];
-                if ($lat >= -90 && $lat <= 90 && $lon >= -180 && $lon <= 180) $add($lat, $lon);
-            }
-        }
-
-        if (preg_match_all('/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/', $url, $m, PREG_SET_ORDER)) {
-            foreach ($m as $x) $add($x[1], $x[2]);
-        }
-
-        return $result;
-    }
-
-    private function absoluteUrl(string $base, string $location): string
-    {
-        if (preg_match('/^https?:\/\//i', $location)) return $location;
-        $parts = parse_url($base);
-        $scheme = ($parts['scheme'] ?? 'https').'://';
-        $host = $parts['host'] ?? 'maps.google.com';
-        if (str_starts_with($location, '//')) return ($parts['scheme'] ?? 'https').':'.$location;
-        if (str_starts_with($location, '/')) return $scheme.$host.$location;
-        $dir = rtrim(str_replace('\\', '/', dirname($parts['path'] ?? '/')), '/');
-        return $scheme.$host.($dir ? $dir.'/' : '/').$location;
-    }
-
 }

@@ -8,7 +8,7 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class ProcessTrackingSessionJob implements ShouldQueue, ShouldBeUnique
+class ProcessTrackingSessionJob implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
@@ -60,7 +60,7 @@ class ProcessTrackingSessionJob implements ShouldQueue, ShouldBeUnique
         ]);
     }
 
-    
+    /** @param array<string, mixed> $geojson */
     private function saveResult(
         TrackingSession $session,
         float $distance,

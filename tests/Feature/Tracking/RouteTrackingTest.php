@@ -64,5 +64,4 @@ class RouteTrackingTest extends TestCase
             ->get(route('app.tracking.route', $session))
             ->assertForbidden();
     }
-
 }

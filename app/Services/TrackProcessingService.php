@@ -7,7 +7,10 @@ use Illuminate\Support\Collection;
 
 class TrackProcessingService
 {
-    
+    /**
+     * @param  Collection<int, Tracking>  $points
+     * @return array{distance: float, geojson: array{type: 'LineString', coordinates: list<array{float, float}>}}
+     */
     public function process(Collection $points): array
     {
         $ordered = $this->orderPoints($points);
@@ -18,7 +21,10 @@ class TrackProcessingService
         ];
     }
 
-    
+    /**
+     * @param  Collection<int, Tracking>  $points
+     * @return Collection<int, Tracking>
+     */
     private function orderPoints(Collection $points): Collection
     {
         return $points
@@ -44,7 +50,7 @@ class TrackProcessingService
             ->values();
     }
 
-    
+    /** @param Collection<int, Tracking> $points */
     private function calculateDistance(Collection $points): float
     {
         $distance = 0.0;
@@ -61,7 +67,6 @@ class TrackProcessingService
         return $distance;
     }
 
-    
     private function haversine(
         float $lat1,
         float $lon1,
@@ -79,13 +84,15 @@ class TrackProcessingService
             cos(deg2rad($lat2)) *
             sin($dLon / 2) ** 2;
 
-        
         $a = min(1.0, max(0.0, $a));
 
         return 2 * $earthRadius * asin(sqrt($a));
     }
 
-    
+    /**
+     * @param  Collection<int, Tracking>  $points
+     * @return array{type: 'LineString', coordinates: list<array{float, float}>}
+     */
     private function buildGeoJson(Collection $points): array
     {
         return [

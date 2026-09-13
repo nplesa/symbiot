@@ -14,19 +14,16 @@ return new class extends Migration
                 'gps',
                 'planned',
             ])
-            ->default('gps')
-            ->after('id');
-
+                ->default('gps')
+                ->after('id');
 
             $table->string('source')
                 ->default('device')
                 ->after('type');
 
-
             $table->string('name')
                 ->nullable()
                 ->after('source');
-
 
             $table->timestamp('planned_at')
                 ->nullable()
@@ -34,7 +31,6 @@ return new class extends Migration
 
         });
     }
-
 
     public function down(): void
     {

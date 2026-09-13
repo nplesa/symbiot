@@ -43,17 +43,13 @@ class StartTrackingTest extends TestCase
 
         $this->actingAs($user);
 
-        
         $this->post(route('app.tracking.start'));
 
-        
-        
         $trackingSession = TrackingSession::first();
 
         $this->startSession();
         session()->put('tracking_session_id', $trackingSession->id);
 
-        
         $response = $this->post(route('app.tracking.start'));
 
         $response->assertOk()

@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    
     public function up(): void
     {
         Schema::create('devices', function (Blueprint $table) {
@@ -24,7 +23,7 @@ return new class extends Migration
                 'uuid',
             ]);
 
-            $table->string('platform', 20);          
+            $table->string('platform', 20);
             $table->string('manufacturer')->nullable();
             $table->string('model')->nullable();
 
@@ -39,7 +38,6 @@ return new class extends Migration
         });
     }
 
-    
     public function down(): void
     {
         Schema::dropIfExists('devices');

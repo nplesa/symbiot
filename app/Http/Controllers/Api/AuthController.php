@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    
     public function login(LoginRequest $request): JsonResponse
     {
         $request->authenticate();
@@ -29,7 +28,6 @@ class AuthController extends Controller
         ]);
     }
 
-    
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()?->delete();

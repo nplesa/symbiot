@@ -7,14 +7,10 @@ use Illuminate\Foundation\Auth\ConfirmsPasswords;
 
 class ConfirmPasswordController extends Controller
 {
-    
-
     use ConfirmsPasswords;
 
-    
-    protected $redirectTo = '/home';
+    protected string $redirectTo = '/home';
 
-    
     public function __construct()
     {
         $this->middleware('auth');

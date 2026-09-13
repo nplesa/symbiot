@@ -88,9 +88,10 @@ class ApiTrackingTest extends TestCase
 
         Sanctum::actingAs($attacker);
 
-        $this->getJson('/api/v1/tracking/'.$session->id)
+        $this->getJson('/api/v1/tracking/' . $session->id)
             ->assertForbidden();
     }
+
     public function test_location_endpoint_is_rate_limited(): void
     {
         $user = User::factory()->create();
@@ -122,5 +123,4 @@ class ApiTrackingTest extends TestCase
             'tracked_at' => now()->toIso8601String(),
         ])->assertStatus(429);
     }
-
 }

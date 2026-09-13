@@ -7,14 +7,10 @@ use Illuminate\Foundation\Auth\AuthenticatesUsers;
 
 class LoginController extends Controller
 {
-    
-
     use AuthenticatesUsers;
 
-    
-    protected $redirectTo = '/home';
+    protected string $redirectTo = '/home';
 
-    
     public function __construct()
     {
         $this->middleware('guest')->except('logout');

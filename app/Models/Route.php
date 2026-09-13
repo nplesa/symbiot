@@ -23,11 +23,13 @@ class Route extends Model
         'elevation_loss' => 'float',
     ];
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return HasMany<RoutePoint, $this> */
     public function points(): HasMany
     {
         return $this->hasMany(RoutePoint::class, 'route_id');

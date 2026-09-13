@@ -2,17 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Http\Requests\Tracking\StoreTrackingPointRequest;
 use App\Models\Tracking;
 use App\Models\TrackingSession;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Http\Client\ConnectionException;
-use App\Http\Requests\Tracking\StoreTrackingPointRequest;
 use App\Services\TrackingSessionService;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class TrackingController extends Controller
 {
@@ -20,8 +21,7 @@ class TrackingController extends Controller
         private readonly TrackingSessionService $trackingSessions
     ) {}
 
-    
-    public function index(): \Illuminate\Contracts\View\View
+    public function index(): View
     {
         return view('tracking.index');
     }
@@ -41,7 +41,6 @@ class TrackingController extends Controller
         try {
             $response = Http::connectTimeout(5)
                 ->timeout(10)
-                ->retry(2, 250, throw: false)
                 ->get($url, ['apiKey' => $key]);
         } catch (ConnectionException $e) {
             report($e);
@@ -51,7 +50,7 @@ class TrackingController extends Controller
         }
 
         if (! $response->successful()) {
-            \Illuminate\Support\Facades\Log::warning('Geoapify map tile request failed.', [
+            Log::warning('Geoapify map tile request failed.', [
                 'status' => $response->status(),
                 'content_type' => $response->header('Content-Type'),
                 'body' => mb_substr($response->body(), 0, 1000),
@@ -65,7 +64,7 @@ class TrackingController extends Controller
         }
 
         return response($response->body(), 200, [
-            'Content-Type' => $response->header('Content-Type', 'image/png'),
+            'Content-Type' => $response->header('Content-Type') ?: 'image/png',
             'Cache-Control' => 'public, max-age=86400, s-maxage=86400',
         ]);
     }
@@ -99,11 +98,9 @@ class TrackingController extends Controller
         ]);
     }
 
-    
     public function point(StoreTrackingPointRequest $request): JsonResponse
     {
         $data = $request->validated();
-
 
         $session = TrackingSession::query()
             ->where('user_id', $request->user()->id)
@@ -127,8 +124,7 @@ class TrackingController extends Controller
         ]);
     }
 
-    
-    public function status(Request $request)
+    public function status(Request $request): JsonResponse
     {
         $session = TrackingSession::where('user_id', $request->user()->id)
             ->whereNull('ended_at')
@@ -141,9 +137,7 @@ class TrackingController extends Controller
         ]);
     }
 
-
-    
-    public function sessions(Request $request)
+    public function sessions(Request $request): JsonResponse
     {
         $query = TrackingSession::query()
             ->where('user_id', $request->user()->id);
@@ -166,23 +160,19 @@ class TrackingController extends Controller
         return response()->json($sessions);
     }
 
-
-    
     public function show(
         Request $request,
         TrackingSession $session
-    ) {
+    ): JsonResponse {
         $this->authorizeSession($request, $session);
 
         return response()->json($session);
     }
 
-
-    
     public function points(
         Request $request,
         TrackingSession $session
-    ) {
+    ): JsonResponse {
         $this->authorizeSession($request, $session);
 
         $points = $session
@@ -194,14 +184,11 @@ class TrackingController extends Controller
         return response()->json($points);
     }
 
-
-    
     public function route(
         Request $request,
         TrackingSession $session
-    ) {
+    ): JsonResponse {
         $this->authorizeSession($request, $session);
-
 
         if ($session->isPlanned()) {
 
@@ -210,7 +197,6 @@ class TrackingController extends Controller
                 'geometry' => $session->route_geojson,
             ]);
         }
-
 
         $coordinates = $session
             ->trackings()
@@ -227,7 +213,6 @@ class TrackingController extends Controller
 
             });
 
-
         return response()->json([
             'type' => 'Feature',
             'geometry' => [
@@ -237,8 +222,6 @@ class TrackingController extends Controller
         ]);
     }
 
-
-    
     public function start(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -256,7 +239,6 @@ class TrackingController extends Controller
         ]);
     }
 
-    
     public function location(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -277,7 +259,6 @@ class TrackingController extends Controller
         return response()->json($tracking, 201);
     }
 
-    
     public function stop(Request $request): JsonResponse
     {
         $session = $this->trackingSessions->stop($request->user());
@@ -290,16 +271,17 @@ class TrackingController extends Controller
             ]);
         }
 
-        return response()->json($session);
+        return response()->json([
+            'success' => true,
+            'session' => $session,
+        ]);
     }
 
-    
     public function destroy(
         Request $request,
         TrackingSession $session
-    ) {
+    ): JsonResponse {
         $this->authorizeSession($request, $session);
-
 
         DB::transaction(function () use ($session) {
 
@@ -312,14 +294,11 @@ class TrackingController extends Controller
 
         });
 
-
         return response()->json([
             'success' => true,
         ]);
     }
 
-
-    
     private function authorizeSession(
         Request $request,
         TrackingSession $session

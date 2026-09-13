@@ -1098,6 +1098,9 @@ function resetMap() {
             list.forEach(item => {
 
                 const distanceText = item.distance?.formatted ?? 'N/A';
+                const addressText = [item.address?.city, item.address?.county, item.address?.country]
+                    .filter(Boolean)
+                    .join(', ');
 
                 const row = document.createElement('div');
 
@@ -1113,17 +1116,15 @@ function resetMap() {
                             <div class="d-flex flex-column min-w-0">
 
                                 <div class="fw-semibold d-flex flex-column">
-                                    <span>${item.name || 'Unknown'}</span>
+                                    <span>${escapeHtml(item.name || 'Unknown')}</span>
                                     <span class="formatted-address">
-                                        ${[item.address.city, item.address.county, item.address.country]
-                                            .filter(Boolean)
-                                            .join(', ')}
+                                        ${escapeHtml(addressText)}
                                     </span>
                                 </div>
 
                                 <div class="d-flex flex-row align-items-center justify-content-between text-muted small">
-                                    <span class="text-capitalize"><i class="fa-solid mx-2 fa-`+icon+`"></i>${item.type}</span>
-                                    <span class="badge rounded-pill bg-primary px-2 py-1">${distanceText}</span>
+                                    <span class="text-capitalize"><i class="fa-solid mx-2 fa-`+icon+`"></i>${escapeHtml(item.type)}</span>
+                                    <span class="badge rounded-pill bg-primary px-2 py-1">${escapeHtml(distanceText)}</span>
                                 </div>
 
                             </div>
@@ -1139,6 +1140,12 @@ function resetMap() {
         setTimeout(function() {
            hidePOIModal(); 
        }, 2000);
+    }
+
+    function escapeHtml(value) {
+        const div = document.createElement('div');
+        div.textContent = value == null ? '' : String(value);
+        return div.innerHTML;
     }
 
     function toBase64(str) {

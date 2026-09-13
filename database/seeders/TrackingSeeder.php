@@ -14,22 +14,22 @@ class TrackingSeeder extends Seeder
         $margins = [
             [
                 'start' => [
-                    25.759500, 
-                    45.642700, 
+                    25.759500,
+                    45.642700,
                 ],
                 'end' => [
-                    25.551000, 
-                    45.595000, 
+                    25.551000,
+                    45.595000,
                 ],
             ],
             [
                 'start' => [
-                    25.759500, 
-                    45.642700, 
+                    25.759500,
+                    45.642700,
                 ],
                 'end' => [
-                    25.458500, 
-                    44.925000, 
+                    25.458500,
+                    44.925000,
                 ],
             ],
         ];
@@ -47,10 +47,14 @@ class TrackingSeeder extends Seeder
         }
     }
 
-    
+    /**
+     * @param  array{float, float}  $start
+     * @param  array{float, float}  $end
+     * @return list<array<string, mixed>>
+     */
     private function buildTrack(int $i, array $start, array $end): array
     {
-        
+
         $url =
             'https://router.project-osrm.org/route/v1/driving/' .
             "{$start[0]},{$start[1]};{$end[0]},{$end[1]}" .
@@ -66,7 +70,6 @@ class TrackingSeeder extends Seeder
 
         $geometry = $data['routes'][0]['geometry']['coordinates'];
 
-        
         $points = $this->samplePoints(
             $geometry,
             100
@@ -85,7 +88,6 @@ class TrackingSeeder extends Seeder
 
                 'provider' => 'gps',
 
-                
                 'latitude' => round($point[1], 7),
 
                 'longitude' => round($point[0], 7),
@@ -111,7 +113,10 @@ class TrackingSeeder extends Seeder
         return $rows;
     }
 
-    
+    /**
+     * @param  list<array{float, float}>  $coordinates
+     * @return list<array{float, float}>
+     */
     private function samplePoints(
         array $coordinates,
         int $count

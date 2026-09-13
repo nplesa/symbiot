@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Tracking;
 
+use App\Jobs\ProcessTrackingSessionJob;
 use App\Models\TrackingSession;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -58,7 +59,7 @@ class StopTrackingTest extends TestCase
             ->post(route('app.tracking.stop'))
             ->assertOk();
 
-        Queue::assertPushed(\App\Jobs\ProcessTrackingSessionJob::class, function ($job) use ($trackingSession): bool {
+        Queue::assertPushed(ProcessTrackingSessionJob::class, function ($job) use ($trackingSession): bool {
             return $job->sessionId === $trackingSession->id;
         });
     }

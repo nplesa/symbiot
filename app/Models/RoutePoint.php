@@ -20,6 +20,7 @@ class RoutePoint extends Model
         'sequence' => 'integer',
     ];
 
+    /** @return BelongsTo<Route, $this> */
     public function route(): BelongsTo
     {
         return $this->belongsTo(Route::class);

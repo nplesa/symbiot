@@ -39,8 +39,7 @@ return new class extends Migration
         }
 
         Schema::table('devices', function (Blueprint $table): void {
-            
-            
+
             $table->index('user_id');
         });
 
@@ -55,7 +54,7 @@ return new class extends Migration
         });
 
         Schema::table('trackings', function (Blueprint $table): void {
-            
+
             $table->index('tracking_session_id');
         });
 

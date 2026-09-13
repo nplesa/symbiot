@@ -13,7 +13,6 @@ class RegisterController extends Controller
 {
     use RegistersUsers;
 
-    
     protected string $redirectTo = '/home';
 
     public function __construct()
@@ -21,7 +20,7 @@ class RegisterController extends Controller
         $this->middleware('guest');
     }
 
-    
+    /** @param array<string, mixed> $data */
     protected function validator(array $data): Validator
     {
         return ValidatorFacade::make($data, [
@@ -31,7 +30,7 @@ class RegisterController extends Controller
         ]);
     }
 
-    
+    /** @param array<string, mixed> $data */
     protected function create(array $data): User
     {
         return User::create([

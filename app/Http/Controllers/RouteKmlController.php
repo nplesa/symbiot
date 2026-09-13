@@ -66,7 +66,7 @@ class RouteKmlController extends Controller
 
         $kmlContent = $dom->saveXML();
 
-        $check = new \DOMDocument();
+        $check = new \DOMDocument;
         $previous = libxml_use_internal_errors(true);
         $valid = $check->loadXML($kmlContent, LIBXML_NONET | LIBXML_NOBLANKS);
         libxml_clear_errors();
@@ -93,6 +93,7 @@ class RouteKmlController extends Controller
         $parent->appendChild($node);
     }
 
+    /** @param array{0: float, 1: float, 2?: float} $point */
     private function appendPointPlacemark(\DOMDocument $dom, \DOMNode $document, string $name, array $point): void
     {
         $placemark = $dom->createElement('Placemark');
@@ -107,6 +108,7 @@ class RouteKmlController extends Controller
         $document->appendChild($placemark);
     }
 
+    /** @param array{0: float, 1: float, 2?: float} $point */
     private function formatCoordinate(array $point): string
     {
         return sprintf(
@@ -117,9 +119,15 @@ class RouteKmlController extends Controller
         );
     }
 
+    /**
+     * @param  array<string, mixed>|null  $geometry
+     * @return list<array{0: float, 1: float, 2: float}>
+     */
     private function flattenCoordinates(?array $geometry): array
     {
-        if (! $geometry) return [];
+        if (! $geometry) {
+            return [];
+        }
 
         if (($geometry['type'] ?? null) === 'Feature') {
             return $this->flattenCoordinates($geometry['geometry'] ?? null);
@@ -130,6 +138,7 @@ class RouteKmlController extends Controller
             foreach (($geometry['features'] ?? []) as $feature) {
                 $out = array_merge($out, $this->flattenCoordinates($feature));
             }
+
             return $out;
         }
 
@@ -142,18 +151,23 @@ class RouteKmlController extends Controller
             foreach (($geometry['coordinates'] ?? []) as $line) {
                 $out = array_merge($out, $this->cleanLine($line));
             }
+
             return $out;
         }
 
         return [];
     }
 
+    /**
+     * @param  array<mixed>  $line
+     * @return list<array{0: float, 1: float, 2: float}>
+     */
     private function cleanLine(array $line): array
     {
         $out = [];
 
         foreach ($line as $point) {
-            if (!is_array($point) || count($point) < 2 || !is_numeric($point[0]) || !is_numeric($point[1])) {
+            if (! is_array($point) || count($point) < 2 || ! is_numeric($point[0]) || ! is_numeric($point[1])) {
                 continue;
             }
 

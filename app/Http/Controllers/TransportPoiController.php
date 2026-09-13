@@ -55,9 +55,7 @@ class TransportPoiController extends Controller
         }
     }
 
-    
-
-    
+    /** @return list<array<string, mixed>> */
     private function fetchFromGeoapify(float $lat, float $lon, int $radius, string $categories): array
     {
         $points = $this->buildGridPoints($lat, $lon);
@@ -92,12 +90,10 @@ class TransportPoiController extends Controller
         return $this->deduplicate($all);
     }
 
-    
-
-    
+    /** @return list<array{float, float}> */
     private function buildGridPoints(float $lat, float $lon): array
     {
-        $delta = 0.25; 
+        $delta = 0.25;
 
         return [
             [$lat, $lon],
@@ -109,9 +105,10 @@ class TransportPoiController extends Controller
         ];
     }
 
-    
-
-    
+    /**
+     * @param  list<array<string, mixed>>  $features
+     * @return list<array<string, mixed>>
+     */
     private function deduplicate(array $features): array
     {
         return collect($features)
@@ -120,7 +117,6 @@ class TransportPoiController extends Controller
             ->all();
     }
 
-    
     private function buildCategories(Request $request): string
     {
         $map = [
@@ -141,15 +137,15 @@ class TransportPoiController extends Controller
             ],
         ];
 
+        $configuredTypes = json_decode(config('services.geoapify.locations', '[]'), true);
         $types = $request->filled('types')
             ? collect(explode(',', $request->string('types')))
                 ->map(fn ($t) => trim($t))
                 ->filter()
                 ->values()
                 ->all()
-            : (json_decode(config('services.geoapify.locations', '[]'), true) ?? []);
+            : array_values(array_filter($configuredTypes, 'is_string'));
 
-        
         $categories = collect($types)
             ->filter(fn ($t) => isset($map[$t]))
             ->flatMap(fn ($t) => $map[$t])
@@ -161,9 +157,10 @@ class TransportPoiController extends Controller
             : $categories->implode(',');
     }
 
-    
-
-    
+    /**
+     * @param  list<array<string, mixed>>  $features
+     * @return list<array<string, mixed>>
+     */
     private function transform(array $features, float $userLat, float $userLon): array
     {
         $out = [];
@@ -218,9 +215,7 @@ class TransportPoiController extends Controller
         return $out;
     }
 
-    
-
-    
+    /** @param list<string> $categories */
     private function detectType(array $categories): string
     {
         foreach ($categories as $c) {
@@ -260,7 +255,6 @@ class TransportPoiController extends Controller
         return 'transport';
     }
 
-    
     private function distance(float $lat1, float $lon1, float $lat2, float $lon2): float
     {
         $R = 6371000;

@@ -185,6 +185,7 @@ class RegisterDeviceTest extends TestCase
             'battery' => 90,
         ]);
     }
+
     public function test_device_registration_is_rate_limited(): void
     {
         $user = User::factory()->create();
@@ -205,5 +206,4 @@ class RegisterDeviceTest extends TestCase
             ])
             ->assertStatus(429);
     }
-
 }
