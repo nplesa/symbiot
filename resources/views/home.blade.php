@@ -38,9 +38,15 @@
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-12 d-flex flex-row flex-wrap align-items-center justify-content-between">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="toggleLocation">
-                                        <label class="form-check-label" for="toggleLocation">Activate my location</label>
+                                    <div class="d-flex flex-column gap-2 align-items-start">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="location-mode" id="toggleLocation" value="device">
+                                            <label class="form-check-label" for="toggleLocation">Activate my location</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="location-mode" id="city-location-mode" value="city">
+                                            <label class="form-check-label" for="city-location-mode">Introdu oraș</label>
+                                        </div>
                                     </div>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" role="switch" id="trackingmyself">
@@ -63,60 +69,81 @@
                                 </div>
                             </div>
 
+                            <form class="row g-2 mt-2 d-none" id="city-location-form">
+                                <div class="col-sm-6 col-md-5">
+                                    <label class="form-label" for="city-location-input">Oraș din România</label>
+                                    <input class="form-control form-control-sm" id="city-location-input" type="text" autocomplete="address-level2" placeholder="Ex.: București">
+                                </div>
+                                <div class="col-sm-4 col-md-3">
+                                    <label class="form-label" for="city-location-radius">Raza de căutare (metri)</label>
+                                    <input class="form-control form-control-sm" id="city-location-radius" type="number" min="100" max="35000" step="100" value="5000" required>
+                                </div>
+                                <div class="col-auto align-self-end">
+                                    <button class="btn btn-sm btn-primary" id="city-location-submit" type="submit">Fixează locația</button>
+                                </div>
+                                <div class="col-12 small" id="city-location-status" aria-live="polite"></div>
+                            </form>
+
 
                             <div class="card mt-3 main-mobility-card d-none" id="mobility_card">
                                 <div class="card-header">
                                     Mobility Features
                                 </div>
                                 <div class="card-body">
-                                    <div class="page-header mb-0 pb-0 border-bottom-0 d-none count-locations">
-                                        <div class="row align-items-end">
-                                            <div class="col-sm mb-2 mb-sm-0">
-                                                <h6 class="page-header-title" id="locations_number"></h6>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row mt-3 mobility-cards-container d-none">
-                                         @foreach ($locations as $location)
-
-                                            <div class="col-md-4 col-12 mobility mobility-{{$location}} d-none">
-                                                <div class="card text-center mobility-card mb-3" id="{{$location}}">
-                                                    <div class="card-header d-flex flex-row justify-content-between align-items-center">
-                                                        <span class="category-color"></span>
-                                                        <div>
-
-                                                    <div class="form-check form-switch d-flex flex-row-reverse align-items-center">
-                                                        <input class="form-check-input location-category mx-2"
-                                                           type="checkbox"
-                                                           role="switch"
-                                                           id="cat_{{ $loop->index }}"
-                                                           data-type="{{ $location }}"
-                                                           checked>
-                                                        <label class="form-check-label me-2" for="cat_{{ $loop->index }}">
-                                                            <span>{{ ucfirst($location) }} Locations</span>
-                                                        </label>
-                                                    </div>
-
-                                                        </div>  
-                                                    </div>
-                                                    <div class="card-body mobility-card-body">
-
-                                                    </div>
-                                                    <div class="card-footer text-body-secondary">
-                                                    
-                                                    </div>
-                                                </div>
-                                            </div>    
-
-
-                                         @endforeach   
-
-                                    </div>
-                                    <div class="row">
+                                    <div class="row poi-category-filters">
                                         <div class="col-12">
-                                            <div class="form-check form-switch">
-                                              <input class="form-check-input" type="checkbox" role="switch" id="auto_detect_location" disabled>
-                                              <label class="form-check-label" for="auto_detect_location">Activate stations auto-location</label>
+                                            <div class="fw-semibold mb-2">Selectează categoriile POI afișate pe hartă</div>
+                                            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-2">
+                                                @foreach ($locations as $location)
+                                                    <div class="col">
+                                                        <div class="border rounded p-2 h-100 poi-category-group" data-type="{{ $location }}">
+                                                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                                                <div class="form-check mb-0">
+                                                                    <input
+                                                                        class="form-check-input location-category"
+                                                                        type="checkbox"
+                                                                        id="poi-category-{{ $loop->index }}"
+                                                                        data-type="{{ $location }}"
+                                                                    >
+                                                                    <label class="form-check-label fw-semibold" for="poi-category-{{ $loop->index }}">
+                                                                        {{ $poiCategories[$location]['label'] }}
+                                                                    </label>
+                                                                </div>
+                                                                <button
+                                                                    class="btn btn-sm btn-outline-secondary"
+                                                                    type="button"
+                                                                    data-bs-toggle="collapse"
+                                                                    data-bs-target="#poi-subcategories-{{ $loop->index }}"
+                                                                    aria-expanded="false"
+                                                                    aria-controls="poi-subcategories-{{ $loop->index }}"
+                                                                >
+                                                                    Subcategorii
+                                                                </button>
+                                                            </div>
+                                                            <div class="collapse mt-2" id="poi-subcategories-{{ $loop->index }}">
+                                                                @if ($location === 'police')
+                                                                    <div class="small fw-semibold mb-1">Filtre de Poliție</div>
+                                                                @endif
+                                                                <div class="ps-2">
+                                                                    @foreach ($poiSubcategories[$location] as $subcategory)
+                                                                        <div class="form-check">
+                                                                            <input
+                                                                                class="form-check-input location-subcategory"
+                                                                                type="checkbox"
+                                                                                id="poi-subcategory-{{ $loop->parent->index }}-{{ $loop->index }}"
+                                                                                data-type="{{ $location }}"
+                                                                                data-filter="{{ $subcategory['id'] }}"
+                                                                            >
+                                                                            <label class="form-check-label" for="poi-subcategory-{{ $loop->parent->index }}-{{ $loop->index }}">
+                                                                                {{ $subcategory['label'] }}
+                                                                            </label>
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
                                             </div>
                                         </div>
                                     </div>
@@ -315,6 +342,7 @@
 </div>
 <input type="hidden" name="radius" id="radius" value="{{config('app.distance_number')}}" data-unit="{{config('app.distance_unit')}}">
 @include('modals.acquire')
+@include('modals.train-status')
 @endsection
 @push('js')
     @vite([

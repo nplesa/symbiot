@@ -2,6 +2,7 @@ import 'ol/ol.css';
 
 import Map from 'ol/Map.js';
 import View from 'ol/View.js';
+import Overlay from 'ol/Overlay.js';
 
 import TileLayer from 'ol/layer/Tile.js';
 import VectorLayer from 'ol/layer/Vector.js';
@@ -28,6 +29,17 @@ import Circle from 'ol/geom/Circle.js';
 
 import Polygon from 'ol/geom/Polygon.js';
 import { circular } from 'ol/geom/Polygon.js';
+import MultiLineString from 'ol/geom/MultiLineString.js';
+import {
+    assignTransitRouteColors,
+    bindPoiMapClick,
+    groupTransitRoutes,
+    getInfoferStationUrl,
+    getMetroArrivalWindow,
+    getTransitRouteColor,
+    poiFeatureAtPixel,
+    splitTransitRouteDirections,
+} from './poi-map-interactions.js';
 
 
 
@@ -60,6 +72,9 @@ let app_radius =
 if(app_unit === 'km') {
     app_radius *= 1000;
 }
+const deviceRadiusMeters = app_radius;
+let cityRadiusMeters = 5000;
+let fixedCityLocation = null;
 
 let radiusFeature = null;
 
@@ -74,11 +89,16 @@ const users = new globalThis.Map();
 
 const activePoiFilters = new Set();
 
+let poiRequestId = 0;
+let poiLoadingTimer = null;
+let poiLoadingStartedAt = null;
+let poiLoadingModalEventsBound = false;
+let poiLoadingModalShown = false;
+let poiLoadingModalHidePending = false;
+
 let allPois = null;
 
 let allPoisRaw = [];
-
-const categoryColorMap = new Map();
 
 const POI_CATEGORIES = {    
     airport:  { color: '#0d6efd' },
@@ -96,12 +116,19 @@ const POI_CATEGORIES = {
 
 function normalizePoiType(type) {
     const map = {
+        fuel: 'fuel',
+        parking: 'parking',
+        restaurant: 'restaurant',
+        cafe: 'cafe',
+        lodging: 'lodging',
+        supermarket: 'supermarket',
         bus: 'bus',
         bus_station: 'bus',
         train: 'train',
         train_station: 'train',
         subway: 'subway',
         taxi: 'taxi',
+        charging_station: 'charging_station',
         airport: 'airport',
         aerodrom: 'airport',
         airfield: 'airport',
@@ -111,6 +138,12 @@ function normalizePoiType(type) {
         police: 'police',
         fire: 'fire',
         tourism: 'tourism',
+        speed_camera: 'speed_camera',
+        speed_limit: 'speed_limit',
+        traffic_sign: 'traffic_sign',
+        vignette_control: 'vignette_control',
+        control: 'control',
+        locality: 'locality',
         transport: 'transport'
     };
 
@@ -176,6 +209,11 @@ const vectorSource = new VectorSource();
 const userSource = new VectorSource();
 
 const poiSource = new VectorSource();
+const transitRouteSource = new VectorSource();
+const visibleTransitRoutes = new Set();
+const activeTransitRoutes = new globalThis.Map();
+const transitRouteColors = new globalThis.Map();
+const manuallySelectedTransitRouteColors = new Set();
 
 const clusterSource = new Cluster({
     distance: 40,
@@ -296,6 +334,18 @@ const poiLayer = new VectorLayer({
     }
 });
 
+const transitRouteLayer = new VectorLayer({
+    source: transitRouteSource,
+    style: feature => new Style({
+        stroke: new Stroke({
+            color: feature.get('routeColor') || '#7c3aed',
+            width: 5,
+            lineCap: 'round',
+            lineJoin: 'round',
+        }),
+    }),
+});
+
 const vectorLayer = new VectorLayer({
     source: vectorSource
 });
@@ -313,13 +363,539 @@ const map = new Map({
         baseLayer,
         clusterLayer,
         poiLayer,
-        vectorLayer
+        vectorLayer,
+        transitRouteLayer,
     ],
 
     view: new View({
         center: fromLonLat([25.6, 45.65]),
         zoom: 12
     })
+});
+
+const poiTooltipElement = document.createElement('div');
+poiTooltipElement.className = 'poi-map-tooltip';
+poiTooltipElement.setAttribute('role', 'dialog');
+poiTooltipElement.setAttribute('aria-live', 'polite');
+poiTooltipElement.hidden = true;
+
+const poiTooltipHeader = document.createElement('div');
+poiTooltipHeader.className = 'poi-map-tooltip-header';
+const poiTooltipName = document.createElement('div');
+poiTooltipName.className = 'poi-map-tooltip-name';
+const poiTooltipClose = document.createElement('button');
+poiTooltipClose.type = 'button';
+poiTooltipClose.className = 'poi-map-tooltip-close';
+poiTooltipClose.setAttribute('aria-label', 'Închide');
+poiTooltipClose.textContent = '×';
+poiTooltipClose.addEventListener('click', hidePoiTooltip);
+poiTooltipHeader.append(poiTooltipName, poiTooltipClose);
+const poiTooltipType = document.createElement('div');
+poiTooltipType.className = 'poi-map-tooltip-type';
+const poiTooltipRoutes = document.createElement('div');
+poiTooltipRoutes.className = 'poi-map-tooltip-routes';
+const poiTooltipAddress = document.createElement('div');
+poiTooltipAddress.className = 'poi-map-tooltip-address';
+poiTooltipElement.append(poiTooltipHeader, poiTooltipType, poiTooltipRoutes, poiTooltipAddress);
+
+const poiTooltip = new Overlay({
+    element: poiTooltipElement,
+    offset: [0, -12],
+    positioning: 'bottom-center',
+    stopEvent: true,
+});
+map.addOverlay(poiTooltip);
+
+const poiTypeLabels = {
+    fuel: 'Benzinărie',
+    parking: 'Parcare',
+    restaurant: 'Restaurant',
+    cafe: 'Cafenea',
+    lodging: 'Cazare',
+    supermarket: 'Supermarket',
+    airport: 'Aeroport',
+    bus: 'Stație de autobuz',
+    subway: 'Metrou',
+    train: 'Gară',
+    taxi: 'Taxi',
+    hospital: 'Spital',
+    pharmacy: 'Farmacie',
+    fire: 'Pompieri',
+    tourism: 'Obiectiv turistic',
+    charging_station: 'Stație de încărcare',
+    police: 'Poliție',
+    speed_camera: 'Cameră de viteză',
+    speed_limit: 'Limită de viteză',
+    traffic_sign: 'Indicator rutier',
+    vignette_control: 'Control rovinietă',
+    control: 'Punct de control',
+    locality: 'Localitate',
+    transport: 'Punct de interes',
+};
+
+function showPoiTooltip(feature, coordinate) {
+    const transitTypes = new Set(['bus', 'subway', 'train', 'airport']);
+    const featureType = feature.get('type');
+    const featureRoutes = feature.get('routes');
+    const routes = Array.isArray(featureRoutes) ? featureRoutes : [];
+    const groupedRoutes = groupTransitRoutes(routes);
+    const routeGroups = featureType === 'bus'
+        ? splitTransitRouteDirections(groupedRoutes)
+        : groupedRoutes;
+
+    if (transitTypes.has(featureType)) {
+        const modalElement = document.getElementById('trainStatusModal');
+        const modalTitle = document.getElementById('trainStatusModalTitle');
+        const modalLink = document.getElementById('trainStatusOfficialLink');
+        const checkedAt = document.getElementById('trainStatusCheckedAt');
+        const routeList = document.getElementById('transitLinesList');
+        const emptyMessage = document.getElementById('transitLinesEmpty');
+        const metroEstimate = document.getElementById('metroArrivalEstimate');
+        const trainLiveInfo = document.getElementById('trainStatusLiveInfo');
+        const sourceInfo = document.getElementById('transitLinesSource');
+        const stationName = feature.get('name') || 'Punct de transport';
+        const typeLabel = poiTypeLabels[featureType] || 'Transport';
+
+        if (!modalElement || !modalTitle || !modalLink || !checkedAt
+            || !routeList || !emptyMessage || !metroEstimate || !trainLiveInfo || !sourceInfo) {
+            console.error('The transit lines modal is missing required elements.');
+            return;
+        }
+
+        enableTransitModalDragging(modalElement);
+        hidePoiTooltip();
+        modalTitle.textContent = `${typeLabel} — ${stationName}`;
+        routeList.replaceChildren();
+        activeTransitRoutes.clear();
+        emptyMessage.hidden = routeGroups.length > 0;
+        emptyMessage.textContent = feature.get('routes_available') === false
+            ? 'Liniile nu au putut fi încărcate din OpenStreetMap. Încearcă din nou mai târziu.'
+            : 'Nu există linii asociate acestei stații în OpenStreetMap.';
+        sourceInfo.textContent = 'Linii și trasee din OpenStreetMap; statutul în teren poate fi diferit.';
+        trainLiveInfo.hidden = featureType !== 'train';
+        metroEstimate.hidden = featureType !== 'subway' || routeGroups.length === 0;
+        metroEstimate.textContent = 'Selectează exact o magistrală pentru estimarea următorului tren.';
+        assignTransitRouteColors(routeGroups, transitRouteColors, manuallySelectedTransitRouteColors);
+
+        routeGroups.forEach((group, index) => {
+            activeTransitRoutes.set(group.key, group);
+            const hasRelation = group.routes.some(route => /^relation\/\d+$/.test(route.id));
+            const row = document.createElement('div');
+            row.className = 'poi-route-option border rounded p-2';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'poi-route-checkbox';
+            checkbox.dataset.routeKey = group.key;
+            checkbox.checked = visibleTransitRoutes.has(group.key);
+            checkbox.disabled = !hasRelation;
+            checkbox.setAttribute('aria-label', `Afișează traseul ${group.label}`);
+            checkbox.title = `Afișează traseul ${group.label}`;
+            if (!hasRelation) {
+                checkbox.title = 'Relația traseului nu are un identificator OSM valid.';
+            }
+
+            const colorPicker = document.createElement('input');
+            colorPicker.type = 'color';
+            colorPicker.className = 'poi-route-color';
+            colorPicker.dataset.routeKey = group.key;
+            colorPicker.value = getTransitRouteColor(group.key, transitRouteColors);
+            colorPicker.setAttribute('aria-label', `Culoare traseu ${group.label}`);
+
+            const directions = [...new Set(group.routes.map(route => route.direction).filter(Boolean))];
+            const latestUpdate = group.routes
+                .map(route => route.updated_at)
+                .filter(Boolean)
+                .sort()
+                .at(-1);
+            const inactive = group.routes.some(route => route.status === 'possibly_inactive');
+            const status = inactive
+                ? 'Marcată ca posibil inactivă în OSM'
+                : latestUpdate
+                    ? `OSM · ${new Intl.DateTimeFormat('ro-RO', { dateStyle: 'medium' }).format(new Date(latestUpdate))}`
+                    : 'Listată în OSM; statutul real nu este confirmat';
+            const labelText = document.createElement('label');
+            labelText.className = 'poi-route-text';
+            labelText.htmlFor = checkbox.id = `transit-route-${index}`;
+            const routeName = document.createElement('span');
+            routeName.textContent = group.directionLabel
+                ? `${group.label} — ${group.directionLabel}`
+                : group.label;
+            const routeInfo = document.createElement('span');
+            routeInfo.className = 'poi-route-info';
+            routeInfo.textContent = [...(group.directionLabel ? [] : directions), status].join(' · ');
+            labelText.append(routeName, routeInfo);
+            row.append(checkbox, colorPicker, labelText);
+            routeList.appendChild(row);
+        });
+        updateMetroArrivalEstimate();
+
+        if (featureType === 'train') {
+            modalLink.href = getInfoferStationUrl(stationName);
+            checkedAt.textContent = `Link pregătit la ${new Intl.DateTimeFormat('ro-RO', {
+                dateStyle: 'short',
+                timeStyle: 'short',
+                timeZone: 'Europe/Bucharest',
+            }).format(new Date())}. Informațiile operative sunt afișate pe site-ul oficial Infofer.`;
+        }
+
+        bootstrap.Modal.getOrCreateInstance(modalElement).show();
+        return;
+    }
+
+    const address = feature.get('address') ?? {};
+    const addressText = address.formatted
+        || [address.city, address.county, address.country].filter(Boolean).join(', ');
+
+    poiTooltipName.textContent = feature.get('name') || 'Necunoscut';
+    poiTooltipType.textContent = poiTypeLabels[feature.get('type')] || 'Punct de interes';
+    const featureTrainServices = feature.get('train_services');
+    const trainServices = Array.isArray(featureTrainServices) ? featureTrainServices : [];
+    poiTooltipRoutes.replaceChildren();
+    activeTransitRoutes.clear();
+    if (routeGroups.length > 0) {
+        const heading = document.createElement('div');
+        heading.textContent = 'Linii / rute deservite:';
+        poiTooltipRoutes.appendChild(heading);
+
+        routeGroups.forEach(group => {
+            activeTransitRoutes.set(group.key, group);
+            const color = getTransitRouteColor(group.key, transitRouteColors);
+            const hasRelation = group.routes.some(route =>
+                /^relation\/\d+$/.test(route.id)
+            );
+
+            const routeLabel = document.createElement('div');
+            routeLabel.className = 'poi-route-option';
+
+            const routeCheckbox = document.createElement('input');
+            routeCheckbox.type = 'checkbox';
+            routeCheckbox.className = 'poi-route-checkbox';
+            routeCheckbox.dataset.routeKey = group.key;
+            routeCheckbox.checked = visibleTransitRoutes.has(group.key);
+            routeCheckbox.disabled = !hasRelation;
+            routeCheckbox.setAttribute('aria-label', `Afișează traseul ${group.label}`);
+            if (routeCheckbox.disabled) {
+                routeCheckbox.title = 'Relația traseului nu are un identificator OSM valid.';
+            }
+
+            const colorPicker = document.createElement('input');
+            colorPicker.type = 'color';
+            colorPicker.className = 'poi-route-color';
+            colorPicker.dataset.routeKey = group.key;
+            colorPicker.value = color;
+            colorPicker.setAttribute('aria-label', `Culoare traseu ${group.label}`);
+
+            const routeName = document.createElement('span');
+            routeName.textContent = group.label;
+            const routeInfo = document.createElement('span');
+            routeInfo.className = 'poi-route-info';
+            const inactive = group.routes.some(route => route.status === 'possibly_inactive');
+            const directions = [...new Set(group.routes.map(route => route.direction).filter(Boolean))];
+            const latestUpdate = group.routes
+                .map(route => route.updated_at)
+                .filter(Boolean)
+                .sort()
+                .at(-1);
+            const statusText = inactive
+                ? 'Marcată ca posibil inactivă în OSM'
+                : latestUpdate
+                    ? `OSM · ${new Intl.DateTimeFormat('ro-RO', { dateStyle: 'medium' }).format(new Date(latestUpdate))}`
+                    : 'Listată în OSM; statutul real nu este confirmat';
+            routeInfo.textContent = [...directions, statusText].join(' · ');
+            routeInfo.title = 'Date OpenStreetMap; acestea nu confirmă orarul actual al operatorului.';
+            const routeText = document.createElement('span');
+            routeText.className = 'poi-route-text';
+            routeText.append(routeName, routeInfo);
+            routeLabel.append(routeCheckbox, colorPicker, routeText);
+            poiTooltipRoutes.appendChild(routeLabel);
+        });
+    }
+
+    if (trainServices.length > 0) {
+        const heading = document.createElement('div');
+        heading.textContent = 'Trenuri în mersul anual publicat:';
+        poiTooltipRoutes.appendChild(heading);
+
+        trainServices.forEach(service => {
+            const serviceInfo = document.createElement('div');
+            serviceInfo.className = 'poi-route-info';
+            const details = [
+                service.departure ? `plecare ${service.departure}` : null,
+                service.direction ? `spre ${service.direction}` : null,
+                service.operator || null,
+                service.service_days || null,
+            ].filter(Boolean);
+            serviceInfo.textContent = [
+                `${service.category || 'Tren'} ${service.number}`,
+                ...details,
+            ].join(' · ');
+            poiTooltipRoutes.appendChild(serviceInfo);
+        });
+
+        const sourceInfo = document.createElement('div');
+        sourceInfo.className = 'poi-route-info';
+        const validUntil = feature.get('train_timetable_valid_until');
+        const availabilityNote = feature.get('train_services_available') === false
+            ? 'Unele surse de orar nu au putut fi încărcate.'
+            : '';
+        sourceInfo.textContent = [
+            `Sursa: ${feature.get('train_timetable_source') || 'data.gov.ro'} · orar anual, nu date în timp real; pot exista modificări/excepții.`,
+            validUntil ? `Valabil până la ${validUntil}.` : '',
+            availabilityNote,
+        ].filter(Boolean).join(' ');
+        poiTooltipRoutes.appendChild(sourceInfo);
+    } else if (transitTypes.has(feature.get('type')) && routeGroups.length === 0) {
+        const emptyRoutes = document.createElement('div');
+        emptyRoutes.className = 'poi-route-info';
+        if (feature.get('type') === 'train' && feature.get('train_services_available') === false) {
+            emptyRoutes.textContent = 'Orarele feroviare nu au putut fi încărcate din data.gov.ro.';
+        } else {
+            emptyRoutes.textContent = feature.get('routes_available') === false
+                ? 'Liniile nu au putut fi încărcate din OpenStreetMap.'
+                : 'Nu există linii asociate stației în OpenStreetMap.';
+        }
+        poiTooltipRoutes.appendChild(emptyRoutes);
+    }
+    if (feature.get('type') === 'subway' && routeGroups.length > 0) {
+        const metroEstimate = document.createElement('div');
+        metroEstimate.className = 'poi-route-info metro-arrival-estimate';
+        metroEstimate.setAttribute('aria-live', 'polite');
+        metroEstimate.textContent = 'Selectează exact o magistrală pentru estimarea următorului tren.';
+        poiTooltipRoutes.appendChild(metroEstimate);
+    }
+    poiTooltipRoutes.hidden = routeGroups.length === 0 && !transitTypes.has(feature.get('type'));
+    poiTooltipAddress.textContent = addressText || '';
+    poiTooltipAddress.hidden = !addressText;
+    poiTooltipElement.hidden = false;
+    poiTooltip.setPosition(coordinate);
+}
+
+function enableTransitModalDragging(modalElement) {
+    if (modalElement.dataset.interactionsEnabled === 'true') return;
+
+    const dragHandle = modalElement.querySelector('.transit-modal-drag-handle');
+    const resizeHandle = modalElement.querySelector('.transit-modal-resize-handle');
+    const dialog = modalElement.querySelector('.modal-dialog');
+    const content = modalElement.querySelector('.modal-content');
+    if (!dragHandle || !resizeHandle || !dialog || !content) {
+        console.error('The transit modal is missing its drag or resize controls.');
+        return;
+    }
+
+    modalElement.dataset.interactionsEnabled = 'true';
+    let dragState = null;
+    let resizeState = null;
+
+    dragHandle.addEventListener('pointerdown', event => {
+        if (!event.isPrimary || event.button !== 0 || event.target.closest('button, a, input, select, textarea')) {
+            return;
+        }
+
+        const rect = dialog.getBoundingClientRect();
+        dialog.style.position = 'fixed';
+        dialog.style.left = `${rect.left}px`;
+        dialog.style.top = `${rect.top}px`;
+        dialog.style.width = `${rect.width}px`;
+        dialog.style.margin = '0';
+        dialog.style.transform = 'none';
+        dragState = {
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            startLeft: rect.left,
+            startTop: rect.top,
+        };
+        dragHandle.setPointerCapture(event.pointerId);
+        event.preventDefault();
+    });
+
+    const moveDialog = event => {
+        if (!dragState || event.pointerId !== dragState.pointerId) return;
+
+        const left = dragState.startLeft + event.clientX - dragState.startX;
+        const top = dragState.startTop + event.clientY - dragState.startY;
+        dialog.style.left = `${left}px`;
+        dialog.style.top = `${top}px`;
+        event.preventDefault();
+    };
+
+    const stopDragging = event => {
+        if (dragState?.pointerId === event.pointerId) dragState = null;
+        if (resizeState?.pointerId === event.pointerId) resizeState = null;
+    };
+    document.addEventListener('pointermove', moveDialog, { passive: false });
+    document.addEventListener('pointerup', stopDragging);
+    document.addEventListener('pointercancel', stopDragging);
+
+    const minHeight = 180;
+    const getMaxHeight = () => Math.max(minHeight, window.innerHeight - 16);
+    const setHeight = height => {
+        const nextHeight = Math.min(Math.max(height, minHeight), getMaxHeight());
+        content.style.height = `${nextHeight}px`;
+        resizeHandle.setAttribute('aria-valuenow', String(Math.round(nextHeight)));
+        resizeHandle.setAttribute('aria-valuemin', String(minHeight));
+        resizeHandle.setAttribute('aria-valuemax', String(Math.round(getMaxHeight())));
+    };
+
+    resizeHandle.addEventListener('pointerdown', event => {
+        if (!event.isPrimary || event.button !== 0) return;
+        resizeState = {
+            pointerId: event.pointerId,
+            startY: event.clientY,
+            startHeight: content.getBoundingClientRect().height,
+        };
+        resizeHandle.setPointerCapture(event.pointerId);
+        event.preventDefault();
+    });
+
+    document.addEventListener('pointermove', event => {
+        if (!resizeState || event.pointerId !== resizeState.pointerId) return;
+        setHeight(resizeState.startHeight + event.clientY - resizeState.startY);
+        event.preventDefault();
+    }, { passive: false });
+
+    resizeHandle.addEventListener('keydown', event => {
+        if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const currentHeight = content.getBoundingClientRect().height;
+        if (event.key === 'Home') {
+            setHeight(minHeight);
+        } else if (event.key === 'End') {
+            setHeight(getMaxHeight());
+        } else {
+            setHeight(currentHeight + (event.key === 'ArrowDown' ? 24 : -24));
+        }
+    });
+}
+
+document.getElementById('transitLinesList')?.addEventListener('change', async event => {
+    const colorPicker = event.target.closest('.poi-route-color');
+    if (colorPicker) {
+        const routeKey = colorPicker.dataset.routeKey;
+        transitRouteColors.set(routeKey, colorPicker.value);
+        manuallySelectedTransitRouteColors.add(routeKey);
+        const routeFeature = transitRouteSource.getFeatureById(`transit-route:${routeKey}`);
+        routeFeature?.set('routeColor', colorPicker.value);
+        return;
+    }
+
+    const checkbox = event.target.closest('.poi-route-checkbox');
+    if (!checkbox) return;
+
+    updateMetroArrivalEstimate();
+
+    const routeKey = checkbox.dataset.routeKey;
+    const routeGroup = activeTransitRoutes.get(routeKey);
+    if (!routeGroup) return;
+
+    const featureId = `transit-route:${routeKey}`;
+    let routeFeature = transitRouteSource.getFeatureById(featureId);
+
+    if (checkbox.checked) {
+        if (!routeFeature) {
+            checkbox.disabled = true;
+            try {
+                const routeGeometries = await Promise.all(
+                    routeGroup.routes.map(async route => {
+                        const match = /^relation\/(\d+)$/.exec(route.id);
+                        if (!match) return [];
+
+                        const response = await fetch(`/api/transit-route/${match[1]}`);
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw new Error(data.error || `HTTP ${response.status}`);
+                        }
+
+                        return Array.isArray(data.segments)
+                            ? data.segments
+                                .filter(segment => Array.isArray(segment) && segment.length >= 2)
+                                .map(segment => segment
+                                    .filter(coordinate => Array.isArray(coordinate) && coordinate.length >= 2)
+                                    .map(([lon, lat]) => fromLonLat([lon, lat]))
+                                )
+                            : [];
+                    })
+                );
+                const lineCoordinates = routeGeometries.flat()
+                    .filter(coordinates => coordinates.length >= 2);
+
+                if (lineCoordinates.length === 0) {
+                    throw new Error('OpenStreetMap nu a returnat geometria traseului.');
+                }
+
+                routeFeature = new Feature({
+                    geometry: new MultiLineString(lineCoordinates),
+                });
+                routeFeature.setId(featureId);
+                routeFeature.set('routeKey', routeKey);
+                routeFeature.set('routeColor', transitRouteColors.get(routeKey));
+                transitRouteSource.addFeature(routeFeature);
+                visibleTransitRoutes.add(routeKey);
+            } catch (error) {
+                checkbox.checked = false;
+                console.error('Transit route geometry could not be loaded:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Traseul nu a putut fi încărcat',
+                    text: error.message,
+                });
+            } finally {
+                checkbox.disabled = false;
+            }
+        } else {
+            visibleTransitRoutes.add(routeKey);
+        }
+    } else {
+        if (routeFeature) {
+            transitRouteSource.removeFeature(routeFeature);
+        }
+        visibleTransitRoutes.delete(routeKey);
+    }
+});
+
+function updateMetroArrivalEstimate() {
+    const estimateElement = document.getElementById('metroArrivalEstimate');
+    if (!estimateElement) return;
+
+    const selectedLines = document.querySelectorAll('#transitLinesList .poi-route-checkbox:checked');
+    if (selectedLines.length !== 1) {
+        estimateElement.textContent = 'Selectează exact o magistrală pentru estimarea următorului tren.';
+        return;
+    }
+
+    const { from, until } = getMetroArrivalWindow();
+    estimateElement.textContent = `Următorul tren: estimativ între ${from} și ${until} (interval generic ~5 min; nu este informație live și nu confirmă circulația).`;
+}
+
+function hidePoiTooltip() {
+    poiTooltipElement.hidden = true;
+    poiTooltip.setPosition(undefined);
+}
+
+function clearVisibleTransitRoutes() {
+    visibleTransitRoutes.clear();
+    activeTransitRoutes.clear();
+    transitRouteSource.clear();
+}
+
+map.on('pointermove', event => {
+    const feature = poiFeatureAtPixel(map, poiSource, poiLayer, event.pixel);
+    map.getTargetElement().style.cursor = feature ? 'pointer' : '';
+});
+
+bindPoiMapClick({
+    target: document,
+    map,
+    poiSource,
+    poiLayer,
+    tooltipElement: poiTooltipElement,
+    showTooltip: showPoiTooltip,
+    hideTooltip: hidePoiTooltip,
+});
+
+map.getViewport().addEventListener('pointerleave', () => {
+    map.getTargetElement().style.cursor = '';
 });
 
 
@@ -441,6 +1017,13 @@ function renderPOI(data = [], userLat, userLon) {
             id: item.id,
             name: item.name,
             type: normalizePoiType(item.type),
+            address: item.address,
+            routes: item.routes ?? [],
+            routes_available: item.routes_available,
+            train_services: item.train_services ?? [],
+            train_services_available: item.train_services_available,
+            train_timetable_valid_until: item.train_timetable_valid_until ?? null,
+            train_timetable_source: item.train_timetable_source ?? null,
             distance
         });
 
@@ -670,6 +1253,8 @@ if (shareBtn) {
 
 function createInputLocationElement(create) {
     if(create) {
+        if (document.getElementById('current_location')) return;
+
         let currentLocation = document.createElement('input');
         currentLocation.setAttribute('id', 'current_location');
         currentLocation.classList.add('d-none');
@@ -683,6 +1268,134 @@ function createInputLocationElement(create) {
     }
 }
 
+document.getElementById('city-location-mode')?.addEventListener('change', async event => {
+    if (!event.target.checked) return;
+
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+    tracking = false;
+    hasCentered = false;
+    currentUserLocation = null;
+    document.getElementById('toggleLocation').checked = false;
+    document.getElementById('city-location-form')?.classList.remove('d-none');
+    poiRequestId++;
+    poiSource.clear();
+    clearVisibleTransitRoutes();
+    hidePoiTooltip();
+    const response = await fetch('/location/toggle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+        },
+        body: JSON.stringify({ location: false }),
+    });
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    document.getElementById('map_card')?.classList.add('d-none');
+    document.getElementById('mobility_card')?.classList.add('d-none');
+});
+
+document.getElementById('city-location-form')?.addEventListener('submit', async event => {
+    event.preventDefault();
+
+    const input = document.getElementById('city-location-input');
+    const radiusInput = document.getElementById('city-location-radius');
+    const button = document.getElementById('city-location-submit');
+    const status = document.getElementById('city-location-status');
+    const city = input.value.trim();
+    const radiusMeters = Number(radiusInput.value);
+    if (city.length < 2) {
+        status.textContent = 'Introdu numele unui oraș.';
+        status.className = 'col-12 small text-danger';
+        return;
+    }
+    if (!Number.isInteger(radiusMeters) || radiusMeters < 100 || radiusMeters > 35000) {
+        status.textContent = 'Raza trebuie să fie între 100 și 35.000 de metri.';
+        status.className = 'col-12 small text-danger';
+        radiusInput.focus();
+        return;
+    }
+
+    button.disabled = true;
+    status.textContent = 'Caut orașul...';
+    status.className = 'col-12 small text-muted';
+
+    try {
+        const params = new URLSearchParams({ city });
+        const response = await fetch(`/api/location/city?${params.toString()}`);
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || `HTTP ${response.status}`);
+        }
+
+        createInputLocationElement(true);
+        const currentLocation = document.getElementById('current_location');
+        currentLocation.dataset.lat = result.lat;
+        currentLocation.dataset.lon = result.lon;
+        cityRadiusMeters = radiusMeters;
+        app_radius = cityRadiusMeters;
+        fixedCityLocation = { lat: result.lat, lon: result.lon };
+        currentUserLocation = { lat: result.lat, lon: result.lon };
+        hasCentered = true;
+        initLocalFeatures();
+
+        const center = fromLonLat([result.lon, result.lat]);
+        userFeature.getGeometry().setCoordinates(center);
+        trackFeature.getGeometry().setCoordinates([]);
+        radiusFeature.setGeometry(
+            circular([result.lon, result.lat], Number(app_radius), 64)
+                .transform('EPSG:4326', 'EPSG:3857')
+        );
+        map.getView().animate({ center, zoom: 13, duration: 500 });
+        document.getElementById('map_card')?.classList.remove('d-none');
+        document.getElementById('mobility_card')?.classList.remove('d-none');
+
+        status.textContent = `Locația a fost fixată în centrul orașului ${result.name}, cu raza de ${cityRadiusMeters.toLocaleString('ro-RO')} m.`;
+        status.className = 'col-12 small text-success';
+        setTimeout(() => map.updateSize(), 100);
+
+        if (selectedPoiFilterTokens(document.getElementById('mobility_card')).length > 0) {
+            loadNearby({ lat: result.lat, lon: result.lon });
+        }
+    } catch (error) {
+        status.textContent = error.message;
+        status.className = 'col-12 small text-danger';
+    } finally {
+        button.disabled = false;
+    }
+});
+
+document.getElementById('city-location-radius')?.addEventListener('change', event => {
+    const radiusMeters = Number(event.target.value);
+    const status = document.getElementById('city-location-status');
+    if (!Number.isInteger(radiusMeters) || radiusMeters < 100 || radiusMeters > 35000) {
+        status.textContent = 'Raza trebuie să fie între 100 și 35.000 de metri.';
+        status.className = 'col-12 small text-danger';
+        return;
+    }
+
+    cityRadiusMeters = radiusMeters;
+    app_radius = cityRadiusMeters;
+    if (fixedCityLocation && radiusFeature) {
+        radiusFeature.setGeometry(
+            circular(
+                [fixedCityLocation.lon, fixedCityLocation.lat],
+                cityRadiusMeters,
+                64
+            ).transform('EPSG:4326', 'EPSG:3857')
+        );
+        status.textContent = `Raza de căutare: ${cityRadiusMeters.toLocaleString('ro-RO')} m.`;
+        status.className = 'col-12 small text-success';
+        if (selectedPoiFilterTokens(document.getElementById('mobility_card')).length > 0) {
+            loadNearby(fixedCityLocation);
+        }
+    }
+});
+
 
 
 
@@ -692,7 +1405,13 @@ document
     .getElementById('toggleLocation')
     ?.addEventListener('change', async function () {
 
-        tracking = !tracking;
+        if (!this.checked) return;
+
+        tracking = true;
+        fixedCityLocation = null;
+        app_radius = deviceRadiusMeters;
+        document.getElementById('city-location-mode').checked = false;
+        document.getElementById('city-location-form')?.classList.add('d-none');
 
         let mapCard =
             document.getElementById('map_card');
@@ -702,10 +1421,6 @@ document
 
         let shareBtn = document.getElementById('shareLocation');    
         let turismBtn = document.getElementById('turismLocations');
-        let autoDetectLocation = document.getElementById('auto_detect_location');    
-
-
-
         await fetch(
             '/location/toggle',
             {
@@ -723,19 +1438,6 @@ document
         );
 
 
-        if (!tracking) {
-
-            mapCard.classList.add('d-none');
-            mobCard.classList.add('d-none');
-            shareBtn.classList.add('d-none');
-            turismBtn.classList.add('d-none');
-            createInputLocationElement(false);
-            document.getElementById("i_location").classList.remove("rotate3d-y");
-
-            autoDetectLocation.setAttribute('disabled', true);
-            resetMap();
-            return;
-        }
         document.getElementById("i_location").classList.add("rotate3d-y");
 
         mobCard.querySelector('.row')
@@ -758,6 +1460,7 @@ document
             });
 
             tracking = false;
+            this.checked = false;
             return;
         }
 
@@ -800,11 +1503,9 @@ document
                         .getElementById('turismLocations')
                         ?.classList.remove('d-none');
 
-                    document.getElementById('auto_detect_location')?.removeAttribute('disabled');
-
-
                     const coords =
                         fromLonLat([lon, lat]);
+                    const isFirstLocationFix = !hasCentered;
 
                     if (lastPosition) {
 
@@ -892,7 +1593,13 @@ document
                     currentLocation.dataset.lat = lat;    
                     currentLocation.dataset.lon = lon;
 
-                    initLocalFeatures();    
+                    initLocalFeatures();
+                    const mobilityCard = document.getElementById('mobility_card');
+                    if (isFirstLocationFix
+                        && mobilityCard
+                        && selectedPoiFilterTokens(mobilityCard).length > 0) {
+                        loadNearby({ lat, lon });
+                    }
 
                     const now = Date.now();
 
@@ -957,6 +1664,7 @@ function resetMap() {
     vectorSource.clear();
 
     poiSource.clear();
+    clearVisibleTransitRoutes();
     userSource.clear();
     users.clear();
 
@@ -1008,238 +1716,21 @@ function resetMap() {
 
 
 
-    let poiBtn = document.getElementById('auto_detect_location');
-    poiBtn?.addEventListener('click', () => {
+async function loadNearby(locationOverride = null) {
 
-        if(!document.getElementById('current_location'))
-            return;
-
-        let loc_number = document.getElementById('locations_number');
-        if(poiBtn.checked) {
-            if(loc_number.classList.contains('d-none')) {
-                loc_number.classList.remove('d-none');    
-            }
-            loadNearby(poiBtn.checked);
-        }
-        else {
-            if(!loc_number.classList.contains('d-none')) {
-                loc_number.classList.add('d-none');    
-            }
-
-            let container = document.getElementById('mobility_card');
-            let cardContainer = container.querySelector('.mobility-cards-container');
-            if (!cardContainer.classList.contains('d-none')) {
-                cardContainer.classList.add('d-none');
-            }
-
-            activateMobilityCards(false);
-        }
-    });
-
-    function renderPOIToCards(data = []) {
-
-        const items = normalizePOI(data);
-
-        const container = document.getElementById('mobility_card');
-        if (!container) return;
-
-        let cardContainer = container.querySelector('.mobility-cards-container');
-        if (cardContainer.classList.contains('d-none')) {
-            cardContainer.classList.remove('d-none');
-        }
-
-
-        container.querySelectorAll('.card').forEach(card => {
-            const body = card.querySelector('.card-body');
-            if (body) body.innerHTML = '';
-        });
-
-
-        const sorted = [...items].sort(
-            (a, b) => (a.distance?.meters ?? Infinity) - (b.distance?.meters ?? Infinity)
-        );
-
-
-        const grouped = {};
-
-        sorted.forEach(item => {
-            const type = item.type || 'unknown';
-            if (!grouped[type]) grouped[type] = [];
-            grouped[type].push(item);
-        });
-
-
-        Object.keys(grouped).forEach(type => {
-
-            const card = document.getElementById(type);
-
-            const header = card?.querySelector('.card-header');
-
-            let color = null;
-            if (header) {
-                color = getColorForType(type);
-                let span = header.querySelector('.category-color');
-                span.style.backgroundColor = color;
-
-            }
-
-
-            if (!card) return;
-
-            const body = card.querySelector('.card-body');
-            if (!body) return;
-
-            const list = grouped[type];
-
-            card.closest('.mobility')?.classList.remove('d-none');
-
-            body.innerHTML = '';
-
-            list.forEach(item => {
-
-                const distanceText = item.distance?.formatted ?? 'N/A';
-                const addressText = [item.address?.city, item.address?.county, item.address?.country]
-                    .filter(Boolean)
-                    .join(', ');
-
-                const row = document.createElement('div');
-
-                row.className =
-                    'd-flex justify-content-between align-items-start border-bottom py-2';
-
-                let icon = getIconFromType(item.type);    
-                row.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center w-100 py-2 location-element" data-item='` + toBase64(JSON.stringify(item)) + `'>
-
-                        <div class="w-100">
-
-                            <div class="d-flex flex-column min-w-0">
-
-                                <div class="fw-semibold d-flex flex-column">
-                                    <span>${escapeHtml(item.name || 'Unknown')}</span>
-                                    <span class="formatted-address">
-                                        ${escapeHtml(addressText)}
-                                    </span>
-                                </div>
-
-                                <div class="d-flex flex-row align-items-center justify-content-between text-muted small">
-                                    <span class="text-capitalize"><i class="fa-solid mx-2 fa-`+icon+`"></i>${escapeHtml(item.type)}</span>
-                                    <span class="badge rounded-pill bg-primary px-2 py-1">${escapeHtml(distanceText)}</span>
-                                </div>
-
-                            </div>
-                        </div>
-
-                    </div>
-                `;
-
-                body.appendChild(row);
-            });
-        });
-
-        setTimeout(function() {
-           hidePOIModal(); 
-       }, 2000);
-    }
-
-    function escapeHtml(value) {
-        const div = document.createElement('div');
-        div.textContent = value == null ? '' : String(value);
-        return div.innerHTML;
-    }
-
-    function toBase64(str) {
-      return btoa(
-        String.fromCharCode(...new TextEncoder().encode(str))
-      );
-    }
-
-    function fromBase64(base64) {
-      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-      return new TextDecoder().decode(bytes);
-    }
-
-    function getIconFromType(type) {
-        let result = null;
-        switch(type) {
-            case 'airport' : 
-                result = 'plane';
-                break;
-            case 'bus' : 
-                result = 'bus';
-                break;
-            case 'train' : 
-                result = 'train';
-                break;
-            case 'hospital' : 
-                result = 'hospital';
-                break;
-            case 'pharmacy' : 
-                result = 'staff-snake';
-                break;
-            case 'police' : 
-                result = 'shield-halved';
-                break;
-            case 'fire' : 
-                result = 'fire-flame-curved';
-                break;
-            case 'taxi' : 
-                result = 'taxi';
-                break;
-            case 'tourism' : 
-                result = 'monument';
-                break;
-            default:
-                result = 'circle-question';    
-        }
-        return result;
-    }
-    function normalizePOI(data = []) {
-
-        if (!Array.isArray(data)) return [];
-
-        return data.map(item => ({
-            id: item.id ?? null,
-            name: item.name ?? 'Unknown',
-            type: item.type ?? 'transport',
-
-            coordinates: {
-                lat: item.coordinates?.lat ?? null,
-                lon: item.coordinates?.lon ?? null,
-            },
-
-            distance: {
-                meters: item.distance?.meters ?? null,
-                km: item.distance?.km ?? null,
-                formatted: item.distance?.formatted ?? 'N/A',
-            },
-
-            address: item.address ?? {},
-            details: item.details ?? {}
-        }));
-    }
-
-
-
-
-
-
-
-async function loadNearby(checked) {
-
-    showPOIModal();
+    const requestId = ++poiRequestId;
 
     try {
 
         const cl = document.getElementById('current_location');
 
-        if (!cl) {
+        if (!cl && !locationOverride) {
             hidePOIModal();
             return;
         }
 
-        const lat = parseFloat(cl.dataset.lat);
-        const lon = parseFloat(cl.dataset.lon);
+        const lat = locationOverride?.lat ?? parseFloat(cl.dataset.lat);
+        const lon = locationOverride?.lon ?? parseFloat(cl.dataset.lon);
 
         if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
             hidePOIModal();
@@ -1249,36 +1740,130 @@ async function loadNearby(checked) {
         allPoisRaw = [];
         allPois = [];
         activePoiFilters.clear();
-
-        const response = await fetch(
-            `/api/transport-nearby?lat=${lat}&lon=${lon}&radius=${app_radius}`
-        );
-
-        if (!response.ok) {
-            throw new Error(
-                `HTTP ${response.status}`
-            );
-        }
-
-        const data = await response.json();
-
-        showResultData(data, lat, lon);
         addUserEvents();
 
-    } catch (error) {
-        setTimeout(function() {
+        const poiContainer = document.getElementById('mobility_card');
+        const selectedTypes = poiContainer ? selectedPoiFilterTokens(poiContainer) : [];
+        if (selectedTypes.length === 0) {
+            poiRequestId++;
+            poiSource.clear();
+            clearVisibleTransitRoutes();
+            hidePoiTooltip();
             hidePOIModal();
-        }, 1000);
+
+            return;
+        }
+
+        showPOIModal();
+
+        const transitEndpoints = {
+            bus: '/api/transport/bus',
+            train: '/api/transport/train',
+            subway: '/api/transport/subway',
+            airport: '/api/transport/airport',
+        };
+        const categoryEndpoints = {
+            fuel: '/api/poi/fuel',
+            parking: '/api/poi/parking',
+            restaurant: '/api/poi/restaurant',
+            cafe: '/api/poi/cafe',
+            lodging: '/api/poi/lodging',
+            supermarket: '/api/poi/supermarket',
+            taxi: '/api/poi/taxi',
+            hospital: '/api/poi/hospital',
+            pharmacy: '/api/poi/pharmacy',
+            fire: '/api/poi/fire',
+            tourism: '/api/poi/tourism',
+            charging_station: '/api/poi/charging_station',
+            police: '/api/poi/police',
+            speed_camera: '/api/poi/speed_camera',
+            speed_limit: '/api/poi/speed_limit',
+            traffic_sign: '/api/poi/traffic_sign',
+            vignette_control: '/api/poi/vignette_control',
+            control: '/api/poi/control',
+            locality: '/api/poi/locality',
+        };
+        const categoryForToken = token => {
+            if (Object.hasOwn(transitEndpoints, token) || Object.hasOwn(categoryEndpoints, token)) return token;
+            return token.match(/^subcategory:([^:]+):/)?.[1] ?? null;
+        };
+        const selectedCategories = [...new Set(selectedTypes.map(categoryForToken).filter(Boolean))];
+        const categoryLabels = new Map(
+            Array.from(poiContainer.querySelectorAll('.poi-category-group'))
+                .map(group => [
+                    group.dataset.type,
+                    group.querySelector('.location-category')?.nextElementSibling?.textContent?.trim()
+                        || group.dataset.type,
+                ])
+        );
+        const requests = selectedCategories.map(category => {
+            const params = new URLSearchParams({
+                lat: String(lat),
+                lon: String(lon),
+                radius: String(app_radius),
+            });
+            const categoryFilters = selectedTypes.filter(token => categoryForToken(token) === category);
+            if (!Object.hasOwn(transitEndpoints, category)) {
+                params.set('types', categoryFilters.join(','));
+            }
+            if (category === 'train') {
+                params.set('include_routes', 'false');
+            }
+
+            const endpoint = transitEndpoints[category] ?? categoryEndpoints[category];
+            return {
+                category,
+                label: categoryLabels.get(category) || category,
+                url: `${endpoint}?${params.toString()}`,
+            };
+        });
+
+        const responses = await Promise.allSettled(requests.map(async ({ url }) => {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            return response.json();
+        }));
+        if (requestId !== poiRequestId) return;
+        const successfulResponses = responses
+            .filter(result => result.status === 'fulfilled');
+        const failedRequests = responses
+            .flatMap((result, index) => result.status === 'rejected'
+                ? [`${requests[index].label} (${result.reason?.message || 'cerere eșuată'})`]
+                : []);
+        const data = successfulResponses.flatMap(result => result.value);
+
+        if (requestId !== poiRequestId) return;
+        if (successfulResponses.length === 0 && failedRequests.length > 0) {
+            throw new Error(failedRequests.join('; '));
+        }
+
+        showResultData(data, lat, lon);
+        if (failedRequests.length > 0) {
+            Swal.fire({
+                title: 'Rezultate parțiale',
+                text: `Nu s-au putut încărca toate filtrele: ${failedRequests.join('; ')}`,
+                icon: 'warning'
+            });
+        }
+
+    } catch (error) {
+        if (requestId !== poiRequestId) return;
         
         console.error(error.message);
-        activateMobilityCards(false);
-        document.getElementById('auto_detect_location').checked = false;
         Swal.fire({
           title: "Error!",
           text: error.message,
           icon: "error"
         });
-    }    
+    } finally {
+        if (requestId === poiRequestId) {
+            hidePOIModal();
+        }
+
+    }
 }
 
 
@@ -1338,25 +1923,51 @@ function sortLocations(locations, sortBy = 'name', direction = 'asc') {
 
 
 function applyPOIFilters(catFilters, data) {
-    console.log(catFilters, data);
-
     if (!Array.isArray(data)) return [];
 
-
-    if (!Array.isArray(catFilters) || catFilters.length === 0) {
-        return data;
-    }
+    if (!Array.isArray(catFilters) || catFilters.length === 0) return [];
 
     return data.filter(poi => {
         return catFilters.includes(poi.type);
     });
 }
 
-function updateCounter(data) {
-    let countLocations = document.getElementById('locations_number');
-    countLocations.innerHTML='Found ' + data.length + ' locations.';
-    countLocations.dataset.count = data.length;
-    countLocations.closest('.count-locations').classList.remove('d-none');
+function syncPoiFilterSelection(container) {
+    activePoiFilters.clear();
+
+    container.querySelectorAll('.poi-category-group').forEach(group => {
+        const parent = group.querySelector('.location-category');
+        const children = Array.from(group.querySelectorAll('.location-subcategory'));
+        const selectedChildren = children.filter(checkbox => checkbox.checked);
+
+        if (parent) {
+            parent.checked = children.length > 0 && selectedChildren.length === children.length;
+            parent.indeterminate = selectedChildren.length > 0 && selectedChildren.length < children.length;
+        }
+
+        if (selectedChildren.length > 0 || (children.length === 0 && parent?.checked)) {
+            activePoiFilters.add(group.dataset.type);
+        }
+    });
+}
+
+function selectedPoiFilterTokens(container) {
+    const selected = [];
+
+    container.querySelectorAll('.poi-category-group').forEach(group => {
+        const type = group.dataset.type;
+        const children = Array.from(group.querySelectorAll('.location-subcategory'));
+        const checkedChildren = children.filter(checkbox => checkbox.checked);
+
+        if (children.length > 0 && checkedChildren.length === children.length) {
+            selected.push(type);
+            return;
+        }
+
+        checkedChildren.forEach(checkbox => selected.push(checkbox.dataset.filter));
+    });
+
+    return selected;
 }
 
 function showResultData(data, lat, lon) {
@@ -1368,7 +1979,8 @@ function showResultData(data, lat, lon) {
         type: normalizePoiType(p.type)
     }));
 
-    const enriched = enrichPOIWithDistance(normalized, lat, lon);
+    const selectedTypes = applyPOIFilters(Array.from(activePoiFilters), normalized);
+    const enriched = enrichPOIWithDistance(selectedTypes, lat, lon);
 
     enriched.sort(
         (a, b) =>
@@ -1379,109 +1991,53 @@ function showResultData(data, lat, lon) {
     allPoisRaw = enriched;
     allPois = enriched;
 
-    updateCounter(enriched);
     renderPOI(enriched, lat, lon);
-    renderPOIToCards(enriched);
 }
 
 function addUserEvents () {
-    document.querySelectorAll('.location-element').forEach(button => {
-        button.addEventListener('click', () => {
+    const container = document.getElementById('mobility_card');
+    if (!container) return;
 
-            let item  = JSON.parse(fromBase64(button.dataset.item));
-            const locationName = item.name;
-            const locationAddress = item.address.formatted;
-            const locationLat = item.coordinates.lat;
-            const locationLng = item.coordinates.lon;
+    syncPoiFilterSelection(container);
 
-            Swal.fire({
-                title: locationName,
-                html: `
-                    <div class="text-start">
-                        <p><strong>Address:</strong><br> `+ locationAddress.replace(locationName + ',', '') + `</p>
+    if (container.dataset.poiEventsBound === 'true') return;
 
-                        <hr>
+    container.dataset.poiEventsBound = 'true';
 
-                        <p>
-                            <strong>Coordinates:</strong><br>
-                            ${locationLat}, ${locationLng}
-                        </p>
-                    </div>
-                `,
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonText: 'GO',
-                cancelButtonText: 'CANCEL',
-                confirmButtonColor: '#198754',
-                cancelButtonColor: '#dc3545',
-            }).then((result) => {
+    container.addEventListener('change', event => {
+        const checkbox = event.target.closest('.location-category, .location-subcategory');
+        if (!checkbox || !container.contains(checkbox)) return;
 
-                if (result.isConfirmed) {
-                    document.getElementById('auto_detect_location').checked = false;
-                    document.getElementById('toggleLocation').checked = false;
-                    window.location.href =
-                        `https://www.google.com/maps?q=${locationLat},${locationLng}`;
-                }
+        const group = checkbox.closest('.poi-category-group');
+        const children = group?.querySelectorAll('.location-subcategory') ?? [];
+
+        if (checkbox.matches('.location-category')) {
+            children.forEach(child => {
+                child.checked = checkbox.checked;
             });
-        });
-    });
-    document.querySelectorAll('.location-category').forEach(cb => {
-        const type = cb.dataset.type;
-
-        if (cb.checked) {
-            activePoiFilters.add(type);
         }
 
-        cb.addEventListener('change', () => {
+        syncPoiFilterSelection(container);
 
-            let cl = document.getElementById('current_location');
-            const lat = parseFloat(cl.dataset.lat);
-            const lon = parseFloat(cl.dataset.lon);
+        if (selectedPoiFilterTokens(container).length === 0) {
+            poiRequestId++;
+            poiSource.clear();
+            clearVisibleTransitRoutes();
+            hidePoiTooltip();
+            hidePOIModal();
+            return;
+        }
 
-
-            if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-                console.warn('Invalid coordinates');
-                hidePOIModal();
-                return;
-            }
-
-            const t = cb.dataset.type;
-
-            if (cb.checked) {
-                activePoiFilters.add(t);
-            } else {
-                activePoiFilters.delete(t);
-            }
-
-            let data = applyPOIFilters(
-                Array.from(activePoiFilters),
-                allPoisRaw
-            );
-
-            const filtered = filterByRadius(data, lat, lon, app_radius);
-
-            const enriched = enrichPOIWithDistance(filtered, lat, lon);
-
-            enriched.sort(
-                (a, b) =>
-                    a.distance.meters - b.distance.meters
-            );
-
-            let pois = allPois;
-            pois = enriched;
-            updateCounter(enriched);
-            
-            renderPOI(enriched);
-            renderPOIToCards(enriched);
-
-            poiSource.changed(); // re-render map
-        });
+        const currentLocation = document.getElementById('current_location');
+        if (currentLocation && Number.isFinite(parseFloat(currentLocation.dataset.lat))
+            && Number.isFinite(parseFloat(currentLocation.dataset.lon))) {
+            clearVisibleTransitRoutes();
+            loadNearby();
+        }
     });
 }
 
-
-
-
+addUserEvents();
 
 function enrichPOIWithDistance(poiList, userLat, userLon) {
     return poiList.map((item) => {
@@ -1545,34 +2101,78 @@ function showPOIModal() {
     const modalEl = document.getElementById('poiLoadingModal');
     if (!modalEl) return;
 
+    if (!poiLoadingModalEventsBound) {
+        modalEl.addEventListener('shown.bs.modal', () => {
+            poiLoadingModalShown = true;
+            startPoiElapsedTimer();
+            if (poiLoadingModalHidePending) {
+                poiLoadingModalHidePending = false;
+                bootstrap.Modal.getInstance(modalEl)?.hide();
+            }
+        });
+        modalEl.addEventListener('hidden.bs.modal', () => {
+            poiLoadingModalShown = false;
+            poiLoadingModalHidePending = false;
+            stopPoiElapsedTimer();
+        });
+        poiLoadingModalEventsBound = true;
+    }
+
+    poiLoadingModalHidePending = false;
+    startPoiElapsedTimer();
+
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
 }
 
+function startPoiElapsedTimer() {
+    if (poiLoadingTimer !== null) return;
+
+    const modalEl = document.getElementById('poiLoadingModal');
+    const elapsed = modalEl?.querySelector('#poi-loading-elapsed');
+    if (!elapsed) return;
+
+    poiLoadingStartedAt = performance.now();
+
+    const updateElapsed = () => {
+        const elapsedElement = document
+            .getElementById('poiLoadingModal')
+            ?.querySelector('#poi-loading-elapsed');
+        if (!elapsedElement || poiLoadingStartedAt === null) return;
+
+        const seconds = Math.floor((performance.now() - poiLoadingStartedAt) / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        elapsedElement.textContent = `Timp scurs: ${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+    };
+
+    updateElapsed();
+    poiLoadingTimer = window.setInterval(updateElapsed, 250);
+}
+
+function stopPoiElapsedTimer() {
+    if (poiLoadingTimer !== null) {
+        window.clearInterval(poiLoadingTimer);
+    }
+    poiLoadingTimer = null;
+    poiLoadingStartedAt = null;
+}
+
 function hidePOIModal() {
+    stopPoiElapsedTimer();
+
     const modalEl = document.getElementById('poiLoadingModal');
     if (!modalEl) return;
 
     document.activeElement?.blur();
 
     const modal = bootstrap.Modal.getInstance(modalEl);
-    modal?.hide();
-}
+    if (!modal) return;
 
-function activateMobilityCards(checked) {
-    let mobCards = document.querySelectorAll('.mobility');
-    if(checked) {
-        mobCards.forEach(function(item) {
-            if(item.classList.contains('d-none')) {
-                item.classList.remove('d-none');
-            }
-        });        
+    if (!poiLoadingModalShown) {
+        poiLoadingModalHidePending = true;
+        return;
     }
-    else {
-        mobCards.forEach(function(item) {
-            if(!item.classList.contains('d-none')) {
-                item.classList.add('d-none');
-            }
-        });        
-    }
+
+    modal.hide();
 }

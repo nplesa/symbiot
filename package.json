@@ -4,7 +4,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build && del public\\hot",
-        "dev": "vite"
+        "dev": "vite",
+        "test": "node --test tests-js/poi-map-interactions.test.js"
     },
     "devDependencies": {
         "@popperjs/core": "^2.11.8",
@@ -20,6 +21,7 @@
         "bootstrap-icons": "^1.13.1",
         "flag-icons": "^7.5.0",
         "glob": "^13.0.6",
+        "leaflet": "^1.9.4",
         "ol": "^10.9.0",
         "sweetalert2": "^11.26.24"
     }

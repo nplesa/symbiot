@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Contracts\TrafficProvider;
+use App\Services\TomTomTrafficProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -10,7 +12,10 @@ use Illuminate\Support\ServiceProvider;
 class AppServiceProvider extends ServiceProvider
 {
     #[\Override]
-    public function register(): void {}
+    public function register(): void
+    {
+        $this->app->bind(TrafficProvider::class, TomTomTrafficProvider::class);
+    }
 
     public function boot(): void
     {

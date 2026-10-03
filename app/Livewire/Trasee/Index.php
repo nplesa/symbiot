@@ -129,7 +129,7 @@ class Index extends Component
         }
 
         $route = $this->ownedRoute($this->selectedRouteId);
-        session()->flash('success', 'Traseul „' . ($route->name ?: 'fără nume') . '” este selectat.');
+        $this->redirectRoute('app.navigation.show', ['route' => $route->id]);
     }
 
     public function importRoute(?string $importToken = null): void

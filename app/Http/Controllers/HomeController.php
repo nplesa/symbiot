@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\PoiCatalog;
 use Illuminate\Contracts\View\View;
 
 class HomeController extends Controller
@@ -13,10 +14,15 @@ class HomeController extends Controller
 
     public function index(): View
     {
-        $locations = json_decode(config('services.geoapify.locations', []), true);
+        $catalog = app(PoiCatalog::class);
+        $poiCategories = $catalog->categories();
 
         return view('home', [
-            'locations' => $locations,
+            'locations' => array_keys($poiCategories),
+            'poiCategories' => $poiCategories,
+            'poiSubcategories' => collect(array_keys($poiCategories))
+                ->mapWithKeys(fn (string $type): array => [$type => $catalog->subcategories($type)])
+                ->all(),
         ]);
     }
 }

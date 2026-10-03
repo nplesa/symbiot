@@ -29,21 +29,175 @@
     }
 }
 
-.mobility-cards-container {
-	overflow: auto;
-}
 .mobility-image {
 	width: 60px !important;
 }
-.mobility-card-body {
-	height: 260px;
-    overflow: auto;
-    padding: 0px 5px;
+.poi-map-tooltip {
+    min-width: 160px;
+    max-width: min(280px, calc(100vw - 32px));
+    padding: 0.5rem 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 0.375rem;
+    background: #fff;
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.2);
+    color: #212529;
+    font-size: 0.875rem;
+    line-height: 1.35;
+    pointer-events: auto;
 }
-.location-element {
-    background-color: #e5d95e;
-    padding: 5px;
-    border-radius: 5px;
+.poi-map-tooltip-name {
+    font-weight: 600;
+}
+.poi-map-tooltip-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+.poi-map-tooltip-close {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #6c757d;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.poi-map-tooltip-close:hover {
+    color: #212529;
+}
+.poi-map-tooltip-type,
+.poi-map-tooltip-routes,
+.poi-map-tooltip-address {
+    color: #6c757d;
+}
+.poi-route-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin-top: 0.2rem;
+    min-height: 2.75rem;
+    cursor: pointer;
+}
+.poi-route-checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: 0 0 auto;
+    margin: 0.75rem 0.5rem 0 0.75rem;
+}
+.poi-route-color {
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+    padding: 0.35rem;
+    border: 1px solid #adb5bd;
+    border-radius: 0.25rem;
+    background: transparent;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.poi-route-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 0.4rem 0.5rem 0.4rem 0;
+    overflow-wrap: anywhere;
+}
+.poi-route-info {
+    color: #6c757d;
+    font-size: 0.7rem;
+    line-height: 1.2;
+}
+.transit-modal-drag-handle {
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+}
+.transit-modal-drag-handle .btn-close {
+    flex: 0 0 2.75rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    margin: -0.5rem -0.5rem -0.5rem auto;
+    cursor: pointer;
+}
+.transit-lines-modal .modal-dialog {
+    width: min(32rem, calc(100vw - 1rem));
+    max-width: none;
+    min-height: 0;
+    max-height: calc(100vh - 1rem);
+    max-height: calc(100dvh - 1rem);
+    margin: 0.5rem auto;
+}
+.transit-lines-modal .modal-content {
+    max-height: calc(100vh - 1rem);
+    max-height: calc(100dvh - 1rem);
+}
+.transit-lines-modal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+.transit-lines-modal .modal-body {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+.transit-modal-resize-handle {
+    display: inline-flex;
+    flex: 0 0 2.75rem;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 1px solid #adb5bd;
+    border-radius: 0.375rem;
+    background: #fff;
+    color: #495057;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: ns-resize;
+    touch-action: none;
+}
+.transit-modal-resize-handle:hover,
+.transit-modal-resize-handle:focus-visible {
+    background: #f1f3f5;
+    color: #212529;
+}
+@media (max-width: 575.98px) {
+    .transit-lines-modal .modal-dialog {
+        width: calc(100vw - 1rem);
+    }
+    .transit-lines-modal .modal-header,
+    .transit-lines-modal .modal-footer {
+        padding: 0.75rem;
+    }
+    .transit-lines-modal .modal-title {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+    .transit-lines-modal .modal-body {
+        padding: 0.75rem;
+    }
+    .transit-lines-modal .modal-footer {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .transit-lines-modal #transitLinesSource {
+        flex: 1 1 100%;
+        margin-right: 0 !important;
+    }
+    .transit-lines-modal .modal-footer .btn {
+        min-height: 2.75rem;
+        font-size: 0.875rem;
+    }
 }
 h2#swal2-title {
     font-size: large;

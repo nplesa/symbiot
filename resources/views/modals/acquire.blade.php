@@ -4,15 +4,15 @@
 
             <div class="modal-body">
 
-                <div class="spinner-border text-primary mb-3" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-
                 <h5 class="fw-bold">ACQUIRING DATA</h5>
 
                 <p class="text-muted mb-0">
                     Fetching nearby interest points...
                 </p>
+                <div class="progress mt-3" role="progressbar" aria-label="Încărcare puncte de interes">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
+                </div>
+                <p class="text-muted small mt-2 mb-0" id="poi-loading-elapsed" aria-live="polite">Timp scurs: 00:00</p>
 
             </div>
 
