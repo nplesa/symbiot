@@ -171,6 +171,40 @@
     background: #f1f3f5;
     color: #212529;
 }
+.lodging-details-modal .modal-dialog {
+    width: min(32rem, calc(100vw - 1rem));
+    max-width: none;
+}
+.lodging-details-modal .modal-body {
+    max-height: min(70vh, 560px);
+    max-height: min(70dvh, 560px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    overflow-wrap: anywhere;
+    -webkit-overflow-scrolling: touch;
+}
+.lodging-details-list {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 0.35fr) minmax(0, 1fr);
+    gap: 0.75rem 1rem;
+    margin: 0;
+}
+.lodging-detail-row {
+    display: contents;
+}
+.lodging-detail-row dt,
+.lodging-detail-row dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+.lodging-detail-row dt {
+    color: #6c757d;
+    font-weight: 600;
+}
+.lodging-detail-row a {
+    overflow-wrap: anywhere;
+}
 @media (max-width: 575.98px) {
     .transit-lines-modal .modal-dialog {
         width: calc(100vw - 1rem);
@@ -197,6 +231,33 @@
     .transit-lines-modal .modal-footer .btn {
         min-height: 2.75rem;
         font-size: 0.875rem;
+    }
+    .lodging-details-modal .modal-dialog {
+        width: calc(100vw - 1rem);
+    }
+    .lodging-details-modal .modal-header,
+    .lodging-details-modal .modal-body,
+    .lodging-details-modal .modal-footer {
+        padding: 0.75rem;
+    }
+    .lodging-details-modal .modal-footer {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .lodging-details-modal .modal-footer .btn {
+        min-height: 2.75rem;
+        font-size: 0.875rem;
+    }
+    .lodging-details-list {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.25rem;
+    }
+    .lodging-detail-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.15rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #dee2e6;
     }
 }
 h2#swal2-title {

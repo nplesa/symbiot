@@ -708,6 +708,11 @@ class TransportPoiController extends Controller
                 'speed_limit' => isset($tags['maxspeed']) ? 'Limită ' . $tags['maxspeed'] : $catalog->categories()[$type]['label'],
                 default => $catalog->categories()[$type]['label'],
             };
+            $lodgingAddress = array_filter([
+                trim(implode(' ', array_filter([$tags['addr:housenumber'] ?? null, $tags['addr:street'] ?? null]))),
+                $tags['addr:postcode'] ?? null,
+                $tags['addr:city'] ?? null,
+            ]);
 
             $pois[] = [
                 'id' => ($element['type'] ?? 'element') . '/' . ($element['id'] ?? 0),
@@ -730,10 +735,13 @@ class TransportPoiController extends Controller
                         : round($meters / 1000, 1) . ' km',
                 ],
                 'address' => [
-                    'formatted' => $tags['name'] ?? null,
+                    'formatted' => $type === 'lodging' && $lodgingAddress !== []
+                        ? implode(', ', $lodgingAddress)
+                        : ($tags['name'] ?? null),
                     'city' => $tags['addr:city'] ?? null,
                     'country' => $tags['addr:country'] ?? null,
                 ],
+                'details' => $type === 'lodging' ? $this->extractLodgingDetails($tags) : [],
             ];
         }
 
@@ -807,6 +815,9 @@ class TransportPoiController extends Controller
                     'city' => $props['city'] ?? null,
                     'country' => $props['country'] ?? null,
                 ],
+                'details' => $this->detectType($props['categories'] ?? []) === 'lodging'
+                    ? $this->extractLodgingDetails($props)
+                    : [],
             ];
         }
 
@@ -814,6 +825,43 @@ class TransportPoiController extends Controller
         );
 
         return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $properties
+     * @return array<string, string>
+     */
+    private function extractLodgingDetails(array $properties): array
+    {
+        $raw = is_array($properties['datasource']['raw'] ?? null)
+            ? $properties['datasource']['raw']
+            : [];
+        $contact = is_array($properties['contact'] ?? null)
+            ? $properties['contact']
+            : [];
+        $details = [
+            'accommodation_type' => $properties['accommodation_type'] ?? $properties['tourism'] ?? $raw['tourism'] ?? null,
+            'address' => $properties['formatted'] ?? null,
+            'phone' => $properties['phone'] ?? $properties['contact:phone'] ?? $contact['phone'] ?? $raw['phone'] ?? $raw['contact:phone'] ?? null,
+            'email' => $properties['email'] ?? $properties['contact:email'] ?? $contact['email'] ?? $raw['email'] ?? $raw['contact:email'] ?? null,
+            'website' => $properties['website'] ?? $properties['contact:website'] ?? $contact['website'] ?? $raw['website'] ?? $raw['contact:website'] ?? null,
+            'opening_hours' => $properties['opening_hours'] ?? $raw['opening_hours'] ?? null,
+            'operator' => $properties['operator'] ?? $raw['operator'] ?? null,
+            'brand' => $properties['brand'] ?? $raw['brand'] ?? null,
+            'stars' => $properties['stars'] ?? $raw['stars'] ?? null,
+            'rooms' => $properties['rooms'] ?? $raw['rooms'] ?? null,
+            'beds' => $properties['beds'] ?? $raw['beds'] ?? null,
+            'check_in' => $properties['check_in'] ?? $raw['check-in'] ?? null,
+            'check_out' => $properties['check_out'] ?? $raw['check-out'] ?? null,
+            'wheelchair' => $properties['wheelchair'] ?? $raw['wheelchair'] ?? null,
+            'internet_access' => $properties['internet_access'] ?? $raw['internet_access'] ?? null,
+            'description' => $properties['description'] ?? $raw['description'] ?? null,
+        ];
+
+        return collect($details)
+            ->filter(fn (mixed $value): bool => is_scalar($value) && trim((string) $value) !== '')
+            ->map(fn (mixed $value): string => trim((string) $value))
+            ->all();
     }
 
     /**

@@ -5,6 +5,7 @@ import {
     assignTransitRouteColors,
     bindPoiMapClick,
     groupTransitRoutes,
+    getGoogleMapsPlaceUrl,
     getInfoferStationUrl,
     getMetroArrivalWindow,
     getTransitRouteColor,
@@ -41,6 +42,23 @@ test('keeps Bucuresti Basarab mapped to its own Infofer station page', () => {
     );
 });
 
+test('builds an encoded Google Maps search URL with lodging name and coordinates', () => {
+    const url = new URL(getGoogleMapsPlaceUrl('Pensiunea Valea cu Flori', {
+        lat: 45.6537846,
+        lon: 25.7529425,
+    }));
+
+    assert.equal(url.origin, 'https://www.google.com');
+    assert.equal(url.pathname, '/maps/search/');
+    assert.equal(url.searchParams.get('api'), '1');
+    assert.equal(url.searchParams.get('query'), 'Pensiunea Valea cu Flori, 45.6537846, 25.7529425');
+});
+
+test('does not create a Google Maps URL for invalid lodging coordinates', () => {
+    assert.equal(getGoogleMapsPlaceUrl('Unitate', { lat: 91, lon: 25 }), null);
+    assert.equal(getGoogleMapsPlaceUrl('Unitate', { lat: 45, lon: Number.NaN }), null);
+});
+
 test('groups duplicate line labels while preserving separate direction geometries', () => {
     const outbound = { id: 'relation/1', label: 'Autobuz 612', coordinates: [[1, 2], [3, 4]] };
     const inbound = { id: 'relation/2', label: ' autobuz 612 ', coordinates: [[3, 4], [1, 2]] };
@@ -52,7 +70,7 @@ test('groups duplicate line labels while preserving separate direction geometrie
     ]);
 });
 
-test('groups OSM variants with trailing dashes under the same line number', () => {
+test('keeps OSM route references with trailing dashes distinct', () => {
     const line611 = { id: 'relation/10', label: 'Autobuz 611' };
     const dashedLine611 = { id: 'relation/11', label: 'Autobuz 611---' };
     const line611Inbound = { id: 'relation/12', label: 'Autobuz 611' };
@@ -67,8 +85,9 @@ test('groups OSM variants with trailing dashes under the same line number', () =
         {
             key: 'autobuz 611',
             label: 'Autobuz 611',
-            routes: [line611, dashedLine611, line611Inbound],
+            routes: [line611, line611Inbound],
         },
+        { key: 'autobuz 611---', label: 'Autobuz 611---', routes: [dashedLine611] },
         { key: 'autobuz 610', label: 'Autobuz 610', routes: [line610] },
     ]);
 });
@@ -144,6 +163,17 @@ test('surfaces JSON API errors and rejects unexpected payload shapes', async () 
             headers: { 'content-type': 'application/json' },
         })),
         /format neașteptat/
+    );
+
+    await assert.rejects(
+        readPoiJsonResponse(new Response(JSON.stringify({
+            message: 'The radius field must not be greater than 35000.',
+            errors: { radius: ['The radius field must not be greater than 35000.'] },
+        }), {
+            status: 422,
+            headers: { 'content-type': 'application/json' },
+        })),
+        /radius field must not be greater than 35000/
     );
 });
 

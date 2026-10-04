@@ -31,6 +31,9 @@ class PoiNavigationWindowTest extends TestCase
             ->assertSee('id="transitLinesEmpty"', false)
             ->assertSee('id="trainStatusOfficialLink"', false)
             ->assertSee('id="metroArrivalEstimate"', false);
+        $response->assertSee('id="lodgingDetailsModal"', false)
+            ->assertSee('id="lodgingDetailsList"', false)
+            ->assertSee('id="lodgingDetailsMapLink"', false);
         $response->assertSee('name="location-mode"', false)
             ->assertSee('id="city-location-mode"', false)
             ->assertSee('id="city-location-form"', false)
@@ -139,6 +142,47 @@ class PoiNavigationWindowTest extends TestCase
                 && ($query['categories'] ?? null) === 'catering.restaurant.italian';
         });
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'overpass-api.de'));
+    }
+
+    public function test_lodging_poi_returns_available_details_for_the_map_modal(): void
+    {
+        Cache::flush();
+        config(['services.geoapify.key' => 'test-key']);
+        Http::fake([
+            'api.geoapify.com/*' => Http::response(['features' => [[
+                'type' => 'Feature',
+                'geometry' => ['type' => 'Point', 'coordinates' => [25.60, 45.65]],
+                'properties' => [
+                    'place_id' => 'lodging-1',
+                    'name' => 'Pensiunea Exemplu',
+                    'categories' => ['accommodation.guest_house'],
+                    'formatted' => 'Strada Exemplu 10, Brașov',
+                    'phone' => '+40 268 123 456',
+                    'website' => 'https://example.test',
+                    'opening_hours' => 'Mo-Su 08:00-22:00',
+                    'stars' => '3',
+                    'datasource' => [
+                        'raw' => [
+                            'rooms' => '8',
+                            'check-in' => '14:00',
+                        ],
+                    ],
+                ],
+            ]]]),
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/lodging?lat=45.65&lon=25.60&radius=5000&types=lodging')
+            ->assertOk()
+            ->assertJsonPath('0.type', 'lodging')
+            ->assertJsonPath('0.name', 'Pensiunea Exemplu')
+            ->assertJsonPath('0.details.address', 'Strada Exemplu 10, Brașov')
+            ->assertJsonPath('0.details.phone', '+40 268 123 456')
+            ->assertJsonPath('0.details.website', 'https://example.test')
+            ->assertJsonPath('0.details.opening_hours', 'Mo-Su 08:00-22:00')
+            ->assertJsonPath('0.details.stars', '3')
+            ->assertJsonPath('0.details.rooms', '8')
+            ->assertJsonPath('0.details.check_in', '14:00');
     }
 
     public function test_home_poi_search_with_no_selected_categories_skips_provider_requests(): void
@@ -430,9 +474,21 @@ class PoiNavigationWindowTest extends TestCase
         });
 
         $this->actingAs(User::factory()->create())
-            ->getJson('/api/transport/bus?lat=45.65&lon=25.60&radius=5000')
+            ->getJson('/api/transport/bus?lat=45.65&lon=25.60&radius=10000')
             ->assertInternalServerError()
             ->assertJsonPath('error', 'OpenStreetMap POI service returned HTTP 503.');
+    }
+
+    public function test_bus_filter_accepts_the_configured_ten_kilometer_location_radius(): void
+    {
+        Cache::flush();
+        Http::fake([
+            '*' => Http::response(['features' => []]),
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/transport/bus?lat=45.65&lon=25.60&radius=10000')
+            ->assertOk();
     }
 
     public function test_transit_stations_include_their_mode_specific_routes(): void

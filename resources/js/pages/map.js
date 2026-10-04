@@ -34,6 +34,7 @@ import {
     assignTransitRouteColors,
     bindPoiMapClick,
     groupTransitRoutes,
+    getGoogleMapsPlaceUrl,
     getInfoferStationUrl,
     getMetroArrivalWindow,
     getTransitRouteColor,
@@ -438,6 +439,11 @@ const poiTypeLabels = {
 function showPoiTooltip(feature, coordinate) {
     const transitTypes = new Set(['bus', 'subway', 'train', 'airport']);
     const featureType = feature.get('type');
+    if (featureType === 'lodging') {
+        showLodgingDetails(feature);
+        return;
+    }
+
     const featureRoutes = feature.get('routes');
     const routes = Array.isArray(featureRoutes) ? featureRoutes : [];
     const groupedRoutes = groupTransitRoutes(routes);
@@ -671,6 +677,114 @@ function showPoiTooltip(feature, coordinate) {
     poiTooltipAddress.hidden = !addressText;
     poiTooltipElement.hidden = false;
     poiTooltip.setPosition(coordinate);
+}
+
+function showLodgingDetails(feature) {
+    const modalElement = document.getElementById('lodgingDetailsModal');
+    const modalTitle = document.getElementById('lodgingDetailsModalTitle');
+    const detailsList = document.getElementById('lodgingDetailsList');
+    const emptyMessage = document.getElementById('lodgingDetailsEmpty');
+    const mapLink = document.getElementById('lodgingDetailsMapLink');
+    const name = feature.get('name') || 'Unitate de cazare';
+    const address = feature.get('address') ?? {};
+    const details = feature.get('details') ?? {};
+    const labels = {
+        address: 'Adresă',
+        accommodation_type: 'Tip cazare',
+        phone: 'Telefon',
+        email: 'Email',
+        website: 'Website',
+        opening_hours: 'Program',
+        operator: 'Operator',
+        brand: 'Brand',
+        stars: 'Clasificare',
+        rooms: 'Camere',
+        beds: 'Paturi',
+        check_in: 'Check-in',
+        check_out: 'Check-out',
+        wheelchair: 'Accesibilitate',
+        internet_access: 'Internet',
+        description: 'Descriere',
+    };
+
+    if (!modalElement || !modalTitle || !detailsList || !emptyMessage || !mapLink) {
+        console.error('The lodging details modal is missing required elements.');
+        return;
+    }
+
+    hidePoiTooltip();
+    modalTitle.textContent = name;
+    detailsList.replaceChildren();
+
+    const addressText = details.address
+        || address.formatted
+        || [address.city, address.county, address.country].filter(Boolean).join(', ');
+    const values = {
+        address: addressText,
+        ...details,
+    };
+
+    Object.entries(labels).forEach(([key, label]) => {
+        const value = values[key];
+        if (typeof value !== 'string' || !value.trim()) return;
+
+        const row = document.createElement('div');
+        row.className = 'lodging-detail-row';
+        const term = document.createElement('dt');
+        term.textContent = label;
+        const description = document.createElement('dd');
+        if (key === 'website') {
+            const link = createSafeExternalLink(value);
+            if (link) {
+                link.textContent = value;
+                description.appendChild(link);
+            } else {
+                description.textContent = value;
+            }
+        } else if (key === 'phone' && /^[+()\d\s.-]+$/.test(value)) {
+            const link = document.createElement('a');
+            link.href = `tel:${value.replace(/[^\d+]/g, '')}`;
+            link.textContent = value;
+            description.appendChild(link);
+        } else if (key === 'email' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+            const link = document.createElement('a');
+            link.href = `mailto:${value}`;
+            link.textContent = value;
+            description.appendChild(link);
+        } else {
+            description.textContent = value;
+        }
+        row.append(term, description);
+        detailsList.appendChild(row);
+    });
+
+    emptyMessage.hidden = detailsList.childElementCount > 0;
+    emptyMessage.textContent = 'Nu sunt disponibile alte detalii pentru această unitate. Informațiile depind de datele furnizate de Geoapify sau OpenStreetMap.';
+    const coordinates = feature.get('coordinates');
+    const mapUrl = getGoogleMapsPlaceUrl(name, coordinates);
+    if (mapUrl) {
+        mapLink.href = mapUrl;
+        mapLink.hidden = false;
+    } else {
+        mapLink.hidden = true;
+    }
+
+    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+}
+
+function createSafeExternalLink(value) {
+    const urlValue = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+    try {
+        const url = new URL(urlValue);
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+        const link = document.createElement('a');
+        link.href = url.href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        return link;
+    } catch {
+        return null;
+    }
 }
 
 function enableTransitModalDragging(modalElement) {
@@ -1020,6 +1134,8 @@ function renderPOI(data = [], userLat, userLon) {
             name: item.name,
             type: normalizePoiType(item.type),
             address: item.address,
+            details: item.details ?? {},
+            coordinates: item.coordinates,
             routes: item.routes ?? [],
             routes_available: item.routes_available,
             train_services: item.train_services ?? [],

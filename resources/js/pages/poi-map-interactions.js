@@ -4,7 +4,7 @@ export function groupTransitRoutes(routes) {
     routes.forEach(route => {
         if (!route || typeof route !== 'object' || typeof route.label !== 'string') return;
 
-        const label = route.label.trim().replace(/-+$/, '').trim();
+        const label = route.label.trim();
         if (!label) return;
 
         const key = label.toLocaleLowerCase('ro-RO');
@@ -66,7 +66,13 @@ export async function readPoiJsonResponse(response) {
     }
 
     if (!response.ok) {
-        throw new Error(payload?.error || `Cererea API a eșuat (HTTP ${response.status}).`);
+        const validationErrors = Object.values(payload?.errors || {}).flat();
+        throw new Error(
+            payload?.error
+            || validationErrors[0]
+            || payload?.message
+            || `Cererea API a eșuat (HTTP ${response.status}).`
+        );
     }
     if (!Array.isArray(payload)) {
         throw new Error('Serverul a returnat un format neașteptat pentru lista de puncte de interes.');
@@ -161,6 +167,24 @@ export function getInfoferStationUrl(stationName, date = new Date()) {
     const year = part('year');
 
     return `https://mersultrenurilor.infofer.ro/ro-RO/Statie/${encodeURIComponent(slug)}?Date=${day}.${month}.${year}`;
+}
+
+export function getGoogleMapsPlaceUrl(name, coordinates) {
+    const lat = Number(coordinates?.lat);
+    const lon = Number(coordinates?.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        return null;
+    }
+
+    const query = [name, lat, lon]
+        .filter(value => value !== null && value !== undefined && String(value).trim() !== '')
+        .join(', ');
+    const params = new URLSearchParams({
+        api: '1',
+        query,
+    });
+
+    return `https://www.google.com/maps/search/?${params.toString()}`;
 }
 
 export function getMetroArrivalWindow(now = new Date(), intervalMinutes = 5) {

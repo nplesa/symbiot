@@ -343,6 +343,7 @@
 <input type="hidden" name="radius" id="radius" value="{{config('app.distance_number')}}" data-unit="{{config('app.distance_unit')}}">
 @include('modals.acquire')
 @include('modals.train-status')
+@include('modals.lodging-details')
 @endsection
 @push('js')
     @vite([
