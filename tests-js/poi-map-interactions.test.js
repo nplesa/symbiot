@@ -9,6 +9,7 @@ import {
     getMetroArrivalWindow,
     getTransitRouteColor,
     poiFeatureAtPixel,
+    readPoiJsonResponse,
     splitTransitRouteDirections,
 } from '../resources/js/pages/poi-map-interactions.js';
 
@@ -100,6 +101,50 @@ test('keeps routes grouped when OSM provides fewer than two directions', () => {
 
     assert.equal(groups.length, 1);
     assert.deepEqual(groups[0].routes, [forward, withoutDirection]);
+});
+
+test('rejects non-JSON category responses with a clear error', async () => {
+    await assert.rejects(
+        readPoiJsonResponse(new Response('<!doctype html>', {
+            status: 200,
+            headers: { 'content-type': 'text/html' },
+        })),
+        /non-JSON.*HTTP 200/
+    );
+});
+
+test('returns a helpful message for non-JSON responses from category endpoints', async () => {
+    const response = new Response('<!doctype html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+    });
+    Object.defineProperties(response, {
+        redirected: { value: true },
+        url: { value: 'https://symbiot.npsoft.ro/login' },
+    });
+
+    await assert.rejects(
+        readPoiJsonResponse(response),
+        /Sesiunea a expirat/
+    );
+});
+
+test('surfaces JSON API errors and rejects unexpected payload shapes', async () => {
+    await assert.rejects(
+        readPoiJsonResponse(new Response(JSON.stringify({ error: 'Provider down' }), {
+            status: 500,
+            headers: { 'content-type': 'application/json' },
+        })),
+        /Provider down/
+    );
+
+    await assert.rejects(
+        readPoiJsonResponse(new Response(JSON.stringify({ data: [] }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+        })),
+        /format neașteptat/
+    );
 });
 
 function createFixture({ nearestPixels = [], hitFeature = null } = {}) {

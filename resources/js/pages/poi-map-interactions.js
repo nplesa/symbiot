@@ -44,6 +44,37 @@ export function splitTransitRouteDirections(groups) {
     });
 }
 
+export async function readPoiJsonResponse(response) {
+    const responseUrl = response.url ? new URL(response.url, 'http://localhost') : null;
+    if (response.redirected && responseUrl?.pathname.endsWith('/login')) {
+        throw new Error('Sesiunea a expirat. Autentifică-te din nou și reîncarcă categoriile.');
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!/\bapplication\/(?:[\w.+-]*\+)?json\b/i.test(contentType)) {
+        const endpoint = responseUrl?.pathname || 'endpoint-ul POI';
+        throw new Error(
+            `Serverul a returnat un răspuns non-JSON pentru ${endpoint} (HTTP ${response.status}). Verifică autentificarea sau configurația rutei API.`
+        );
+    }
+
+    let payload;
+    try {
+        payload = await response.json();
+    } catch {
+        throw new Error('Serverul a returnat JSON invalid pentru categoria POI solicitată.');
+    }
+
+    if (!response.ok) {
+        throw new Error(payload?.error || `Cererea API a eșuat (HTTP ${response.status}).`);
+    }
+    if (!Array.isArray(payload)) {
+        throw new Error('Serverul a returnat un format neașteptat pentru lista de puncte de interes.');
+    }
+
+    return payload;
+}
+
 export function getTransitRouteColor(routeKey, assignedColors) {
     if (assignedColors.has(routeKey)) return assignedColors.get(routeKey);
 

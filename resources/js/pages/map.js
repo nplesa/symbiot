@@ -38,6 +38,7 @@ import {
     getMetroArrivalWindow,
     getTransitRouteColor,
     poiFeatureAtPixel,
+    readPoiJsonResponse,
     splitTransitRouteDirections,
 } from './poi-map-interactions.js';
 
@@ -1819,12 +1820,13 @@ async function loadNearby(locationOverride = null) {
         });
 
         const responses = await Promise.allSettled(requests.map(async ({ url }) => {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const response = await fetch(url, {
+                headers: {
+                    Accept: 'application/json',
+                },
+            });
 
-            return response.json();
+            return readPoiJsonResponse(response);
         }));
         if (requestId !== poiRequestId) return;
         const successfulResponses = responses
