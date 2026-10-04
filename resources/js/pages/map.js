@@ -78,6 +78,8 @@ let allPois = null;
 
 let allPoisRaw = [];
 
+let pendingCityResults = [];
+
 const categoryColorMap = new Map();
 
 const POI_CATEGORIES = {    
@@ -683,6 +685,155 @@ function createInputLocationElement(create) {
     }
 }
 
+const cityLocationForm = document.getElementById('city-location-form');
+
+cityLocationForm?.addEventListener('submit', async event => {
+    event.preventDefault();
+
+    const input = document.getElementById('city-location-input');
+    const button = document.getElementById('city-location-submit');
+    const status = document.getElementById('city-location-status');
+    const resultsContainer = document.getElementById('city-location-results-container');
+    const resultsSelect = document.getElementById('city-location-results');
+    const city = input.value.trim();
+    let result = null;
+
+    if (pendingCityResults.length > 0) {
+        const selectedIndex = Number(resultsSelect.value);
+        if (resultsSelect.value === '' || !pendingCityResults[selectedIndex]) {
+            status.textContent = 'Choose the correct city from the list.';
+            status.className = 'col-12 small text-danger';
+            resultsSelect.focus();
+            return;
+        }
+
+        result = pendingCityResults[selectedIndex];
+    }
+
+    button.disabled = true;
+    status.textContent = result ? 'Showing city on the map...' : 'Searching for the city...';
+    status.className = 'col-12 small text-muted';
+
+    try {
+        if (!result) {
+            const params = new URLSearchParams({ city });
+            const response = await fetch(`/api/location/city?${params.toString()}`);
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.error || `HTTP ${response.status}`);
+            }
+
+            const candidates = Array.isArray(payload.results)
+                ? payload.results.filter(candidate => Number.isFinite(Number(candidate.lat))
+                    && Number.isFinite(Number(candidate.lon))
+                    && Number(candidate.lat) >= -90
+                    && Number(candidate.lat) <= 90
+                    && Number(candidate.lon) >= -180
+                    && Number(candidate.lon) <= 180)
+                : [];
+            if (candidates.length === 0) {
+                throw new Error('No matching city was found. Try adding the country name.');
+            }
+            if (candidates.length > 1) {
+                pendingCityResults = candidates;
+                resultsSelect.replaceChildren(new Option('Select a city', ''));
+                candidates.forEach((candidate, index) => {
+                    resultsSelect.add(new Option(candidate.label || candidate.name || city, String(index)));
+                });
+                resultsSelect.value = '';
+                resultsSelect.disabled = false;
+                resultsContainer.classList.remove('d-none');
+                status.textContent = `Found ${candidates.length} results. Choose the city and country, then show it on the map.`;
+                status.className = 'col-12 small text-primary';
+                return;
+            }
+
+            result = candidates[0];
+        }
+
+        pendingCityResults = [];
+        resultsSelect.disabled = true;
+        resultsContainer.classList.add('d-none');
+
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
+        const locationToggle = document.getElementById('toggleLocation');
+        if (locationToggle.checked) {
+            locationToggle.checked = false;
+            tracking = false;
+            document.getElementById('i_location')?.classList.remove('rotate3d-y');
+            const response = await fetch('/location/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({ location: false }),
+            });
+            if (!response.ok) {
+                throw new Error(`Could not switch off location tracking (HTTP ${response.status}).`);
+            }
+        }
+
+        resetMap();
+        const lat = Number(result.lat);
+        const lon = Number(result.lon);
+        currentUserLocation = { lat, lon };
+        hasCentered = true;
+        let currentLocation = document.getElementById('current_location');
+        if (!currentLocation) {
+            createInputLocationElement(true);
+            currentLocation = document.getElementById('current_location');
+        }
+        currentLocation.dataset.lat = lat;
+        currentLocation.dataset.lon = lon;
+        initLocalFeatures();
+
+        const center = fromLonLat([lon, lat]);
+        userFeature.getGeometry().setCoordinates(center);
+        trackFeature.getGeometry().setCoordinates([]);
+        radiusFeature.setGeometry(
+            circular([lon, lat], Number(app_radius), 64)
+                .transform('EPSG:4326', 'EPSG:3857')
+        );
+        map.getView().animate({ center, zoom: 13, duration: 500 });
+        document.getElementById('map_card')?.classList.remove('d-none');
+        document.getElementById('mobility_card')?.classList.remove('d-none');
+        document.getElementById('auto_detect_location').disabled = false;
+
+        status.textContent = `Showing ${result.label || result.name} on the map.`;
+        status.className = 'col-12 small text-success';
+        setTimeout(() => map.updateSize(), 100);
+
+        if (document.getElementById('auto_detect_location').checked) {
+            loadNearby(true);
+        }
+    } catch (error) {
+        status.textContent = error.message || 'The city search failed.';
+        status.className = 'col-12 small text-danger';
+    } finally {
+        button.disabled = false;
+    }
+});
+
+document.getElementById('city-location-input')?.addEventListener('input', () => {
+    pendingCityResults = [];
+    const resultsContainer = document.getElementById('city-location-results-container');
+    const resultsSelect = document.getElementById('city-location-results');
+    resultsSelect.disabled = true;
+    resultsSelect.replaceChildren(new Option('Select a city', ''));
+    resultsContainer.classList.add('d-none');
+});
+
+document.getElementById('city-location-results')?.addEventListener('change', event => {
+    const status = document.getElementById('city-location-status');
+    if (event.target.value !== '') {
+        status.textContent = 'Click “Show on map” to confirm your choice.';
+        status.className = 'col-12 small text-muted';
+    }
+});
 
 
 

@@ -63,6 +63,22 @@
                                 </div>
                             </div>
 
+                            <form class="row g-2 align-items-end mt-2" id="city-location-form">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label" for="city-location-input">Search for a city anywhere in the world</label>
+                                    <input class="form-control" id="city-location-input" type="text" autocomplete="address-level2" placeholder="e.g., Paris, France" minlength="2" maxlength="100" required>
+                                </div>
+                                <div class="col-12 col-md-auto">
+                                    <button class="btn btn-primary w-100" id="city-location-submit" type="submit">Show on map</button>
+                                </div>
+                                <div class="col-12 d-none" id="city-location-results-container">
+                                    <label class="form-label" for="city-location-results">Choose the city and country</label>
+                                    <select class="form-select" id="city-location-results" disabled>
+                                        <option value="">Select a city</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 small" id="city-location-status" aria-live="polite"></div>
+                            </form>
 
                             <div class="card mt-3 main-mobility-card d-none" id="mobility_card">
                                 <div class="card-header">

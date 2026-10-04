@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CityLocationController;
 use App\Http\Controllers\GoogleMapsController;
 use App\Http\Controllers\GoogleMapsKmlController;
 use App\Http\Controllers\HomeController;
@@ -16,6 +17,7 @@ Auth::routes();
 Route::name('app.')->middleware(['auth'])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
     Route::post('/location/update', [LocationController::class, 'update']);
+    Route::get('/api/location/city', CityLocationController::class);
     Route::get('/api/transport-nearby', [TransportPoiController::class, 'nearby']);
 
     Route::post('/location/toggle', [LocationController::class, 'toggle'])->name('user.location.toggle');
