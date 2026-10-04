@@ -22,7 +22,9 @@ class PoiNavigationWindowTest extends TestCase
             ->get(route('app.home'));
 
         $response->assertOk();
-        $response->assertSee('poi-loading-elapsed', false);
+        $response->assertSee('poi-loading-elapsed', false)
+            ->assertSee('aria-labelledby="poiLoadingModalTitle"', false)
+            ->assertSee('aria-describedby="poiLoadingModalDescription"', false);
         $response->assertSee('id="trainStatusModal"', false)
             ->assertSee('id="transitLinesList"', false)
             ->assertSee('id="transitModalResizeHandle"', false)

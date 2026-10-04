@@ -96,6 +96,7 @@ let poiLoadingStartedAt = null;
 let poiLoadingModalEventsBound = false;
 let poiLoadingModalShown = false;
 let poiLoadingModalHidePending = false;
+let poiLoadingModalHidePromise = null;
 
 let allPois = null;
 
@@ -1720,6 +1721,7 @@ function resetMap() {
 async function loadNearby(locationOverride = null) {
 
     const requestId = ++poiRequestId;
+    let notification = null;
 
     try {
 
@@ -1844,25 +1846,28 @@ async function loadNearby(locationOverride = null) {
 
         showResultData(data, lat, lon);
         if (failedRequests.length > 0) {
-            Swal.fire({
+            notification = {
                 title: 'Rezultate parțiale',
                 text: `Nu s-au putut încărca toate filtrele: ${failedRequests.join('; ')}`,
                 icon: 'warning'
-            });
+            };
         }
 
     } catch (error) {
         if (requestId !== poiRequestId) return;
         
         console.error(error.message);
-        Swal.fire({
-          title: "Error!",
-          text: error.message,
-          icon: "error"
-        });
+        notification = {
+            title: 'Eroare la încărcarea categoriilor',
+            text: error.message,
+            icon: 'error',
+        };
     } finally {
         if (requestId === poiRequestId) {
-            hidePOIModal();
+            await hidePOIModal();
+            if (notification) {
+                await Swal.fire(notification);
+            }
         }
 
     }
@@ -2109,13 +2114,14 @@ function showPOIModal() {
             startPoiElapsedTimer();
             if (poiLoadingModalHidePending) {
                 poiLoadingModalHidePending = false;
-                bootstrap.Modal.getInstance(modalEl)?.hide();
+                hidePOIModal();
             }
         });
         modalEl.addEventListener('hidden.bs.modal', () => {
             poiLoadingModalShown = false;
             poiLoadingModalHidePending = false;
             stopPoiElapsedTimer();
+            poiLoadingModalHidePromise = null;
         });
         poiLoadingModalEventsBound = true;
     }
@@ -2166,15 +2172,31 @@ function hidePOIModal() {
     const modalEl = document.getElementById('poiLoadingModal');
     if (!modalEl) return;
 
-    document.activeElement?.blur();
-
     const modal = bootstrap.Modal.getInstance(modalEl);
-    if (!modal) return;
+    if (!modal) return Promise.resolve();
 
     if (!poiLoadingModalShown) {
+        if (!modalEl.classList.contains('show') && modalEl.style.display === 'none') {
+            return Promise.resolve();
+        }
         poiLoadingModalHidePending = true;
-        return;
+        if (!poiLoadingModalHidePromise) {
+            poiLoadingModalHidePromise = new Promise(resolve => {
+                modalEl.addEventListener('hidden.bs.modal', resolve, { once: true });
+            });
+        }
+        return poiLoadingModalHidePromise;
     }
 
+    if (!poiLoadingModalHidePromise) {
+        poiLoadingModalHidePromise = new Promise(resolve => {
+            modalEl.addEventListener('hidden.bs.modal', resolve, { once: true });
+        });
+    }
+
+    if (modalEl.contains(document.activeElement)) {
+        document.activeElement.blur();
+    }
     modal.hide();
+    return poiLoadingModalHidePromise;
 }

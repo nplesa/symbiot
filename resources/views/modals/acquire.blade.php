@@ -1,12 +1,12 @@
-<div class="modal fade" id="poiLoadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+<div class="modal fade" id="poiLoadingModal" tabindex="-1" aria-labelledby="poiLoadingModalTitle" aria-describedby="poiLoadingModalDescription" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content text-center p-4">
 
             <div class="modal-body">
 
-                <h5 class="fw-bold">ACQUIRING DATA</h5>
+                <h5 class="fw-bold" id="poiLoadingModalTitle">ACQUIRING DATA</h5>
 
-                <p class="text-muted mb-0">
+                <p class="text-muted mb-0" id="poiLoadingModalDescription">
                     Fetching nearby interest points...
                 </p>
                 <div class="progress mt-3" role="progressbar" aria-label="Încărcare puncte de interes">

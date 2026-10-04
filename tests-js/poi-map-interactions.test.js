@@ -103,7 +103,7 @@ test('keeps routes grouped when OSM provides fewer than two directions', () => {
     assert.deepEqual(groups[0].routes, [forward, withoutDirection]);
 });
 
-test('rejects non-JSON category responses with a clear error', async () => {
+test('reports non-JSON category responses with endpoint and HTTP status', async () => {
     await assert.rejects(
         readPoiJsonResponse(new Response('<!doctype html>', {
             status: 200,
@@ -113,7 +113,7 @@ test('rejects non-JSON category responses with a clear error', async () => {
     );
 });
 
-test('returns a helpful message for non-JSON responses from category endpoints', async () => {
+test('reports an expired login session when a category request redirects to login', async () => {
     const response = new Response('<!doctype html>', {
         status: 200,
         headers: { 'content-type': 'text/html' },
