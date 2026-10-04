@@ -7,6 +7,7 @@ use App\Services\PoiCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class PoiNavigationWindowTest extends TestCase
@@ -34,10 +35,15 @@ class PoiNavigationWindowTest extends TestCase
         $response->assertSee('id="lodgingDetailsModal"', false)
             ->assertSee('id="lodgingDetailsList"', false)
             ->assertSee('id="lodgingDetailsMapLink"', false);
+        $response->assertSee('id="map-tile-progress"', false)
+            ->assertSee('id="map-tile-progress-count"', false)
+            ->assertSee('id="map-tile-progress-bar"', false);
         $response->assertSee('name="location-mode"', false)
             ->assertSee('id="city-location-mode"', false)
             ->assertSee('id="city-location-form"', false)
             ->assertSee('id="city-location-radius"', false)
+            ->assertSee('Caută un oraș oriunde în lume')
+            ->assertSee('id="city-location-results"', false)
             ->assertSee('min="100" max="35000" step="100" value="5000"', false);
         $response->assertSee('progress-bar-animated', false);
         $this->assertDoesNotMatchRegularExpression(
@@ -53,13 +59,91 @@ class PoiNavigationWindowTest extends TestCase
             $response->assertSee('data-type="' . $type . '"', false);
         }
 
+        $dom = new \DOMDocument;
+        $previousLibxmlErrorMode = libxml_use_internal_errors(true);
+        $dom->loadHTML($response->getContent());
+        libxml_clear_errors();
+        libxml_use_internal_errors($previousLibxmlErrorMode);
+        $xpath = new \DOMXPath($dom);
+        $poiCategoryGrid = $xpath->query('//*[contains(concat(" ", normalize-space(@class), " "), " poi-category-filters ")]//div[contains(@class, "row-cols-lg-3")]')->item(0);
+        $this->assertNotNull($poiCategoryGrid);
+        $visibleCategoryLabels = [];
+        foreach ($xpath->query('.//label[contains(@class, "poi-category-label")]', $poiCategoryGrid) as $label) {
+            $visibleCategoryLabels[] = trim($label->textContent);
+        }
+        $expectedCategoryLabels = collect(config('poi.categories'))
+            ->filter(fn (array $category, string $type): bool => $type === 'police' || $category['group'] !== 'Poliție')
+            ->pluck('label')
+            ->all();
+        usort($expectedCategoryLabels, fn (string $left, string $right): int => strcasecmp(
+            Str::ascii($left),
+            Str::ascii($right)
+        ));
+        $this->assertSame($expectedCategoryLabels, $visibleCategoryLabels, 'POI category cards should be sorted alphabetically by their visible labels.');
+
+        $policeCard = $xpath->query('.//div[contains(@class, "poi-category-group") and @data-type="police"]', $poiCategoryGrid)->item(0);
+        $this->assertNotNull($policeCard);
+        foreach (['train', 'pharmacy'] as $category) {
+            $this->assertNotNull(
+                $xpath->query('.//div[contains(@class, "poi-category-group") and @data-type="' . $category . '"]', $poiCategoryGrid)->item(0),
+                "Expected {$category} in the same POI category grid as Police."
+            );
+        }
+        $policeCheckbox = $xpath->query('.//input[contains(@class, "location-category")]', $policeCard)->item(0);
+        $this->assertNotNull($policeCheckbox);
+        $subcategoryButton = $xpath->query('.//button[@data-bs-toggle="collapse"]', $policeCard)->item(0);
+        $this->assertNotNull($subcategoryButton);
+        $this->assertSame('false', $subcategoryButton->getAttribute('aria-expanded'));
+        $subcategoryPanel = $dom->getElementById($subcategoryButton->getAttribute('aria-controls'));
+        $this->assertStringNotContainsString('show', $subcategoryPanel?->getAttribute('class') ?? '');
+        $this->assertSame(
+            1,
+            $xpath->query('.//div[contains(@class, "poi-category-group") and @data-type="police"]', $poiCategoryGrid)->length,
+            'Police should appear as a single standard category card.'
+        );
+
+        foreach ([
+            'police_station' => 'Secții',
+            'traffic_filters' => 'Filtre în trafic',
+            'speed_limit' => 'Limite de viteză',
+            'traffic_sign' => 'Indicatoare',
+            'locality' => 'Localități',
+            'speed_camera' => 'Camere de viteză',
+            'control' => 'Puncte de control',
+            'vignette_control' => 'Taxe / rovinietă',
+        ] as $type => $label) {
+            $subcategory = $xpath->query('.//input[@data-filter="subcategory:police:' . $type . '"]', $subcategoryPanel)->item(0);
+            $this->assertNotNull($subcategory, "Expected {$label} as a Police subcategory.");
+            $expectedType = collect(config('poi.osm_subcategories.police'))
+                ->firstWhere('id', $type)['type'] ?? 'police';
+            $this->assertSame($expectedType, $subcategory->getAttribute('data-type'));
+            $this->assertSame('subcategory:police:' . $type, $subcategory->getAttribute('data-filter'));
+            $this->assertStringContainsString($label, $subcategoryPanel->textContent);
+        }
+        $visiblePoliceSubcategories = [];
+        foreach ($xpath->query('.//label[contains(@class, "form-check-label")]', $subcategoryPanel) as $label) {
+            $visiblePoliceSubcategories[] = trim($label->textContent);
+        }
+        $expectedPoliceSubcategories = array_column(config('poi.osm_subcategories.police'), 'label');
+        usort($expectedPoliceSubcategories, fn (string $left, string $right): int => strcasecmp(
+            Str::ascii($left),
+            Str::ascii($right)
+        ));
+        $this->assertSame($expectedPoliceSubcategories, $visiblePoliceSubcategories, 'Police subcategories should be sorted alphabetically by their visible labels.');
+
         $response->assertDontSee('auto_detect_location')
             ->assertDontSee('Activate stations auto-location')
             ->assertSee('poi-category-filters')
             ->assertSee('data-type="police"', false)
             ->assertSee('Poliție')
-            ->assertSee('Filtre de Poliție')
+            ->assertSee('data-filter="subcategory:police:police_station"', false)
             ->assertSee('data-filter="subcategory:police:traffic_filters"', false)
+            ->assertSee('data-filter="subcategory:police:speed_limit"', false)
+            ->assertSee('data-filter="subcategory:police:control"', false)
+            ->assertSee('data-filter="subcategory:police:traffic_sign"', false)
+            ->assertSee('data-filter="subcategory:police:locality"', false)
+            ->assertSee('data-filter="subcategory:police:speed_camera"', false)
+            ->assertSee('data-filter="subcategory:police:vignette_control"', false)
             ->assertSee('data-filter="subcategory:restaurant:catering.restaurant.italian"', false)
             ->assertSee('data-filter="subcategory:bus:all"', false)
             ->assertSee('data-type="speed_camera"', false)
@@ -101,6 +185,164 @@ class PoiNavigationWindowTest extends TestCase
             && str_contains($request['data'], 'aeroway'));
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'overpass-api.de')
             && $request->method() === 'POST');
+    }
+
+    public function test_police_subcategory_filter_uses_its_own_poi_category(): void
+    {
+        Cache::flush();
+        config(['services.geoapify.key' => 'test-key']);
+        Http::fake([
+            'overpass-api.de/*' => Http::response([
+                'elements' => [[
+                    'type' => 'node',
+                    'id' => 987,
+                    'lat' => 45.65,
+                    'lon' => 25.60,
+                    'tags' => ['maxspeed' => '50', 'name' => 'Limită test'],
+                ]],
+            ]),
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/speed_limit?lat=45.65&lon=25.60&radius=5000&types=subcategory:police:speed_limit')
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.type', 'speed_limit')
+            ->assertJsonPath('0.name', 'Limită test');
+
+        Http::assertSent(fn ($request) => str_contains($request['data'], 'nwr["maxspeed"]'));
+    }
+
+    public function test_police_station_subcategory_queries_only_police_stations(): void
+    {
+        Cache::flush();
+        Http::fake([
+            'overpass-api.de/*' => Http::response([
+                'elements' => [[
+                    'type' => 'node',
+                    'id' => 988,
+                    'lat' => 45.65,
+                    'lon' => 25.60,
+                    'tags' => ['amenity' => 'police', 'name' => 'Secția test'],
+                ]],
+            ]),
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/police?lat=45.65&lon=25.60&radius=5000&types=subcategory:police:police_station')
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.type', 'police')
+            ->assertJsonPath('0.name', 'Secția test');
+
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request) => str_contains($request['data'], 'nwr["amenity"="police"]')
+            && ! str_contains($request['data'], '["police"="checkpoint"]'));
+    }
+
+    public function test_traffic_filter_subcategory_does_not_query_openstreetmap(): void
+    {
+        Cache::flush();
+        Http::fake();
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/police?lat=45.65&lon=25.60&radius=5000&types=subcategory:police:traffic_filters')
+            ->assertOk()
+            ->assertExactJson([]);
+
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'overpass-api.de'));
+    }
+
+    public function test_traffic_filter_subcategory_includes_waze_police_alerts(): void
+    {
+        Cache::flush();
+        config([
+            'services.waze.url' => 'https://waze.test/api',
+            'services.waze.key' => 'test-waze-key',
+        ]);
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), 'waze.test/api/alerts-and-jams')) {
+                return Http::response([
+                    'status' => 'OK',
+                    'request_id' => 'test-request',
+                    'parameters' => [],
+                    'data' => [
+                        'alerts' => [
+                            [
+                                'alert_id' => 'waze-police-1',
+                                'type' => 'POLICE',
+                                'subtype' => 'POLICE_VISIBLE',
+                                'latitude' => 45.651,
+                                'longitude' => 25.601,
+                                'street' => 'Strada Test',
+                                'city' => 'Brașov',
+                            ],
+                            [
+                                'alert_id' => 'waze-hazard-1',
+                                'type' => 'HAZARD',
+                                'latitude' => 45.652,
+                                'longitude' => 25.602,
+                            ],
+                        ],
+                        'jams' => [],
+                    ],
+                ]);
+            }
+
+            return Http::response(['elements' => []]);
+        });
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/waze-traffic?lat=45.65&lon=25.60&radius=5000')
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.id', 'waze/waze-police-1')
+            ->assertJsonPath('0.name', 'Police visible')
+            ->assertJsonPath('0.type', 'police')
+            ->assertJsonPath('0.address.city', 'Brașov')
+            ->assertJsonPath('0.details.provider', 'Waze');
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'waze.test/api/alerts-and-jams')
+            && $request->hasHeader('x-api-key', 'test-waze-key')
+            && str_contains($request->url(), 'center=45.65%2C25.6')
+            && str_contains($request->url(), 'radius=5'));
+    }
+
+    public function test_waze_api_is_not_called_for_other_police_subcategories(): void
+    {
+        Cache::flush();
+        config(['services.waze.key' => 'test-waze-key']);
+        Http::fake([
+            'overpass-api.de/*' => Http::response(['elements' => []]),
+            '*' => Http::response(['elements' => []]),
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/police?lat=45.65&lon=25.60&radius=5000&types=subcategory:police:police_station')
+            ->assertOk()
+            ->assertExactJson([]);
+
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'api.openwebninja.com/waze'));
+    }
+
+    public function test_waze_forbidden_response_explains_key_and_api_access_requirements(): void
+    {
+        Cache::flush();
+        config([
+            'services.waze.url' => 'https://waze.test/api',
+            'services.waze.key' => 'test-waze-key',
+        ]);
+        Http::fake([
+            'waze.test/*' => Http::response(['error' => 'Forbidden'], 403),
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/waze-traffic?lat=45.65&lon=25.60&radius=5000')
+            ->assertInternalServerError()
+            ->assertJsonPath(
+                'error',
+                'OpenWebNinja Waze API returned HTTP 403. Verifică WAZE_API_KEY și confirmă că API-ul Waze este activat în contul OpenWebNinja.'
+            );
     }
 
     public function test_every_poi_category_has_its_own_named_endpoint(): void
@@ -204,9 +446,11 @@ class PoiNavigationWindowTest extends TestCase
             'api.geoapify.com/v1/geocode/search*' => Http::response([
                 'results' => [[
                     'city' => 'București',
+                    'country' => 'România',
                     'lat' => 44.4268,
                     'lon' => 26.1025,
                     'country_code' => 'ro',
+                    'place_id' => 'bucharest',
                 ]],
             ]),
         ]);
@@ -214,14 +458,53 @@ class PoiNavigationWindowTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->getJson('/api/location/city?city=Bucuresti')
             ->assertOk()
-            ->assertJsonPath('name', 'București')
-            ->assertJsonPath('lat', 44.4268)
-            ->assertJsonPath('lon', 26.1025);
+            ->assertJsonPath('results.0.name', 'București')
+            ->assertJsonPath('results.0.label', 'București, România')
+            ->assertJsonPath('results.0.lat', 44.4268)
+            ->assertJsonPath('results.0.lon', 26.1025);
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'api.geoapify.com/v1/geocode/search')
             && $request['text'] === 'Bucuresti'
-            && $request['filter'] === 'countrycode:ro'
+            && $request['type'] === 'city'
+            && ! isset($request['filter'])
             && $request['apiKey'] === 'test-key');
+    }
+
+    public function test_city_location_search_returns_multiple_countries_for_ambiguous_names(): void
+    {
+        config(['services.geoapify.key' => 'test-key']);
+        Http::fake([
+            'api.geoapify.com/v1/geocode/search*' => Http::response([
+                'results' => [
+                    [
+                        'place_id' => 'paris-fr',
+                        'city' => 'Paris',
+                        'state' => 'Île-de-France',
+                        'country' => 'Franța',
+                        'country_code' => 'fr',
+                        'lat' => 48.8566,
+                        'lon' => 2.3522,
+                    ],
+                    [
+                        'place_id' => 'paris-us',
+                        'city' => 'Paris',
+                        'state' => 'Texas',
+                        'country' => 'Statele Unite',
+                        'country_code' => 'us',
+                        'lat' => 33.6609,
+                        'lon' => -95.5555,
+                    ],
+                ],
+            ]),
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/location/city?city=Paris')
+            ->assertOk()
+            ->assertJsonCount(2, 'results')
+            ->assertJsonPath('results.0.label', 'Paris, Île-de-France, Franța')
+            ->assertJsonPath('results.1.label', 'Paris, Texas, Statele Unite')
+            ->assertJsonPath('results.1.country_code', 'us');
     }
 
     public function test_city_location_search_reports_unknown_city(): void
@@ -234,7 +517,7 @@ class PoiNavigationWindowTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->getJson('/api/location/city?city=OrasInexistent')
             ->assertNotFound()
-            ->assertJsonPath('error', 'Orașul nu a fost găsit în România.');
+            ->assertJsonPath('error', 'Localitatea nu a fost găsită. Încearcă să adaugi și țara.');
     }
 
     public function test_home_poi_search_uses_only_selected_geoapify_subcategory(): void
@@ -477,6 +760,11 @@ class PoiNavigationWindowTest extends TestCase
             ->getJson('/api/transport/bus?lat=45.65&lon=25.60&radius=10000')
             ->assertInternalServerError()
             ->assertJsonPath('error', 'OpenStreetMap POI service returned HTTP 503.');
+
+        $this->assertSame(
+            1,
+            Http::recorded(fn ($request) => str_contains($request->url(), 'overpass-api.de'))->count()
+        );
     }
 
     public function test_bus_filter_accepts_the_configured_ten_kilometer_location_radius(): void
@@ -1014,7 +1302,7 @@ class PoiNavigationWindowTest extends TestCase
         $this->assertLessThanOrEqual(100, max($batchSizes));
     }
 
-    public function test_home_poi_search_uses_only_selected_police_osm_subcategory(): void
+    public function test_home_poi_search_uses_only_selected_police_group_subcategory(): void
     {
         Http::fake([
             '*' => Http::response(['elements' => [
@@ -1023,22 +1311,45 @@ class PoiNavigationWindowTest extends TestCase
                     'id' => 43,
                     'lat' => 45.6505,
                     'lon' => 25.6005,
-                    'tags' => ['police' => 'traffic_police'],
+                    'tags' => ['enforcement' => 'maxspeed'],
                 ],
             ]]),
         ]);
 
         $this->actingAs(User::factory()->create())
-            ->getJson('/api/transport-nearby?lat=45.65&lon=25.60&radius=5000&types=subcategory:police:traffic_filters')
+            ->getJson('/api/transport-nearby?lat=45.65&lon=25.60&radius=5000&types=subcategory:police:control')
             ->assertOk()
             ->assertJsonCount(1)
             ->assertJsonPath('0.id', 'node/43')
-            ->assertJsonPath('0.type', 'police');
+            ->assertJsonPath('0.type', 'control');
 
         Http::assertSentCount(1);
         Http::assertSent(fn ($request) => str_contains($request->url(), 'overpass-api.de')
-            && str_contains($request['data'], 'nwr["police"="traffic_police"]')
+            && str_contains($request['data'], 'nwr["enforcement"]')
             && ! str_contains($request['data'], '["amenity"="police"]'));
+    }
+
+    public function test_home_poi_search_batches_only_openstreetmap_police_subcategories(): void
+    {
+        Cache::flush();
+        Http::fake([
+            'overpass-api.de/*' => Http::response(['elements' => []]),
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/transport-nearby?lat=45.65&lon=25.60&radius=5000&types=subcategory:police:speed_limit,subcategory:police:locality,subcategory:police:traffic_filters')
+            ->assertOk()
+            ->assertExactJson([]);
+
+        $this->assertSame(
+            1,
+            Http::recorded(fn ($request) => str_contains($request->url(), 'overpass-api.de'))->count()
+        );
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'overpass-api.de')
+            && str_contains($request['data'], 'nwr["maxspeed"]')
+            && str_contains($request['data'], 'nwr["place"~"^(city|town|village|hamlet)$"]')
+            && ! str_contains($request['data'], 'nwr["police"="checkpoint"]')
+            && ! str_contains($request['data'], 'nwr["police"="traffic_police"]'));
     }
 
     public function test_home_poi_search_returns_selected_openstreetmap_categories(): void

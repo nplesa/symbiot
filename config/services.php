@@ -28,6 +28,10 @@ return [
     'geoapify' => [
         'key' => env('GEOAPIFY_KEY'),
     ],
+    'waze' => [
+        'url' => env('WAZE_API_URL', 'https://api.openwebninja.com/waze'),
+        'key' => env('WAZE_API_KEY', env('WAZE_API')),
+    ],
     'rail_timetable' => [
         'packages' => [
             ['package' => 'mers-tren-sntfc-cfr-calatori-s-a', 'operator' => 'CFR Călători'],

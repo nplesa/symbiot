@@ -32,6 +32,37 @@
 .mobility-image {
 	width: 60px !important;
 }
+.poi-category-heading > .form-check {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.poi-category-label {
+    overflow-wrap: anywhere;
+}
+.poi-subcategory-toggle {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+#map {
+    position: relative;
+}
+.map-tile-progress {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    left: 50%;
+    width: min(24rem, calc(100% - 1.5rem));
+    padding: 0.625rem 0.75rem;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.15);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+.map-tile-progress .progress {
+    height: 0.625rem;
+}
 .poi-map-tooltip {
     min-width: 160px;
     max-width: min(280px, calc(100vw - 32px));

@@ -33,13 +33,15 @@ import MultiLineString from 'ol/geom/MultiLineString.js';
 import {
     assignTransitRouteColors,
     bindPoiMapClick,
+    buildPoiCategoryRequests,
+    fetchPoiJsonResponse,
+    getPoiMarkerIcon,
     groupTransitRoutes,
     getGoogleMapsPlaceUrl,
     getInfoferStationUrl,
     getMetroArrivalWindow,
     getTransitRouteColor,
     poiFeatureAtPixel,
-    readPoiJsonResponse,
     splitTransitRouteDirections,
 } from './poi-map-interactions.js';
 
@@ -77,6 +79,7 @@ if(app_unit === 'km') {
 const deviceRadiusMeters = app_radius;
 let cityRadiusMeters = 5000;
 let fixedCityLocation = null;
+let pendingCityResults = [];
 
 let radiusFeature = null;
 
@@ -320,6 +323,35 @@ const poiLayer = new VectorLayer({
         }
 
         const color = hashColor(type);
+        const markerIcon = getPoiMarkerIcon(type, feature.get('details')?.provider);
+        if (markerIcon) {
+            return [
+                new Style({
+                    image: new CircleStyle({
+                        radius: 10,
+                        fill: new Fill({ color: '#fff' }),
+                        stroke: new Stroke({
+                            color: feature.get('details')?.provider === 'Waze' ? '#1d4ed8' : color,
+                            width: 2
+                        })
+                    }),
+                    text: new Text({
+                        text: markerIcon,
+                        font: '18px "Segoe UI Emoji", "Apple Color Emoji", sans-serif',
+                        textAlign: 'center',
+                        textBaseline: 'middle'
+                    })
+                }),
+                new Style({
+                    text: new Text({
+                        text: feature.get('name') || '',
+                        offsetY: -19,
+                        fill: new Fill({ color: '#111' }),
+                        stroke: new Stroke({ color: '#fff', width: 3 })
+                    })
+                })
+            ];
+        }
 
         return new Style({
             image: new CircleStyle({
@@ -374,6 +406,78 @@ const map = new Map({
         center: fromLonLat([25.6, 45.65]),
         zoom: 12
     })
+});
+
+const mapTileSource = baseLayer.getSource();
+const mapTileProgress = document.getElementById('map-tile-progress');
+const mapTileProgressLabel = document.getElementById('map-tile-progress-label');
+const mapTileProgressCount = document.getElementById('map-tile-progress-count');
+const mapTileProgressBar = document.getElementById('map-tile-progress-bar');
+let requestedMapTiles = new Set();
+let completedMapTiles = new Set();
+let failedMapTiles = new Set();
+let tileProgressHideTimer = null;
+
+function renderMapTileProgress() {
+    const total = requestedMapTiles.size;
+    window.clearTimeout(tileProgressHideTimer);
+    if (total === 0) {
+        mapTileProgress.classList.add('d-none');
+        return;
+    }
+
+    const completed = completedMapTiles.size;
+    const failed = failedMapTiles.size;
+    const percent = Math.min(100, Math.round((completed / total) * 100));
+    const settled = completed + failed;
+    const isLoading = settled < total;
+
+    mapTileProgress.classList.remove('d-none');
+    mapTileProgressLabel.textContent = isLoading
+        ? 'Se încarcă harta...'
+        : failed > 0
+            ? `Harta s-a încărcat; ${failed} tile-uri nu au putut fi preluate.`
+            : 'Harta s-a încărcat.';
+    mapTileProgressCount.textContent = `${completed} / ${total} (${percent}%)`;
+    mapTileProgressBar.style.width = `${percent}%`;
+    mapTileProgressBar.parentElement.setAttribute('aria-valuenow', String(percent));
+    mapTileProgressBar.classList.toggle('bg-warning', failed > 0 && !isLoading);
+    mapTileProgressBar.classList.toggle('progress-bar-animated', isLoading);
+
+    if (!isLoading) {
+        tileProgressHideTimer = window.setTimeout(() => {
+            if (completedMapTiles.size + failedMapTiles.size >= requestedMapTiles.size) {
+                mapTileProgress.classList.add('d-none');
+            }
+        }, failed > 0 ? 5000 : 1200);
+    }
+}
+
+mapTileSource.on('tileloadstart', event => {
+    const key = event.tile.getTileCoord().join('/');
+    if (completedMapTiles.size + failedMapTiles.size >= requestedMapTiles.size) {
+        requestedMapTiles = new Set();
+        completedMapTiles = new Set();
+        failedMapTiles = new Set();
+    }
+    requestedMapTiles.add(key);
+    completedMapTiles.delete(key);
+    failedMapTiles.delete(key);
+    renderMapTileProgress();
+});
+mapTileSource.on('tileloadend', event => {
+    const key = event.tile.getTileCoord().join('/');
+    requestedMapTiles.add(key);
+    completedMapTiles.add(key);
+    failedMapTiles.delete(key);
+    renderMapTileProgress();
+});
+mapTileSource.on('tileloaderror', event => {
+    const key = event.tile.getTileCoord().join('/');
+    requestedMapTiles.add(key);
+    failedMapTiles.add(key);
+    completedMapTiles.delete(key);
+    renderMapTileProgress();
 });
 
 const poiTooltipElement = document.createElement('div');
@@ -1424,10 +1528,12 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
     const radiusInput = document.getElementById('city-location-radius');
     const button = document.getElementById('city-location-submit');
     const status = document.getElementById('city-location-status');
+    const resultsContainer = document.getElementById('city-location-results-container');
+    const resultsSelect = document.getElementById('city-location-results');
     const city = input.value.trim();
     const radiusMeters = Number(radiusInput.value);
     if (city.length < 2) {
-        status.textContent = 'Introdu numele unui oraș.';
+        status.textContent = 'Introdu numele unui oraș sau al unei localități.';
         status.className = 'col-12 small text-danger';
         return;
     }
@@ -1438,18 +1544,65 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
         return;
     }
 
+    let result = null;
+    if (pendingCityResults.length > 0) {
+        const selectedIndex = Number(resultsSelect.value);
+        if (resultsSelect.value === '' || !pendingCityResults[selectedIndex]) {
+            status.textContent = 'Selectează localitatea corectă din listă.';
+            status.className = 'col-12 small text-danger';
+            resultsSelect.focus();
+            return;
+        }
+
+        result = pendingCityResults[selectedIndex];
+    }
+
     button.disabled = true;
-    status.textContent = 'Caut orașul...';
+    status.textContent = result ? 'Fixez locația...' : 'Caut localitatea...';
     status.className = 'col-12 small text-muted';
 
     try {
-        const params = new URLSearchParams({ city });
-        const response = await fetch(`/api/location/city?${params.toString()}`);
-        const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.error || `HTTP ${response.status}`);
+        if (!result) {
+            const params = new URLSearchParams({ city });
+            const response = await fetch(`/api/location/city?${params.toString()}`);
+            const payload = await response.json();
+            if (!response.ok) {
+                throw new Error(payload.error || `HTTP ${response.status}`);
+            }
+
+            const candidates = Array.isArray(payload.results)
+                ? payload.results.filter(candidate => Number.isFinite(Number(candidate.lat))
+                    && Number.isFinite(Number(candidate.lon))
+                    && Number(candidate.lat) >= -90
+                    && Number(candidate.lat) <= 90
+                    && Number(candidate.lon) >= -180
+                    && Number(candidate.lon) <= 180)
+                : [];
+            if (candidates.length === 0) {
+                throw new Error('Localitatea nu a fost găsită. Încearcă să adaugi și țara.');
+            }
+            if (candidates.length > 1) {
+                pendingCityResults = candidates;
+                resultsSelect.replaceChildren(new Option('Selectează o localitate', ''));
+                candidates.forEach((candidate, index) => {
+                    resultsSelect.add(new Option(candidate.label || candidate.name || city, String(index)));
+                });
+                resultsSelect.value = '';
+                resultsSelect.disabled = false;
+                resultsContainer.classList.remove('d-none');
+                status.textContent = `Am găsit ${candidates.length} rezultate. Alege localitatea și țara, apoi fixează locația.`;
+                status.className = 'col-12 small text-primary';
+                return;
+            }
+
+            result = candidates[0];
         }
 
+        pendingCityResults = [];
+        resultsSelect.disabled = true;
+        resultsContainer.classList.add('d-none');
+        result.lat = Number(result.lat);
+        result.lon = Number(result.lon);
         createInputLocationElement(true);
         const currentLocation = document.getElementById('current_location');
         currentLocation.dataset.lat = result.lat;
@@ -1468,11 +1621,12 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
             circular([result.lon, result.lat], Number(app_radius), 64)
                 .transform('EPSG:4326', 'EPSG:3857')
         );
-        map.getView().animate({ center, zoom: 13, duration: 500 });
+        map.getView().setCenter(center);
+        map.getView().setZoom(13);
         document.getElementById('map_card')?.classList.remove('d-none');
         document.getElementById('mobility_card')?.classList.remove('d-none');
 
-        status.textContent = `Locația a fost fixată în centrul orașului ${result.name}, cu raza de ${cityRadiusMeters.toLocaleString('ro-RO')} m.`;
+        status.textContent = `Locația a fost fixată în ${result.label || result.name}, cu raza de ${cityRadiusMeters.toLocaleString('ro-RO')} m.`;
         status.className = 'col-12 small text-success';
         setTimeout(() => map.updateSize(), 100);
 
@@ -1484,6 +1638,23 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
         status.className = 'col-12 small text-danger';
     } finally {
         button.disabled = false;
+    }
+});
+
+document.getElementById('city-location-input')?.addEventListener('input', () => {
+    pendingCityResults = [];
+    const resultsContainer = document.getElementById('city-location-results-container');
+    const resultsSelect = document.getElementById('city-location-results');
+    resultsSelect.disabled = true;
+    resultsSelect.replaceChildren(new Option('Selectează o localitate', ''));
+    resultsContainer.classList.add('d-none');
+});
+
+document.getElementById('city-location-results')?.addEventListener('change', event => {
+    const status = document.getElementById('city-location-status');
+    if (event.target.value !== '') {
+        status.textContent = 'Apasă „Fixează locația” pentru a confirma alegerea.';
+        status.className = 'col-12 small text-muted';
     }
 });
 
@@ -1902,11 +2073,6 @@ async function loadNearby(locationOverride = null) {
             control: '/api/poi/control',
             locality: '/api/poi/locality',
         };
-        const categoryForToken = token => {
-            if (Object.hasOwn(transitEndpoints, token) || Object.hasOwn(categoryEndpoints, token)) return token;
-            return token.match(/^subcategory:([^:]+):/)?.[1] ?? null;
-        };
-        const selectedCategories = [...new Set(selectedTypes.map(categoryForToken).filter(Boolean))];
         const categoryLabels = new Map(
             Array.from(poiContainer.querySelectorAll('.poi-category-group'))
                 .map(group => [
@@ -1915,37 +2081,19 @@ async function loadNearby(locationOverride = null) {
                         || group.dataset.type,
                 ])
         );
-        const requests = selectedCategories.map(category => {
-            const params = new URLSearchParams({
-                lat: String(lat),
-                lon: String(lon),
-                radius: String(app_radius),
-            });
-            const categoryFilters = selectedTypes.filter(token => categoryForToken(token) === category);
-            if (!Object.hasOwn(transitEndpoints, category)) {
-                params.set('types', categoryFilters.join(','));
-            }
-            if (category === 'train') {
-                params.set('include_routes', 'false');
-            }
-
-            const endpoint = transitEndpoints[category] ?? categoryEndpoints[category];
-            return {
-                category,
-                label: categoryLabels.get(category) || category,
-                url: `${endpoint}?${params.toString()}`,
-            };
+        const requests = buildPoiCategoryRequests(selectedTypes, {
+            transitEndpoints,
+            categoryEndpoints,
+            wazeEndpoint: '/api/poi/waze-traffic',
+            categoryLabels,
+            lat,
+            lon,
+            radius: app_radius,
         });
 
-        const responses = await Promise.allSettled(requests.map(async ({ url }) => {
-            const response = await fetch(url, {
-                headers: {
-                    Accept: 'application/json',
-                },
-            });
-
-            return readPoiJsonResponse(response);
-        }));
+        const responses = await Promise.allSettled(
+            requests.map(({ url }) => fetchPoiJsonResponse(url))
+        );
         if (requestId !== poiRequestId) return;
         const successfulResponses = responses
             .filter(result => result.status === 'fulfilled');
@@ -2068,7 +2216,11 @@ function syncPoiFilterSelection(container) {
             parent.indeterminate = selectedChildren.length > 0 && selectedChildren.length < children.length;
         }
 
-        if (selectedChildren.length > 0 || (children.length === 0 && parent?.checked)) {
+        if (selectedChildren.length > 0) {
+            selectedChildren.forEach(child => {
+                activePoiFilters.add(child.dataset.type || group.dataset.type);
+            });
+        } else if (children.length === 0 && parent?.checked) {
             activePoiFilters.add(group.dataset.type);
         }
     });
@@ -2082,9 +2234,14 @@ function selectedPoiFilterTokens(container) {
         const children = Array.from(group.querySelectorAll('.location-subcategory'));
         const checkedChildren = children.filter(checkbox => checkbox.checked);
 
-        if (children.length > 0 && checkedChildren.length === children.length) {
+        const childTypes = new Set(children.map(child => child.dataset.type || type));
+        if (children.length > 0 && checkedChildren.length === children.length && childTypes.size === 1) {
             selected.push(type);
             return;
+        }
+
+        if (children.length > 0 && checkedChildren.length === children.length && childTypes.size > 1) {
+            selected.push(type);
         }
 
         checkedChildren.forEach(checkbox => selected.push(checkbox.dataset.filter));

@@ -4,6 +4,9 @@ import test from 'node:test';
 import {
     assignTransitRouteColors,
     bindPoiMapClick,
+    buildPoiCategoryRequests,
+    fetchPoiJsonResponse,
+    getPoiMarkerIcon,
     groupTransitRoutes,
     getGoogleMapsPlaceUrl,
     getInfoferStationUrl,
@@ -13,6 +16,98 @@ import {
     readPoiJsonResponse,
     splitTransitRouteDirections,
 } from '../resources/js/pages/poi-map-interactions.js';
+
+test('uses the police marker for all Police subcategories and a distinct Waze traffic marker', () => {
+    for (const type of ['police', 'speed_limit', 'control', 'traffic_sign', 'locality', 'speed_camera', 'vignette_control']) {
+        assert.equal(getPoiMarkerIcon(type), '👮', `${type} should use the standard Police marker.`);
+    }
+    assert.equal(getPoiMarkerIcon('police', 'Waze'), '🚔');
+    assert.equal(getPoiMarkerIcon('restaurant'), null);
+});
+
+test('aborts a stalled POI request and reports a timeout', async () => {
+    await assert.rejects(
+        fetchPoiJsonResponse('/api/transport-nearby', {
+            timeoutMs: 5,
+            fetchImpl: (_url, { signal }) => new Promise((_resolve, reject) => {
+                signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+            }),
+        }),
+        /Cererea POI a expirat la limita de 1 secunde/
+    );
+});
+
+test('batches selected non-transit POI filters and adds Waze only for traffic filters', () => {
+    const requests = buildPoiCategoryRequests([
+        'police',
+        'subcategory:police:police_station',
+        'subcategory:police:traffic_filters',
+        'subcategory:police:speed_limit',
+        'subcategory:police:locality',
+    ], {
+        transitEndpoints: { bus: '/api/transport/bus' },
+        categoryEndpoints: { police: '/api/poi/police', speed_limit: '/api/poi/speed_limit' },
+        wazeEndpoint: '/api/poi/waze-traffic',
+        categoryLabels: new Map([['police', 'Poliție']]),
+        lat: 45.65,
+        lon: 25.6,
+        radius: 5000,
+    });
+
+    assert.equal(requests.length, 2);
+    assert.equal(requests[0].label, 'Poliție');
+    const url = new URL(requests[0].url, 'https://symbiot.local');
+    assert.equal(url.pathname, '/api/transport-nearby');
+    assert.deepEqual(url.searchParams.get('types').split(','), [
+        'police',
+        'subcategory:police:police_station',
+        'subcategory:police:traffic_filters',
+        'subcategory:police:speed_limit',
+        'subcategory:police:locality',
+    ]);
+    const wazeUrl = new URL(requests[1].url, 'https://symbiot.local');
+    assert.equal(wazeUrl.pathname, '/api/poi/waze-traffic');
+    assert.equal(requests[1].label, 'Filtre în trafic (Waze)');
+});
+
+test('keeps transit requests separate from the batched POI request', () => {
+    const requests = buildPoiCategoryRequests([
+        'bus',
+        'subcategory:police:speed_limit',
+        'subcategory:police:traffic_filters',
+    ], {
+        transitEndpoints: { bus: '/api/transport/bus' },
+        categoryEndpoints: { speed_limit: '/api/poi/speed_limit' },
+        wazeEndpoint: '/api/poi/waze-traffic',
+        categoryLabels: new Map([['police', 'Poliție']]),
+        lat: 45.65,
+        lon: 25.6,
+        radius: 5000,
+    });
+
+    assert.deepEqual(requests.map(request => new URL(request.url, 'https://symbiot.local').pathname), [
+        '/api/transport/bus',
+        '/api/transport-nearby',
+        '/api/poi/waze-traffic',
+    ]);
+});
+
+test('does not add the Waze endpoint when traffic filters are not selected', () => {
+    const requests = buildPoiCategoryRequests([
+        'subcategory:police:police_station',
+    ], {
+        transitEndpoints: {},
+        categoryEndpoints: { police: '/api/poi/police' },
+        wazeEndpoint: '/api/poi/waze-traffic',
+        categoryLabels: new Map([['police', 'Poliție']]),
+        lat: 45.65,
+        lon: 25.6,
+        radius: 5000,
+    });
+
+    assert.equal(requests.length, 1);
+    assert.equal(new URL(requests[0].url, 'https://symbiot.local').pathname, '/api/transport-nearby');
+});
 
 test('calculates a five-minute metro arrival window in Bucharest local time', () => {
     assert.deepEqual(

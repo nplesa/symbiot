@@ -5,6 +5,7 @@ namespace Tests\Feature\Tracking;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -12,8 +13,16 @@ class TileTrackingTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function tearDown(): void
+    {
+        Cache::store('file')->forget('geoapify-map-tile-v1:10:100:100');
+
+        parent::tearDown();
+    }
+
     public function test_tile_is_proxied(): void
     {
+        Cache::store('file')->forget('geoapify-map-tile-v1:10:100:100');
         Http::fake([
             '*' => Http::response('PNGDATA', 200, [
                 'Content-Type' => 'image/png',
@@ -29,6 +38,29 @@ class TileTrackingTest extends TestCase
         $response->assertOk();
 
         $response->assertHeader('Content-Type', 'image/png');
+    }
+
+    public function test_map_tile_is_cached_on_disk_and_reuses_cached_response(): void
+    {
+        $cacheKey = 'geoapify-map-tile-v1:10:100:100';
+        Cache::store('file')->forget($cacheKey);
+        Http::fake([
+            '*' => Http::response('PNGDATA', 200, [
+                'Content-Type' => 'image/png',
+            ]),
+        ]);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get('/map/tiles/10/100/100')->assertOk();
+        $this->actingAs($user)
+            ->get('/map/tiles/10/100/100')
+            ->assertOk()
+            ->assertContent('PNGDATA')
+            ->assertHeader('Cache-Control', 'max-age=604800, public, s-maxage=604800');
+
+        Http::assertSentCount(1);
+        Cache::store('file')->forget($cacheKey);
     }
 
     public function test_tile_returns_service_unavailable_when_provider_cannot_be_reached(): void

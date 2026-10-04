@@ -25,11 +25,19 @@ class NavigationTest extends TestCase
             ->call('startRoute')
             ->assertRedirect(route('app.navigation.show', $route));
 
-        $this->actingAs($user)->get(route('app.navigation.show', $route))
-            ->assertOk()
+        $response = $this->actingAs($user)->get(route('app.navigation.show', $route));
+        $response->assertOk()
             ->assertViewHas('route', fn ($selected) => $selected->is($route))
             ->assertSee('navigation-page')
-            ->assertSee('Oprește navigația');
+            ->assertSee('Oprește navigația')
+            ->assertSee('<legend>Poliție</legend>', false)
+            ->assertSee('data-poi-filter="police"', false)
+            ->assertSee('data-poi-filter="speed_limit"', false)
+            ->assertSee('data-poi-filter="control"', false)
+            ->assertSee('data-poi-filter="traffic_sign"', false)
+            ->assertSee('data-poi-filter="locality"', false)
+            ->assertSee('data-poi-filter="speed_camera"', false)
+            ->assertSee('data-poi-filter="vignette_control"', false);
     }
 
     public function test_navigation_requires_authentication_and_route_ownership(): void

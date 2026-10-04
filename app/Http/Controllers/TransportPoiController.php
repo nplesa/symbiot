@@ -84,7 +84,7 @@ class TransportPoiController extends Controller
             ->values()
             ->all();
         $cacheKey = sprintf(
-            'transport_poi:v14:%s:%s:%s:%s:%s',
+            'transport_poi:v15:%s:%s:%s:%s:%s',
             round($lat, 4),
             round($lon, 4),
             $radius,
@@ -166,7 +166,7 @@ class TransportPoiController extends Controller
                     $data['transit_stops'] ?? [],
                     $data['transit_routes'] ?? [],
                     $data['transit_routes_available'] ?? false
-                )
+                ),
             );
 
             return response()->json($result);
@@ -174,6 +174,42 @@ class TransportPoiController extends Controller
         } catch (\Throwable $e) {
             Log::error('POI category lookup failed', [
                 'categories' => $poiTypes,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function wazeTrafficAlerts(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'lat' => 'required|numeric|between:-90,90',
+            'lon' => 'required|numeric|between:-180,180',
+            'radius' => 'nullable|integer|min:100|max:35000',
+        ]);
+        $lat = (float) $validated['lat'];
+        $lon = (float) $validated['lon'];
+        $radius = (int) ($validated['radius'] ?? 5000);
+        $cacheKey = sprintf(
+            'waze_police_alerts:v1:%s:%s:%s',
+            round($lat, 4),
+            round($lon, 4),
+            $radius
+        );
+
+        try {
+            $alerts = Cache::remember(
+                $cacheKey,
+                now()->addMinutes(10),
+                fn (): array => $this->fetchWazePoliceAlerts($lat, $lon, $radius)
+            );
+
+            return response()->json($this->transformWazePoliceAlerts($alerts, $lat, $lon, $radius));
+        } catch (\Throwable $e) {
+            Log::error('Waze traffic alert lookup failed', [
                 'message' => $e->getMessage(),
             ]);
 
@@ -386,7 +422,6 @@ class TransportPoiController extends Controller
         $response = Http::withHeaders([
             'User-Agent' => 'Symbiot/1.0 nearby POI map',
         ])->timeout(25)
-            ->retry(1, 300)
             ->acceptJson()
             ->get('https://overpass-api.de/api/interpreter', [
                 'data' => '[out:json][timeout:25];(' . implode('', array_unique($queries)) . ');out center tags;',
@@ -397,6 +432,108 @@ class TransportPoiController extends Controller
         }
 
         return $response->json('elements') ?? [];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchWazePoliceAlerts(float $lat, float $lon, int $radius): array
+    {
+        $baseUrl = config('services.waze.url');
+        $apiKey = config('services.waze.key');
+        if (! is_string($baseUrl) || filter_var($baseUrl, FILTER_VALIDATE_URL) === false) {
+            throw new \RuntimeException('WAZE_API_URL nu este configurat cu un URL valid.');
+        }
+        if (! is_string($apiKey) || trim($apiKey) === '') {
+            throw new \RuntimeException('WAZE_API_KEY nu este configurată. Adaugă cheia în .env și reîncarcă configurația aplicației.');
+        }
+
+        $response = Http::withHeaders([
+            'x-api-key' => $apiKey,
+            'User-Agent' => 'Symbiot/1.0 nearby Waze traffic alerts',
+        ])->timeout(20)
+            ->acceptJson()
+            ->get(rtrim($baseUrl, '/') . '/alerts-and-jams', [
+                'center' => $lat . ',' . $lon,
+                'radius' => round($radius / 1000, 2),
+                'radius_units' => 'KM',
+            ]);
+
+        if (! $response->successful()) {
+            $status = $response->status();
+            $message = match ($status) {
+                401, 403 => "OpenWebNinja Waze API returned HTTP {$status}. Verifică WAZE_API_KEY și confirmă că API-ul Waze este activat în contul OpenWebNinja.",
+                429 => 'OpenWebNinja Waze API returned HTTP 429. Cota sau limita de cereri a fost atinsă.',
+                default => "OpenWebNinja Waze API returned HTTP {$status}.",
+            };
+
+            throw new \RuntimeException($message);
+        }
+
+        $alerts = $response->json('data.alerts');
+        if (! is_array($alerts)) {
+            throw new \RuntimeException('OpenWebNinja Waze API returned an unexpected alerts response.');
+        }
+
+        return array_values(array_filter($alerts, static fn ($alert): bool => is_array($alert)));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $alerts
+     * @return list<array<string, mixed>>
+     */
+    private function transformWazePoliceAlerts(array $alerts, float $userLat, float $userLon, int $radius): array
+    {
+        $pois = [];
+
+        foreach ($alerts as $alert) {
+            if (strtoupper((string) ($alert['type'] ?? '')) !== 'POLICE') {
+                continue;
+            }
+
+            $lat = filter_var($alert['latitude'] ?? null, FILTER_VALIDATE_FLOAT);
+            $lon = filter_var($alert['longitude'] ?? null, FILTER_VALIDATE_FLOAT);
+            if ($lat === false || $lon === false || $lat < -90 || $lat > 90 || $lon < -180 || $lon > 180) {
+                continue;
+            }
+
+            $meters = $this->distance($userLat, $userLon, (float) $lat, (float) $lon);
+            if ($meters > $radius) {
+                continue;
+            }
+
+            $street = trim((string) ($alert['street'] ?? ''));
+            $city = trim((string) ($alert['city'] ?? ''));
+            $description = trim((string) ($alert['description'] ?? ''));
+            $subtype = trim(str_replace('_', ' ', (string) ($alert['subtype'] ?? '')));
+            $id = trim((string) ($alert['alert_id'] ?? ''));
+            $pois[] = [
+                'id' => 'waze/' . ($id !== '' ? $id : sha1(json_encode([$lat, $lon, $alert['type'] ?? 'POLICE']))),
+                'name' => $description !== '' ? $description : ($subtype !== '' ? ucfirst(strtolower($subtype)) : 'Filtru de poliție Waze'),
+                'type' => 'police',
+                'routes' => [],
+                'routes_available' => true,
+                'coordinates' => ['lat' => (float) $lat, 'lon' => (float) $lon],
+                'distance' => [
+                    'meters' => (int) round($meters),
+                    'km' => round($meters / 1000, 2),
+                    'formatted' => $meters < 1000
+                        ? round($meters) . ' m'
+                        : round($meters / 1000, 1) . ' km',
+                ],
+                'address' => [
+                    'formatted' => implode(', ', array_filter([$street, $city])),
+                    'city' => $city !== '' ? $city : null,
+                    'country' => $alert['country'] ?? null,
+                ],
+                'details' => array_filter([
+                    'provider' => 'Waze',
+                    'reported_at' => $alert['publish_datetime_utc'] ?? null,
+                ]),
+            ];
+        }
+
+        return $pois;
     }
 
     /**

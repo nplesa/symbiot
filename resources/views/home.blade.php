@@ -69,17 +69,23 @@
                                 </div>
                             </div>
 
-                            <form class="row g-2 mt-2 d-none" id="city-location-form">
-                                <div class="col-sm-6 col-md-5">
-                                    <label class="form-label" for="city-location-input">Oraș din România</label>
-                                    <input class="form-control form-control-sm" id="city-location-input" type="text" autocomplete="address-level2" placeholder="Ex.: București">
+                            <form class="row g-2 align-items-end mt-2 d-none" id="city-location-form">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label" for="city-location-input">Caută un oraș oriunde în lume</label>
+                                    <input class="form-control" id="city-location-input" type="text" autocomplete="address-level2" placeholder="Ex.: Quebec, Canada" minlength="2" maxlength="100" required>
                                 </div>
-                                <div class="col-sm-4 col-md-3">
+                                <div class="col-12 col-sm-6 col-md-3">
                                     <label class="form-label" for="city-location-radius">Raza de căutare (metri)</label>
-                                    <input class="form-control form-control-sm" id="city-location-radius" type="number" min="100" max="35000" step="100" value="5000" required>
+                                    <input class="form-control" id="city-location-radius" type="number" min="100" max="35000" step="100" value="5000" required>
                                 </div>
-                                <div class="col-auto align-self-end">
-                                    <button class="btn btn-sm btn-primary" id="city-location-submit" type="submit">Fixează locația</button>
+                                <div class="col-12 col-sm-6 col-md-auto">
+                                    <button class="btn btn-primary w-100" id="city-location-submit" type="submit">Fixează locația</button>
+                                </div>
+                                <div class="col-12 d-none" id="city-location-results-container">
+                                    <label class="form-label" for="city-location-results">Alege localitatea și țara</label>
+                                    <select class="form-select" id="city-location-results" disabled>
+                                        <option value="">Selectează o localitate</option>
+                                    </select>
                                 </div>
                                 <div class="col-12 small" id="city-location-status" aria-live="polite"></div>
                             </form>
@@ -95,54 +101,9 @@
                                             <div class="fw-semibold mb-2">Selectează categoriile POI afișate pe hartă</div>
                                             <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-2">
                                                 @foreach ($locations as $location)
-                                                    <div class="col">
-                                                        <div class="border rounded p-2 h-100 poi-category-group" data-type="{{ $location }}">
-                                                            <div class="d-flex align-items-center justify-content-between gap-2">
-                                                                <div class="form-check mb-0">
-                                                                    <input
-                                                                        class="form-check-input location-category"
-                                                                        type="checkbox"
-                                                                        id="poi-category-{{ $loop->index }}"
-                                                                        data-type="{{ $location }}"
-                                                                    >
-                                                                    <label class="form-check-label fw-semibold" for="poi-category-{{ $loop->index }}">
-                                                                        {{ $poiCategories[$location]['label'] }}
-                                                                    </label>
-                                                                </div>
-                                                                <button
-                                                                    class="btn btn-sm btn-outline-secondary"
-                                                                    type="button"
-                                                                    data-bs-toggle="collapse"
-                                                                    data-bs-target="#poi-subcategories-{{ $loop->index }}"
-                                                                    aria-expanded="false"
-                                                                    aria-controls="poi-subcategories-{{ $loop->index }}"
-                                                                >
-                                                                    Subcategorii
-                                                                </button>
-                                                            </div>
-                                                            <div class="collapse mt-2" id="poi-subcategories-{{ $loop->index }}">
-                                                                @if ($location === 'police')
-                                                                    <div class="small fw-semibold mb-1">Filtre de Poliție</div>
-                                                                @endif
-                                                                <div class="ps-2">
-                                                                    @foreach ($poiSubcategories[$location] as $subcategory)
-                                                                        <div class="form-check">
-                                                                            <input
-                                                                                class="form-check-input location-subcategory"
-                                                                                type="checkbox"
-                                                                                id="poi-subcategory-{{ $loop->parent->index }}-{{ $loop->index }}"
-                                                                                data-type="{{ $location }}"
-                                                                                data-filter="{{ $subcategory['id'] }}"
-                                                                            >
-                                                                            <label class="form-check-label" for="poi-subcategory-{{ $loop->parent->index }}-{{ $loop->index }}">
-                                                                                {{ $subcategory['label'] }}
-                                                                            </label>
-                                                                        </div>
-                                                                    @endforeach
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                    @if ($location === 'police' || $poiCategories[$location]['group'] !== 'Poliție')
+                                                        @include('partials.poi-category-filter', ['categoryIndex' => $loop->index])
+                                                    @endif
                                                 @endforeach
                                             </div>
                                         </div>
@@ -157,7 +118,24 @@
                                 <div class="card-body p-0">
                                     <div class="row">
                                         <div class="col-12">
-                                            <div id="map" style="height: 600px;"></div>
+                                            <div id="map" style="height: 600px;">
+                                                <div class="map-tile-progress d-none" id="map-tile-progress" role="status" aria-live="polite">
+                                                    <div class="d-flex justify-content-between gap-3 small mb-1">
+                                                        <span id="map-tile-progress-label">Se încarcă harta...</span>
+                                                        <span id="map-tile-progress-count">0 / 0 (0%)</span>
+                                                    </div>
+                                                    <div
+                                                        class="progress"
+                                                        role="progressbar"
+                                                        aria-label="Progresul încărcării hărții"
+                                                        aria-valuemin="0"
+                                                        aria-valuemax="100"
+                                                        aria-valuenow="0"
+                                                    >
+                                                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="map-tile-progress-bar" style="width: 0%"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

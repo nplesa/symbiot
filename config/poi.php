@@ -6,9 +6,14 @@ return [
     'navigation_types' => ['fuel', 'parking', 'restaurant', 'cafe', 'lodging', 'supermarket', 'pharmacy', 'charging_station', 'police', 'speed_camera', 'speed_limit', 'traffic_sign', 'vignette_control', 'control', 'locality'],
     'osm_subcategories' => [
         'police' => [
-            ['id' => 'stations', 'label' => 'Secții', 'osm' => [['amenity' => 'police']]],
-            ['id' => 'checkpoints', 'label' => 'Puncte de control', 'osm' => [['police' => 'checkpoint']]],
-            ['id' => 'traffic_filters', 'label' => 'Filtre în trafic', 'osm' => [['police' => 'traffic_police']]],
+            ['id' => 'police_station', 'label' => 'Secții', 'osm' => [['amenity' => 'police']]],
+            ['id' => 'traffic_filters', 'label' => 'Filtre în trafic', 'osm' => []],
+            ['id' => 'speed_limit', 'type' => 'speed_limit', 'label' => 'Limite de viteză', 'osm' => [['maxspeed' => null]]],
+            ['id' => 'control', 'type' => 'control', 'label' => 'Puncte de control', 'osm' => [['enforcement' => null]]],
+            ['id' => 'traffic_sign', 'type' => 'traffic_sign', 'label' => 'Indicatoare', 'osm' => [['traffic_sign' => null], ['highway' => 'traffic_signals|stop|give_way']]],
+            ['id' => 'locality', 'type' => 'locality', 'label' => 'Localități', 'osm' => [['place' => 'city|town|village|hamlet']]],
+            ['id' => 'speed_camera', 'type' => 'speed_camera', 'label' => 'Camere de viteză', 'osm' => [['highway' => 'speed_camera']]],
+            ['id' => 'vignette_control', 'type' => 'vignette_control', 'label' => 'Taxe / rovinietă', 'osm' => [['barrier' => 'toll_booth']]],
         ],
     ],
     'categories' => [
@@ -115,7 +120,7 @@ return [
         ],
         'police' => [
             'label' => 'Poliție', 'icon' => null, 'default' => true,
-            'group' => 'Informații rutiere', 'distance' => 150,
+            'group' => 'Poliție', 'distance' => 150,
             'geoapify' => ['service.police'],
             'osm' => [
                 ['amenity' => 'police'],
@@ -125,37 +130,37 @@ return [
         ],
         'speed_camera' => [
             'label' => 'Camere de viteză', 'icon' => null, 'default' => true,
-            'group' => 'Informații rutiere', 'distance' => 150,
+            'group' => 'Poliție', 'distance' => 150,
             'geoapify' => [],
             'osm' => [['highway' => 'speed_camera']],
         ],
         'speed_limit' => [
             'label' => 'Limite de viteză', 'icon' => null, 'default' => true,
-            'group' => 'Informații rutiere', 'distance' => 150,
+            'group' => 'Poliție', 'distance' => 150,
             'geoapify' => [],
             'osm' => [['maxspeed' => null]],
         ],
         'traffic_sign' => [
             'label' => 'Indicatoare', 'icon' => null, 'default' => true,
-            'group' => 'Informații rutiere', 'distance' => 150,
+            'group' => 'Poliție', 'distance' => 150,
             'geoapify' => [],
             'osm' => [['traffic_sign' => null], ['highway' => 'traffic_signals|stop|give_way']],
         ],
         'vignette_control' => [
             'label' => 'Taxe / rovinietă', 'icon' => null, 'default' => true,
-            'group' => 'Informații rutiere', 'distance' => 150,
+            'group' => 'Poliție', 'distance' => 150,
             'geoapify' => [],
             'osm' => [['barrier' => 'toll_booth']],
         ],
         'control' => [
             'label' => 'Puncte de control', 'icon' => null, 'default' => true,
-            'group' => 'Informații rutiere', 'distance' => 150,
+            'group' => 'Poliție', 'distance' => 150,
             'geoapify' => [],
             'osm' => [['enforcement' => null]],
         ],
         'locality' => [
             'label' => 'Localități', 'icon' => null, 'default' => true,
-            'group' => 'Informații rutiere', 'distance' => 5000,
+            'group' => 'Poliție', 'distance' => 5000,
             'geoapify' => [],
             'osm' => [['place' => 'city|town|village|hamlet']],
         ],

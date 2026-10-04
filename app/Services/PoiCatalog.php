@@ -25,7 +25,7 @@ class PoiCatalog
 
             foreach ($this->subcategories($type) as $subcategory) {
                 $filters[$subcategory['id']] = [
-                    'type' => $type,
+                    'type' => $subcategory['type'] ?? $type,
                     'label' => $subcategory['label'],
                     'geoapify' => $subcategory['geoapify'],
                     'osm' => $subcategory['osm'],
@@ -36,7 +36,7 @@ class PoiCatalog
         return $filters;
     }
 
-    /** @return list<array{id: string, label: string, geoapify: list<string>, osm: list<array<string, ?string>>}> */
+    /** @return list<array{id: string, type?: string, label: string, geoapify: list<string>, osm: list<array<string, ?string>>}> */
     public function subcategories(string $type): array
     {
         $category = $this->categories()[$type] ?? null;
@@ -59,6 +59,7 @@ class PoiCatalog
         foreach (config('poi.osm_subcategories.' . $type, []) as $subcategory) {
             $children[] = [
                 'id' => 'subcategory:' . $type . ':' . $subcategory['id'],
+                'type' => $subcategory['type'] ?? $type,
                 'label' => $subcategory['label'],
                 'geoapify' => [],
                 'osm' => $subcategory['osm'],

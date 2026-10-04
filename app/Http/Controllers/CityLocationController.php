@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -26,10 +27,10 @@ class CityLocationController extends Controller
                 ->acceptJson()
                 ->get('https://api.geoapify.com/v1/geocode/search', [
                     'text' => $validated['city'],
-                    'limit' => 5,
+                    'limit' => 8,
                     'format' => 'json',
                     'lang' => 'ro',
-                    'filter' => 'countrycode:ro',
+                    'type' => 'city',
                     'apiKey' => $apiKey,
                 ]);
 
@@ -39,23 +40,51 @@ class CityLocationController extends Controller
                 return response()->json(['error' => 'Căutarea orașului nu a reușit.'], 502);
             }
 
-            $result = collect($response->json('results') ?? [])
-                ->first(fn (array $item): bool => isset($item['lat'], $item['lon']));
+            $geocodedResults = $response->json('results', []);
+            if (! is_array($geocodedResults)) {
+                Log::warning('Geoapify city lookup returned an invalid result list');
 
-            if ($result === null) {
-                return response()->json(['error' => 'Orașul nu a fost găsit în România.'], 404);
+                return response()->json(['error' => 'Căutarea a returnat un răspuns invalid.'], 502);
             }
 
-            return response()->json([
-                'name' => $result['city']
-                    ?? $result['town']
-                    ?? $result['village']
-                    ?? $result['name']
-                    ?? $validated['city'],
-                'lat' => (float) $result['lat'],
-                'lon' => (float) $result['lon'],
-            ]);
-        } catch (\Throwable $e) {
+            $results = collect($geocodedResults)
+                ->filter(fn (mixed $item): bool => is_array($item)
+                    && is_numeric($item['lat'] ?? null)
+                    && is_numeric($item['lon'] ?? null))
+                ->unique(fn (array $item): string => (string) ($item['place_id'] ?? implode(',', [
+                    $item['lat'],
+                    $item['lon'],
+                ])))
+                ->map(function (array $item) use ($validated): array {
+                    $name = $item['city']
+                        ?? $item['town']
+                        ?? $item['village']
+                        ?? $item['municipality']
+                        ?? $item['name']
+                        ?? $validated['city'];
+                    $parts = array_values(array_unique(array_filter([
+                        $name,
+                        $item['state'] ?? null,
+                        $item['country'] ?? null,
+                    ], fn (mixed $part): bool => is_string($part) && trim($part) !== '')));
+
+                    return [
+                        'name' => $name,
+                        'label' => implode(', ', $parts),
+                        'country' => $item['country'] ?? null,
+                        'country_code' => $item['country_code'] ?? null,
+                        'lat' => (float) $item['lat'],
+                        'lon' => (float) $item['lon'],
+                    ];
+                })
+                ->values();
+
+            if ($results->isEmpty()) {
+                return response()->json(['error' => 'Localitatea nu a fost găsită. Încearcă să adaugi și țara.'], 404);
+            }
+
+            return response()->json(['results' => $results]);
+        } catch (ConnectionException $e) {
             Log::warning('Geoapify city lookup failed', ['message' => $e->getMessage()]);
 
             return response()->json(['error' => 'Serviciul de căutare a orașului nu este disponibil.'], 502);

@@ -44,6 +44,114 @@ export function splitTransitRouteDirections(groups) {
     });
 }
 
+export function getPoiMarkerIcon(type, provider = null) {
+    if (provider === 'Waze') return '🚔';
+    if (['police', 'speed_limit', 'control', 'traffic_sign', 'locality', 'speed_camera', 'vignette_control'].includes(type)) {
+        return '👮';
+    }
+
+    return null;
+}
+
+export function buildPoiCategoryRequests(selectedTypes, {
+    transitEndpoints,
+    categoryEndpoints,
+    wazeEndpoint,
+    categoryLabels,
+    lat,
+    lon,
+    radius,
+}) {
+    const categoryForToken = token => {
+        if (Object.hasOwn(transitEndpoints, token) || Object.hasOwn(categoryEndpoints, token)) return token;
+        const policeSubcategory = token.match(/^subcategory:police:(speed_limit|control|traffic_sign|locality|speed_camera|vignette_control)$/);
+        if (policeSubcategory) return policeSubcategory[1];
+        return token.match(/^subcategory:([^:]+):/)?.[1] ?? null;
+    };
+    const selectedCategories = [...new Set(selectedTypes.map(categoryForToken).filter(Boolean))];
+    const requests = selectedCategories
+        .filter(category => Object.hasOwn(transitEndpoints, category))
+        .map(category => {
+            const params = new URLSearchParams({
+                lat: String(lat),
+                lon: String(lon),
+                radius: String(radius),
+            });
+            if (category === 'train') params.set('include_routes', 'false');
+
+            return {
+                category,
+                label: categoryLabels.get(category) || category,
+                url: `${transitEndpoints[category]}?${params.toString()}`,
+            };
+        });
+    const poiFilters = selectedTypes.filter(token => !Object.hasOwn(transitEndpoints, categoryForToken(token)));
+
+    if (poiFilters.length > 0) {
+        const labels = [...new Set(poiFilters.map(token => {
+            const parent = token.match(/^subcategory:([^:]+):/)?.[1];
+            const category = parent || categoryForToken(token);
+
+            return categoryLabels.get(category) || category;
+        }))];
+        const params = new URLSearchParams({
+            lat: String(lat),
+            lon: String(lon),
+            radius: String(radius),
+            types: poiFilters.join(','),
+        });
+        requests.push({
+            category: 'poi',
+            label: labels.join(', '),
+            url: `/api/transport-nearby?${params.toString()}`,
+        });
+    }
+
+    if (selectedTypes.includes('subcategory:police:traffic_filters')) {
+        const params = new URLSearchParams({
+            lat: String(lat),
+            lon: String(lon),
+            radius: String(radius),
+        });
+        requests.push({
+            category: 'waze-traffic',
+            label: 'Filtre în trafic (Waze)',
+            url: `${wazeEndpoint}?${params.toString()}`,
+        });
+    }
+
+    return requests;
+}
+
+export async function fetchPoiJsonResponse(url, {
+    timeoutMs = 35_000,
+    fetchImpl = fetch,
+} = {}) {
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, timeoutMs);
+
+    try {
+        const response = await fetchImpl(url, {
+            headers: { Accept: 'application/json' },
+            signal: controller.signal,
+        });
+
+        return await readPoiJsonResponse(response);
+    } catch (error) {
+        if (timedOut) {
+            throw new Error(`Cererea POI a expirat la limita de ${Math.ceil(timeoutMs / 1000)} secunde.`);
+        }
+
+        throw error;
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
 export async function readPoiJsonResponse(response) {
     const responseUrl = response.url ? new URL(response.url, 'http://localhost') : null;
     if (response.redirected && responseUrl?.pathname.endsWith('/login')) {

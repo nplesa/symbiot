@@ -11,6 +11,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -36,36 +37,44 @@ class TrackingController extends Controller
         $key = config('services.geoapify.key');
         abort_if(blank($key), 503, 'Map provider is not configured.');
 
-        $url = "https://maps.geoapify.com/v1/tile/osm-bright-smooth/{$z}/{$x}/{$y}.png";
+        $tileKey = "geoapify-map-tile-v1:{$z}:{$x}:{$y}";
+        $tile = Cache::store('file')->get($tileKey);
 
-        try {
-            $response = Http::connectTimeout(5)
-                ->timeout(10)
-                ->get($url, ['apiKey' => $key]);
-        } catch (ConnectionException $e) {
-            report($e);
+        if (! is_string($tile)) {
+            $url = "https://maps.geoapify.com/v1/tile/osm-bright-smooth/{$z}/{$x}/{$y}.png";
 
-            return response('Map tile provider is temporarily unreachable.', 503)
-                ->header('Retry-After', '30');
+            try {
+                $response = Http::connectTimeout(5)
+                    ->timeout(10)
+                    ->get($url, ['apiKey' => $key]);
+            } catch (ConnectionException $e) {
+                report($e);
+
+                return response('Map tile provider is temporarily unreachable.', 503)
+                    ->header('Retry-After', '30');
+            }
+
+            if (! $response->successful()) {
+                Log::warning('Geoapify map tile request failed.', [
+                    'status' => $response->status(),
+                    'content_type' => $response->header('Content-Type'),
+                    'body' => mb_substr($response->body(), 0, 1000),
+                    'z' => $z,
+                    'x' => $x,
+                    'y' => $y,
+                ]);
+
+                return response('Map tile provider returned an error.', 503)
+                    ->header('Retry-After', '30');
+            }
+
+            $tile = $response->body();
+            Cache::store('file')->put($tileKey, $tile, now()->addDays(30));
         }
 
-        if (! $response->successful()) {
-            Log::warning('Geoapify map tile request failed.', [
-                'status' => $response->status(),
-                'content_type' => $response->header('Content-Type'),
-                'body' => mb_substr($response->body(), 0, 1000),
-                'z' => $z,
-                'x' => $x,
-                'y' => $y,
-            ]);
-
-            return response('Map tile provider returned an error.', 503)
-                ->header('Retry-After', '30');
-        }
-
-        return response($response->body(), 200, [
-            'Content-Type' => $response->header('Content-Type') ?: 'image/png',
-            'Cache-Control' => 'public, max-age=86400, s-maxage=86400',
+        return response($tile, 200, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'public, max-age=604800, s-maxage=604800',
         ]);
     }
 

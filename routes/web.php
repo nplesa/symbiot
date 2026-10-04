@@ -67,6 +67,8 @@ Route::name('app.')->middleware(['auth'])->group(function () {
     Route::get('/api/poi/vignette_control', VignetteControlPoiController::class)->name('api.poi.vignette_control');
     Route::get('/api/poi/control', ControlPoiController::class)->name('api.poi.control');
     Route::get('/api/poi/locality', LocalityPoiController::class)->name('api.poi.locality');
+    Route::get('/api/poi/waze-traffic', [TransportPoiController::class, 'wazeTrafficAlerts'])
+        ->name('api.poi.waze_traffic');
     Route::get('/api/transport-nearby', [TransportPoiController::class, 'nearby']);
     Route::get('/api/transit-route/{relationId}', [TransportPoiController::class, 'routeGeometry'])
         ->whereNumber('relationId');
