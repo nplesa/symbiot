@@ -32,6 +32,10 @@ return [
         'url' => env('WAZE_API_URL', 'https://api.openwebninja.com/waze'),
         'key' => env('WAZE_API_KEY', env('WAZE_API')),
     ],
+    'petroleum' => [
+        // Intermediate certificate missing from the fuel price host's chain, relative to the project root.
+        'ca_certificate' => env('PETROLEUM_CHECK', 'resources/certs/sectigo-dv-r36.pem'),
+    ],
     'rail_timetable' => [
         'packages' => [
             ['package' => 'mers-tren-sntfc-cfr-calatori-s-a', 'operator' => 'CFR Călători'],

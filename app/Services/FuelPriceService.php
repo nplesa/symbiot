@@ -295,18 +295,24 @@ class FuelPriceService
     /** The host omits its intermediate certificate, so it is appended to the system CA bundle. */
     private function caBundle(): string|bool
     {
-        $system = ini_get('curl.cainfo') ?: ini_get('openssl.cafile');
-        $intermediate = resource_path('certs/sectigo-dv-r36.pem');
-        if (! $system || ! is_file($system) || ! is_file($intermediate)) {
+        $locations = openssl_get_cert_locations();
+        $system = collect([ini_get('curl.cainfo'), ini_get('openssl.cafile'), $locations['default_cert_file'] ?? null, '/etc/ssl/certs/ca-certificates.crt'])
+            ->first(fn ($path): bool => is_string($path) && $path !== '' && is_file($path));
+        $configured = (string) config('services.petroleum.ca_certificate');
+        $intermediate = preg_match('~^(/|[A-Za-z]:[\\\\/])~', $configured) ? $configured : base_path($configured);
+        if (! $system || ! is_file($intermediate)) {
             return true;
         }
 
         $bundle = storage_path('app/certs/fuel-prices-ca.pem');
         if (! is_file($bundle) || filemtime($bundle) < max(filemtime($system), filemtime($intermediate))) {
-            if (! is_dir(dirname($bundle))) {
-                mkdir(dirname($bundle), 0775, true);
+            $contents = file_get_contents($system) . PHP_EOL . file_get_contents($intermediate);
+            $directory = dirname($bundle);
+            if ((! is_dir($directory) && ! @mkdir($directory, 0775, true) && ! is_dir($directory))
+                || @file_put_contents($bundle, $contents) === false) {
+                $bundle = tempnam(sys_get_temp_dir(), 'fuel-ca-');
+                file_put_contents($bundle, $contents);
             }
-            file_put_contents($bundle, file_get_contents($system) . PHP_EOL . file_get_contents($intermediate));
         }
 
         return $bundle;
