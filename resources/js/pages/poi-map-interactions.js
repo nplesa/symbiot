@@ -350,11 +350,26 @@ function hexToHue(color) {
     return Math.round(hue * 60 + 360) % 360;
 }
 
+// OpenLayers reads hit-detection canvases back on every pointer move; this hint keeps them in CPU memory.
+export function withReadbackCanvas(callback) {
+    if (typeof HTMLCanvasElement === 'undefined') return callback();
+
+    const original = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, options) {
+        return original.call(this, type, type === '2d' ? { willReadFrequently: true, ...options } : options);
+    };
+    try {
+        return callback();
+    } finally {
+        HTMLCanvasElement.prototype.getContext = original;
+    }
+}
+
 export function poiFeatureAtPixel(map, poiSource, poiLayer, pixel) {
-    const hitFeature = map.forEachFeatureAtPixel(pixel, feature => feature, {
+    const hitFeature = withReadbackCanvas(() => map.forEachFeatureAtPixel(pixel, feature => feature, {
         hitTolerance: 12,
         layerFilter: layer => layer === poiLayer,
-    });
+    }));
     if (hitFeature) return hitFeature;
 
     let nearestFeature;

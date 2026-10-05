@@ -10,6 +10,7 @@ import Stroke from 'ol/style/Stroke.js';
 import Style from 'ol/style/Style.js';
 import Text from 'ol/style/Text.js';
 import { fromLonLat } from 'ol/proj.js';
+import { withReadbackCanvas } from './poi-map-interactions.js';
 
 const ROUTE_PALETTE = ['#e6194b', '#3cb44b', '#0d6efd', '#f58231', '#911eb4', '#008080', '#f032e6', '#9a6324', '#800000', '#808000', '#000075', '#e6a800'];
 
@@ -189,7 +190,7 @@ export function createTransitLayer(map) {
     }
 
     map.on('singleclick', (event) => {
-        const feature = map.forEachFeatureAtPixel(event.pixel, (f) => f, { layerFilter: (layer) => layer === stopLayer });
+        const feature = withReadbackCanvas(() => map.forEachFeatureAtPixel(event.pixel, (f) => f, { layerFilter: (layer) => layer === stopLayer }));
         if (feature) {
             showStop(feature, feature.getGeometry().getCoordinates());
         } else {
