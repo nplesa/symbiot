@@ -590,7 +590,7 @@ class PoiNavigationWindowTest extends TestCase
                     'type' => 'relation',
                     'id' => 88,
                     'timestamp' => '2026-06-02T08:56:08Z',
-                    'tags' => ['type' => 'route', 'route' => 'bus', 'ref' => '5'],
+                    'tags' => ['type' => 'route', 'route' => 'bus', 'ref' => '5---'],
                     'members' => [[
                         'type' => 'way',
                         'ref' => 77,

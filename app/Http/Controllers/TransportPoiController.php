@@ -1031,6 +1031,7 @@ class TransportPoiController extends Controller
         foreach ($routes as $route) {
             $tags = $route['tags'] ?? [];
             $routeRef = trim((string) ($tags['ref'] ?? ''));
+            $routeRef = preg_replace('/[\s-]+$/u', '', $routeRef) ?? $routeRef;
             if ($routeRef === '') {
                 $routeRef = trim((string) ($tags['name'] ?? ''));
             }

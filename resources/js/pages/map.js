@@ -2140,6 +2140,7 @@ document
                     currentLocation.dataset.lon = lon;
 
                     initLocalFeatures();
+                    updateSubcategoryAvailability(lat, lon);
                     const mobilityCard = document.getElementById('mobility_card');
                     if (isFirstLocationFix
                         && mobilityCard
@@ -2488,11 +2489,29 @@ function applyPOIFilters(catFilters, data) {
 }
 
 let subcategoriesKey = null;
+let subcategoriesPendingKey = null;
+
+// The lists open only once they are filtered for the chosen location, so they appear instantly when clicked.
+function setSubcategoryButtonsLoading(loading) {
+    document.querySelectorAll('.poi-subcategory-toggle').forEach(button => {
+        if (loading) {
+            button.dataset.label ??= button.textContent.trim();
+            button.textContent = 'Se încarcă…';
+            button.disabled = true;
+            document.querySelector(button.dataset.bsTarget)?.classList.remove('show');
+        } else {
+            button.textContent = button.dataset.label ?? 'Subcategorii';
+            button.disabled = false;
+        }
+    });
+}
 
 // Subcategories are limited to the ones that actually have places around the chosen location.
 async function updateSubcategoryAvailability(lat, lon) {
     const key = `${lat.toFixed(2)}:${lon.toFixed(2)}:${app_radius}`;
-    if (key === subcategoriesKey) return;
+    if (key === subcategoriesKey || key === subcategoriesPendingKey) return;
+    subcategoriesPendingKey = key;
+    setSubcategoryButtonsLoading(true);
 
     let available = null;
     try {
@@ -2503,6 +2522,11 @@ async function updateSubcategoryAvailability(lat, lon) {
         }
     } catch (error) {
         console.error('Subcategory availability request failed.', error);
+    } finally {
+        if (subcategoriesPendingKey === key) {
+            subcategoriesPendingKey = null;
+            setSubcategoryButtonsLoading(false);
+        }
     }
     if (!available || typeof available !== 'object') return;
 
