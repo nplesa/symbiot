@@ -78,4 +78,56 @@ class PoiSubcategoryAvailabilityTest extends TestCase
             'subcategory:restaurant:catering.restaurant.burger',
         ], $ids);
     }
+
+    public function test_subway_remains_available_when_geoapify_has_no_stations_but_transit_osm_can(): void
+    {
+        Cache::flush();
+        config(['services.geoapify.key' => 'test-key']);
+        Http::fake([
+            'api.geoapify.com/*' => Http::response(['features' => []]),
+            'overpass-api.de/*' => Http::response(['elements' => []]),
+        ]);
+
+        $subcategories = $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/subcategories?lat=44.43&lon=26.10&radius=3000')
+            ->assertOk()
+            ->json('subcategories.subway');
+
+        $this->assertContains('subcategory:subway:public_transport.subway.entrance', $subcategories);
+    }
+
+    public function test_airports_are_available_when_geoapify_finds_them_in_range(): void
+    {
+        config(['services.geoapify.key' => 'test-key']);
+        Http::fake([
+            'api.geoapify.com/*' => Http::response(['features' => [
+                ['properties' => ['categories' => ['airport', 'airport.international']]],
+            ]]),
+            '*' => Http::response(['elements' => []]),
+        ]);
+        Cache::flush();
+
+        $nearAirport = $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/subcategories?lat=44.5711&lon=26.085&radius=5000')
+            ->assertOk()
+            ->json('subcategories.airport');
+
+        $this->assertContains('subcategory:airport:airport.international', $nearAirport);
+    }
+
+    public function test_airports_are_unavailable_when_geoapify_finds_none_in_range(): void
+    {
+        config(['services.geoapify.key' => 'test-key']);
+        Http::fake([
+            'api.geoapify.com/*' => Http::response(['features' => []]),
+            '*' => Http::response(['elements' => []]),
+        ]);
+
+        $outsideAirportRange = $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/subcategories?lat=44.5711&lon=26.085&radius=5000')
+            ->assertOk()
+            ->json('subcategories.airport');
+
+        $this->assertSame([], $outsideAirportRange);
+    }
 }

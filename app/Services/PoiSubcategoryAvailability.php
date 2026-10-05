@@ -18,7 +18,7 @@ class PoiSubcategoryAvailability
      */
     public function around(float $lat, float $lon, int $radius): array
     {
-        $key = sprintf('poi_subcategories:v1:%.2f:%.2f:%d', $lat, $lon, intdiv($radius, 500));
+        $key = sprintf('poi_subcategories:v2:%.2f:%.2f:%d', $lat, $lon, intdiv($radius, 500));
 
         return Cache::remember($key, now()->addHours(6), fn (): array => $this->compute($lat, $lon, $radius));
     }
@@ -56,9 +56,14 @@ class PoiSubcategoryAvailability
 
         foreach ($this->geoapifyAvailability($geoapifyTypes, $lat, $lon, $radius) as $type => $found) {
             $subcategories = $this->catalog->subcategories($type);
+            $matched = $this->matchGeoapify($subcategories, $found);
+            if ($type === 'subway' && $matched === []) {
+                // The transit endpoint can find OSM subway stops even when Geoapify reports none.
+                $matched = array_column($subcategories, 'id');
+            }
             $result[$type] = array_values(array_unique(array_merge(
                 $result[$type] ?? $this->unconditionalIds($subcategories),
-                $this->matchGeoapify($subcategories, $found),
+                $matched,
             )));
         }
 
