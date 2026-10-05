@@ -1,13 +1,18 @@
 <?php
 
 use App\Http\Controllers\AirportPoiController;
+use App\Http\Controllers\Api\Transit\CoverageController;
+use App\Http\Controllers\Api\Transit\TransitMapController;
+use App\Http\Controllers\Api\Transit\VehicleController;
 use App\Http\Controllers\BusPoiController;
 use App\Http\Controllers\CafePoiController;
 use App\Http\Controllers\ChargingStationPoiController;
 use App\Http\Controllers\CityLocationController;
 use App\Http\Controllers\ControlPoiController;
 use App\Http\Controllers\FirePoiController;
+use App\Http\Controllers\FuelBestPriceController;
 use App\Http\Controllers\FuelPoiController;
+use App\Http\Controllers\FuelPriceController;
 use App\Http\Controllers\GoogleMapsController;
 use App\Http\Controllers\GoogleMapsKmlController;
 use App\Http\Controllers\HomeController;
@@ -19,6 +24,7 @@ use App\Http\Controllers\NavigationController;
 use App\Http\Controllers\NavigationPoiController;
 use App\Http\Controllers\ParkingPoiController;
 use App\Http\Controllers\PharmacyPoiController;
+use App\Http\Controllers\PoiSubcategoryController;
 use App\Http\Controllers\PolicePoiController;
 use App\Http\Controllers\RestaurantPoiController;
 use App\Http\Controllers\RouteKmlController;
@@ -49,6 +55,9 @@ Route::name('app.')->middleware(['auth'])->group(function () {
     Route::get('/api/transport/subway', SubwayPoiController::class)->name('api.transport.subway');
     Route::get('/api/transport/airport', AirportPoiController::class)->name('api.transport.airport');
     Route::get('/api/poi/fuel', FuelPoiController::class)->name('api.poi.fuel');
+    Route::get('/api/poi/subcategories', PoiSubcategoryController::class)->middleware('throttle:60,1')->name('api.poi.subcategories');
+    Route::get('/api/fuel/best', FuelBestPriceController::class)->middleware('throttle:30,1')->name('api.fuel.best');
+    Route::get('/api/fuel/prices', FuelPriceController::class)->middleware('throttle:60,1')->name('api.fuel.prices');
     Route::get('/api/poi/parking', ParkingPoiController::class)->name('api.poi.parking');
     Route::get('/api/poi/restaurant', RestaurantPoiController::class)->name('api.poi.restaurant');
     Route::get('/api/poi/cafe', CafePoiController::class)->name('api.poi.cafe');
@@ -72,6 +81,15 @@ Route::name('app.')->middleware(['auth'])->group(function () {
     Route::get('/api/transport-nearby', [TransportPoiController::class, 'nearby']);
     Route::get('/api/transit-route/{relationId}', [TransportPoiController::class, 'routeGeometry'])
         ->whereNumber('relationId');
+
+    Route::get('/api/transit/coverage', CoverageController::class)
+        ->middleware('throttle:60,1')->name('api.transit.coverage');
+    Route::middleware('throttle:120,1')->prefix('api/transit')->name('api.transit.')->group(function (): void {
+        Route::get('/vehicles', VehicleController::class)->name('vehicles');
+        Route::get('/stops', [TransitMapController::class, 'stops'])->name('stops');
+        Route::get('/stops/{feed}/{stop}/routes', [TransitMapController::class, 'stopRoutes'])->where('feed', '[0-9]+')->where('stop', '.+')->name('stop-routes');
+        Route::get('/routes/{feed}/{route}/shape', [TransitMapController::class, 'routeShape'])->where('feed', '[0-9]+')->where('route', '.+')->name('route-shape');
+    });
 
     Route::post('/location/toggle', [LocationController::class, 'toggle'])->name('user.location.toggle');
     Route::post('/tracking/toggle', [TrackingController::class, 'toggle'])->name('user.tracking.toggle');

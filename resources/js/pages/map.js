@@ -1,4 +1,6 @@
 import 'ol/ol.css';
+import { watchTransitCoverage } from './transit-coverage.js';
+import { createTransitLayer } from './transit-stops-layer.js';
 
 import Map from 'ol/Map.js';
 import View from 'ol/View.js';
@@ -408,6 +410,8 @@ const map = new Map({
     })
 });
 
+const transitStops = createTransitLayer(map);
+
 const mapTileSource = baseLayer.getSource();
 const mapTileProgress = document.getElementById('map-tile-progress');
 const mapTileProgressLabel = document.getElementById('map-tile-progress-label');
@@ -545,6 +549,10 @@ function showPoiTooltip(feature, coordinate) {
     const featureType = feature.get('type');
     if (featureType === 'lodging') {
         showLodgingDetails(feature);
+        return;
+    }
+    if (featureType === 'fuel') {
+        showFuelPrices(feature);
         return;
     }
 
@@ -783,6 +791,244 @@ function showPoiTooltip(feature, coordinate) {
     poiTooltip.setPosition(coordinate);
 }
 
+let fuelBestRequest = 0;
+
+function fuelBestRefs() {
+    const el = (id) => document.getElementById(id);
+    const refs = {
+        modal: el('fuelBestModal'), select: el('fuelBestSelect'), status: el('fuelBestStatus'),
+        result: el('fuelBestResult'), chain: el('fuelBestChain'), price: el('fuelBestPrice'),
+        meta: el('fuelBestMeta'), station: el('fuelBestStation'), ranking: el('fuelBestRanking'),
+        navigate: el('fuelBestNavigate'), source: el('fuelBestSource'),
+        countryStatus: el('fuelBestCountryStatus'), countryResult: el('fuelBestCountryResult'),
+        countryChain: el('fuelBestCountryChain'), countryPrice: el('fuelBestCountryPrice'),
+        countryMeta: el('fuelBestCountryMeta'), countryStation: el('fuelBestCountryStation'),
+        countryNavigate: el('fuelBestCountryNavigate'),
+    };
+    return Object.values(refs).every(Boolean) ? refs : null;
+}
+
+// Brands listed in the fuel subcategories: the checked ones, or all that are available around the location.
+function fuelBrandIds() {
+    const brands = Array.from(document.querySelectorAll('.location-subcategory[data-filter^="subcategory:fuel:"]'))
+        .filter(input => !input.disabled)
+        .map(input => ({ id: input.dataset.filter.replace('subcategory:fuel:', ''), checked: input.checked }))
+        .filter(brand => brand.id !== 'all' && brand.id !== 'lpg');
+    const checked = brands.filter(brand => brand.checked);
+
+    return (checked.length > 0 ? checked : brands).map(brand => brand.id);
+}
+
+const formatMeters = (meters) => (meters < 1000 ? `${meters} m` : `${(meters / 1000).toFixed(1)} km`);
+const mapsDirectionsUrl = (station) => `https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lon}&travelmode=driving`;
+
+async function requestBestFuel(params) {
+    const response = await fetch(`/api/fuel/best?${params}`, { headers: { Accept: 'application/json' } });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+}
+
+async function loadBestFuelPrice() {
+    const refs = fuelBestRefs();
+    const cl = document.getElementById('current_location');
+    if (!refs) return;
+
+    const lat = parseFloat(cl?.dataset.lat);
+    const lon = parseFloat(cl?.dataset.lon);
+    [refs.result, refs.countryResult, refs.source, refs.navigate, refs.countryNavigate]
+        .forEach((node) => { node.hidden = true; });
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        refs.status.textContent = 'Alege mai întâi o locație.';
+        refs.countryStatus.textContent = '';
+        return;
+    }
+
+    const requestId = ++fuelBestRequest;
+    const fuel = refs.select.value;
+    refs.status.textContent = 'Se caută cele mai bune prețuri în zona ta...';
+    refs.countryStatus.textContent = 'Se caută cel mai bun preț din țară...';
+    const base = { lat, lon, fuel };
+    const brands = fuelBrandIds();
+    const localParams = new URLSearchParams({
+        ...base,
+        radius: Math.min(Math.round(Number(app_radius)) || 5000, 35000),
+        ...(brands.length > 0 ? { brands: brands.join(',') } : {}),
+    });
+
+    const renderLocal = async () => {
+        try {
+            const data = await requestBestFuel(localParams);
+            if (requestId !== fuelBestRequest) return;
+            if (!Array.isArray(data.chains) || data.chains.length === 0) {
+                refs.status.textContent = `Nu există prețuri raportate pentru ${data.fuel.toLowerCase()} la lanțurile din subcategorii, în zona ta.`;
+                return;
+            }
+
+            const best = data.chains[0];
+            const radiusKm = (data.radius / 1000).toLocaleString('ro-RO', { maximumFractionDigits: 1 });
+            refs.status.textContent = `Raza de căutare: ${radiusKm} km, ${data.fuel.toLowerCase()}.`;
+            refs.chain.textContent = best.name;
+            refs.price.textContent = `${best.average_price.toFixed(2)} lei/l`;
+            refs.meta.textContent = `preț mediu, ${best.stations} ${best.stations === 1 ? 'stație' : 'stații'}`;
+            const nearest = best.nearest;
+            refs.station.textContent = `Cea mai apropiată: ${[nearest.name, nearest.address].filter(Boolean).join(', ')} (${formatMeters(nearest.meters)}, ${nearest.price.toFixed(2)} lei/l)`;
+            refs.ranking.replaceChildren();
+            data.chains.forEach((chain) => {
+                const item = document.createElement('li');
+                item.textContent = `${chain.name} — ${chain.average_price.toFixed(2)} lei/l (${chain.stations})`;
+                refs.ranking.appendChild(item);
+            });
+            refs.navigate.href = mapsDirectionsUrl(nearest);
+            refs.navigate.hidden = false;
+            refs.result.hidden = false;
+            refs.source.textContent = `Sursa: ${data.source}. Prețurile sunt informative; clasamentul folosește prețul mediu al lanțului.`;
+            refs.source.hidden = false;
+        } catch (error) {
+            if (requestId !== fuelBestRequest) return;
+            console.error('Best fuel price request failed.', error);
+            refs.status.textContent = 'Prețurile nu au putut fi încărcate acum. Încearcă din nou.';
+        }
+    };
+
+    const renderCountry = async () => {
+        try {
+            const data = await requestBestFuel(new URLSearchParams({ ...base, scope: 'country' }));
+            if (requestId !== fuelBestRequest) return;
+            if (!Array.isArray(data.chains) || data.chains.length === 0) {
+                refs.countryStatus.textContent = 'Nu există date pentru țară.';
+                return;
+            }
+
+            const best = data.chains[0];
+            refs.countryStatus.textContent = `Calculat din ${data.cities} orașe reședință de județ.`;
+            refs.countryChain.textContent = best.name;
+            refs.countryPrice.textContent = `${best.average_price.toFixed(2)} lei/l`;
+            refs.countryMeta.textContent = `preț mediu, ${best.stations} stații`;
+            const cheapest = best.nearest;
+            refs.countryStation.textContent = `Cea mai ieftină stație: ${[cheapest.name, cheapest.address].filter(Boolean).join(', ')} (${cheapest.price.toFixed(2)} lei/l)`;
+            refs.countryNavigate.href = mapsDirectionsUrl(cheapest);
+            refs.countryNavigate.hidden = false;
+            refs.countryResult.hidden = false;
+        } catch (error) {
+            if (requestId !== fuelBestRequest) return;
+            console.error('National best fuel price request failed.', error);
+            refs.countryStatus.textContent = 'Prețurile din țară nu au putut fi încărcate acum.';
+        }
+    };
+
+    await Promise.all([renderLocal(), renderCountry()]);
+}
+document.addEventListener('click', (event) => {
+    if (!event.target.closest('.fuel-best-button')) return;
+    const refs = fuelBestRefs();
+    if (!refs) return;
+    bootstrap.Modal.getOrCreateInstance(refs.modal).show();
+    loadBestFuelPrice();
+});
+document.addEventListener('change', (event) => {
+    if (event.target.id === 'fuelBestSelect') loadBestFuelPrice();
+});
+
+let fuelPricesRequest = 0;
+
+async function showFuelPrices(feature) {
+    const el = (id) => document.getElementById(id);
+    const modalElement = el('fuelPricesModal');
+    const refs = {
+        title: el('fuelPricesModalTitle'),
+        brand: el('fuelPricesBrand'),
+        station: el('fuelPricesStation'),
+        status: el('fuelPricesStatus'),
+        fuelsHeading: el('fuelPricesFuelsHeading'),
+        table: el('fuelPricesTable'),
+        body: el('fuelPricesBody'),
+        servicesHeading: el('fuelPricesServicesHeading'),
+        services: el('fuelPricesServices'),
+        servicesNote: el('fuelPricesServicesNote'),
+        source: el('fuelPricesSource'),
+        navigate: el('fuelPricesNavigate'),
+    };
+    const coordinates = feature.get('coordinates');
+    if (!modalElement || Object.values(refs).some((ref) => !ref) || !coordinates) {
+        console.error('The fuel prices modal is missing required elements.');
+        return;
+    }
+
+    hidePoiTooltip();
+    const name = feature.get('name') || 'Benzinărie';
+    const osmAddress = feature.get('address')?.formatted ?? '';
+    refs.title.textContent = name;
+    refs.brand.textContent = name;
+    refs.station.textContent = osmAddress || 'Adresă indisponibilă';
+    refs.status.textContent = 'Se încarcă prețurile...';
+    [refs.fuelsHeading, refs.table, refs.servicesHeading, refs.services, refs.servicesNote, refs.source]
+        .forEach((node) => { node.hidden = true; });
+    refs.body.replaceChildren();
+    refs.services.replaceChildren();
+    refs.navigate.href = `https://www.google.com/maps/dir/?api=1&destination=${coordinates.lat},${coordinates.lon}&travelmode=driving`;
+    refs.navigate.hidden = false;
+    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+
+    const requestId = ++fuelPricesRequest;
+    try {
+        const params = new URLSearchParams({ lat: coordinates.lat, lon: coordinates.lon, brand: name });
+        const response = await fetch(`/api/fuel/prices?${params}`, { headers: { Accept: 'application/json' } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (requestId !== fuelPricesRequest) return;
+
+        if (!data.station) {
+            refs.status.textContent = 'Stația nu are date de prețuri și servicii în Monitorul Prețurilor.';
+            return;
+        }
+
+        refs.brand.textContent = data.station.network || name;
+        refs.station.textContent = data.station.address || osmAddress || 'Adresă indisponibilă';
+        refs.status.textContent = '';
+
+        if (Array.isArray(data.prices) && data.prices.length > 0) {
+            data.prices.forEach((item) => {
+                const row = document.createElement('tr');
+                const fuel = document.createElement('td');
+                fuel.textContent = item.label;
+                if (item.product) {
+                    const product = document.createElement('div');
+                    product.className = 'small text-muted';
+                    product.textContent = item.product;
+                    fuel.appendChild(product);
+                }
+                const price = document.createElement('td');
+                price.className = 'text-end fw-semibold';
+                price.textContent = `${Number(item.price).toFixed(2)} lei`;
+                row.append(fuel, price);
+                refs.body.appendChild(row);
+            });
+            refs.fuelsHeading.hidden = false;
+            refs.table.hidden = false;
+        } else {
+            refs.status.textContent = 'Nu există prețuri raportate pentru această stație.';
+        }
+
+        if (Array.isArray(data.station.services) && data.station.services.length > 0) {
+            data.station.services.forEach((service) => {
+                const badge = document.createElement('li');
+                badge.className = 'list-inline-item badge text-bg-secondary';
+                badge.textContent = service;
+                refs.services.appendChild(badge);
+            });
+            refs.servicesHeading.hidden = false;
+            refs.services.hidden = false;
+            refs.servicesNote.hidden = false;
+        }
+
+        refs.source.textContent = `Sursa: ${data.source}. Actualizat: ${data.station.updated_at || 'necunoscut'}. Prețurile sunt informative.`;
+        refs.source.hidden = false;
+    } catch (error) {
+        if (requestId !== fuelPricesRequest) return;
+        console.error('Fuel prices request failed.', error);
+        refs.status.textContent = 'Prețurile nu au putut fi încărcate acum. Încearcă din nou.';
+    }
+}
 function showLodgingDetails(feature) {
     const modalElement = document.getElementById('lodgingDetailsModal');
     const modalTitle = document.getElementById('lodgingDetailsModalTitle');
@@ -1612,6 +1858,7 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
         fixedCityLocation = { lat: result.lat, lon: result.lon };
         currentUserLocation = { lat: result.lat, lon: result.lon };
         hasCentered = true;
+        updateSubcategoryAvailability(result.lat, result.lon);
         initLocalFeatures();
 
         const center = fromLonLat([result.lon, result.lat]);
@@ -1629,6 +1876,13 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
         status.textContent = `Locația a fost fixată în ${result.label || result.name}, cu raza de ${cityRadiusMeters.toLocaleString('ro-RO')} m.`;
         status.className = 'col-12 small text-success';
         setTimeout(() => map.updateSize(), 100);
+        watchTransitCoverage(result.lat, result.lon, status, () => {
+            transitStops.load(result.lat, result.lon, Number(app_radius) || 1500).catch(() => {});
+            transitStops.watchVehicles(result.lat, result.lon);
+            if (selectedPoiFilterTokens(document.getElementById('mobility_card')).includes('bus')) {
+                loadNearby({ lat: result.lat, lon: result.lon });
+            }
+        });
 
         if (selectedPoiFilterTokens(document.getElementById('mobility_card')).length > 0) {
             loadNearby({ lat: result.lat, lon: result.lon });
@@ -2032,8 +2286,18 @@ async function loadNearby(locationOverride = null) {
         activePoiFilters.clear();
         addUserEvents();
 
+        await updateSubcategoryAvailability(lat, lon);
+        if (requestId !== poiRequestId) return;
+
         const poiContainer = document.getElementById('mobility_card');
-        const selectedTypes = poiContainer ? selectedPoiFilterTokens(poiContainer) : [];
+        let selectedTypes = poiContainer ? selectedPoiFilterTokens(poiContainer) : [];
+        transitStops.setVisible(selectedTypes.includes('bus'));
+        // Bus stops and lines come from the stored transit feeds (blue stops) wherever they exist;
+        // the OpenStreetMap bus POI layer stays only as a fallback for uncovered areas.
+        if (selectedTypes.includes('bus') && await transitStops.covers(lat, lon)) {
+            selectedTypes = selectedTypes.filter(type => type !== 'bus');
+            if (requestId !== poiRequestId) return;
+        }
         if (selectedTypes.length === 0) {
             poiRequestId++;
             poiSource.clear();
@@ -2203,12 +2467,56 @@ function applyPOIFilters(catFilters, data) {
     });
 }
 
+let subcategoriesKey = null;
+
+// Subcategories are limited to the ones that actually have places around the chosen location.
+async function updateSubcategoryAvailability(lat, lon) {
+    const key = `${lat.toFixed(2)}:${lon.toFixed(2)}:${app_radius}`;
+    if (key === subcategoriesKey) return;
+
+    let available = null;
+    try {
+        const params = new URLSearchParams({ lat, lon, radius: Math.min(Math.round(Number(app_radius)) || 5000, 35000) });
+        const response = await fetch(`/api/poi/subcategories?${params}`, { headers: { Accept: 'application/json' } });
+        if (response.ok) {
+            available = (await response.json()).subcategories;
+        }
+    } catch (error) {
+        console.error('Subcategory availability request failed.', error);
+    }
+    if (!available || typeof available !== 'object') return;
+
+    subcategoriesKey = key;
+    document.querySelectorAll('.poi-category-group').forEach(group => {
+        const allowedIds = available[group.dataset.type];
+        if (!Array.isArray(allowedIds)) return;
+
+        const allowed = new Set(allowedIds);
+        group.querySelectorAll('.location-subcategory').forEach(input => {
+            const visible = allowed.has(input.dataset.filter);
+            input.disabled = !visible;
+            if (!visible) input.checked = false;
+            const row = input.closest('.form-check');
+            if (row) row.hidden = !visible;
+        });
+
+        const parent = group.querySelector('.location-category');
+        if (parent) {
+            parent.disabled = allowed.size === 0;
+            if (allowed.size === 0) parent.checked = false;
+        }
+        group.classList.toggle('opacity-50', allowed.size === 0);
+    });
+
+    const container = document.getElementById('mobility_card');
+    if (container) syncPoiFilterSelection(container);
+}
 function syncPoiFilterSelection(container) {
     activePoiFilters.clear();
 
     container.querySelectorAll('.poi-category-group').forEach(group => {
         const parent = group.querySelector('.location-category');
-        const children = Array.from(group.querySelectorAll('.location-subcategory'));
+        const children = Array.from(group.querySelectorAll('.location-subcategory:not(:disabled)'));
         const selectedChildren = children.filter(checkbox => checkbox.checked);
 
         if (parent) {
@@ -2231,7 +2539,7 @@ function selectedPoiFilterTokens(container) {
 
     container.querySelectorAll('.poi-category-group').forEach(group => {
         const type = group.dataset.type;
-        const children = Array.from(group.querySelectorAll('.location-subcategory'));
+        const children = Array.from(group.querySelectorAll('.location-subcategory:not(:disabled)'));
         const checkedChildren = children.filter(checkbox => checkbox.checked);
 
         const childTypes = new Set(children.map(child => child.dataset.type || type));
@@ -2289,7 +2597,7 @@ function addUserEvents () {
         if (!checkbox || !container.contains(checkbox)) return;
 
         const group = checkbox.closest('.poi-category-group');
-        const children = group?.querySelectorAll('.location-subcategory') ?? [];
+        const children = group?.querySelectorAll('.location-subcategory:not(:disabled)') ?? [];
 
         if (checkbox.matches('.location-category')) {
             children.forEach(child => {
@@ -2298,6 +2606,8 @@ function addUserEvents () {
         }
 
         syncPoiFilterSelection(container);
+        removeUnselectedPoiFeatures();
+        transitStops.setVisible(selectedPoiFilterTokens(container).includes('bus'));
 
         if (selectedPoiFilterTokens(container).length === 0) {
             poiRequestId++;
@@ -2318,6 +2628,17 @@ function addUserEvents () {
 }
 
 addUserEvents();
+
+/** Drops markers of deselected categories right away instead of waiting for the next response. */
+function removeUnselectedPoiFeatures() {
+    poiSource.getFeatures()
+        .filter(feature => feature.get('type') && !activePoiFilters.has(feature.get('type')))
+        .forEach(feature => poiSource.removeFeature(feature));
+    allPoisRaw = (allPoisRaw ?? []).filter(poi => activePoiFilters.has(poi.type));
+    allPois = (allPois ?? []).filter(poi => activePoiFilters.has(poi.type));
+    clearVisibleTransitRoutes();
+    hidePoiTooltip();
+}
 
 function enrichPOIWithDistance(poiList, userLat, userLon) {
     return poiList.map((item) => {

@@ -12,16 +12,21 @@
                     {{ $poiCategories[$location]['label'] }}
                 </label>
             </div>
-            <button
-                class="btn btn-sm btn-outline-secondary poi-subcategory-toggle"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#poi-subcategories-{{ $categoryIndex }}"
-                aria-expanded="{{ ($openSubcategories ?? false) ? 'true' : 'false' }}"
-                aria-controls="poi-subcategories-{{ $categoryIndex }}"
-            >
-                Subcategorii
-            </button>
+            <div class="d-flex gap-1">
+                @if ($location === 'fuel')
+                    <button class="btn btn-sm btn-success fuel-best-button" type="button">BEST</button>
+                @endif
+                <button
+                    class="btn btn-sm btn-outline-secondary poi-subcategory-toggle"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#poi-subcategories-{{ $categoryIndex }}"
+                    aria-expanded="{{ ($openSubcategories ?? false) ? 'true' : 'false' }}"
+                    aria-controls="poi-subcategories-{{ $categoryIndex }}"
+                >
+                    Subcategorii
+                </button>
+            </div>
         </div>
         <div class="collapse mt-2 {{ ($openSubcategories ?? false) ? 'show' : '' }}" id="poi-subcategories-{{ $categoryIndex }}">
             <div class="ps-2">

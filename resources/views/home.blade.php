@@ -322,6 +322,8 @@
 @include('modals.acquire')
 @include('modals.train-status')
 @include('modals.lodging-details')
+@include('modals.fuel-prices')
+@include('modals.fuel-best')
 @endsection
 @push('js')
     @vite([

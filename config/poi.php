@@ -1,10 +1,51 @@
 <?php
 
 // Provider mappings are trusted application configuration, never request input.
+$fuelBrands = [
+    'petrom' => ['Petrom', 'Petrom|PETROM|OMV Petrom'],
+    'omv' => ['OMV', 'OMV|Omv'],
+    'rompetrol' => ['Rompetrol', 'Rompetrol|ROMPETROL|Partener Rompetrol|Rompetrol Express|Rompetrol Standard'],
+    'mol' => ['MOL', 'MOL|Mol'],
+    'lukoil' => ['Lukoil', 'Lukoil|LUKOIL|LukOil|LUKOIL Romania'],
+    'socar' => ['Socar', 'Socar|SOCAR'],
+    'gazprom' => ['Gazprom', 'Gazprom|GAZPROM|Gasprom|GASPROM'],
+    'oscar' => ['Oscar', 'Oscar|OSCAR|RO Oscar'],
+    'peco' => ['Peco', 'Peco|PECO|Stație Peco'],
+    'euroil' => ['Euroil', 'Euroil|EUROIL'],
+    'octano' => ['Octano', 'Octano|OCTANO'],
+    'aral' => ['Aral', 'Aral|ARAL'],
+    'shell' => ['Shell', 'Shell|SHELL'],
+    'agip' => ['Agip / Eni', 'Agip|AGIP|Eni|ENI'],
+    'tsv' => ['TSV', 'TSV'],
+    'florea_oil' => ['Florea Oil', 'Florea Oil|FLOREA OIL'],
+    'smart_diesel' => ['Smart Diesel', 'Smart Diesel|SMART DIESEL'],
+    'carbogaz' => ['Carbogaz', 'Carbogaz|CARBOGAZ'],
+    'rbc_gas' => ['RBC Gas', 'RBC Gas|RBC GAS'],
+    'icom_oil' => ['Icom Oil', 'Icom Oil|ICOM OIL'],
+    'ukrnafta' => ['Ukrnafta', 'Ukrnafta|UKRNAFTA'],
+    'avia' => ['Avia', 'Avia|AVIA'],
+    'delta_petrol' => ['Delta Petrol', 'Delta Petrol|DELTA PETROL'],
+    'as24' => ['AS 24', 'AS 24|AS24'],
+];
+$fuelSubcategories = [['id' => 'all', 'label' => 'Toate benzinăriile', 'osm' => [['amenity' => 'fuel']]]];
+foreach ($fuelBrands as $id => [$label, $pattern]) {
+    $fuelSubcategories[] = [
+        'id' => $id,
+        'label' => $label,
+        'osm' => [
+            ['amenity' => 'fuel', 'brand' => $pattern],
+            ['amenity' => 'fuel', 'operator' => $pattern],
+            ['amenity' => 'fuel', 'name' => $pattern],
+        ],
+    ];
+}
+$fuelSubcategories[] = ['id' => 'lpg', 'label' => 'GPL auto', 'osm' => [['amenity' => 'fuel', 'fuel:lpg' => 'yes']]];
+
 return [
     'default_types' => ['airport', 'bus', 'train', 'subway', 'taxi', 'hospital', 'pharmacy', 'police', 'fire', 'tourism'],
     'navigation_types' => ['fuel', 'parking', 'restaurant', 'cafe', 'lodging', 'supermarket', 'pharmacy', 'charging_station', 'police', 'speed_camera', 'speed_limit', 'traffic_sign', 'vignette_control', 'control', 'locality'],
     'osm_subcategories' => [
+        'fuel' => $fuelSubcategories,
         'police' => [
             ['id' => 'police_station', 'label' => 'Secții', 'osm' => [['amenity' => 'police']]],
             ['id' => 'traffic_filters', 'label' => 'Filtre în trafic', 'osm' => []],
