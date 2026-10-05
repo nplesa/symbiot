@@ -102,11 +102,13 @@ let poiLoadingStartedAt = null;
 let poiLoadingModalEventsBound = false;
 let poiLoadingModalShown = false;
 let poiLoadingModalHidePending = false;
+let poiLoadingModalShowing = false;
 let poiLoadingModalHidePromise = null;
 
 let allPois = null;
 
 let allPoisRaw = [];
+let poiResultCache = { key: null, tokens: new Set(), data: [] };
 
 const POI_CATEGORIES = {    
     airport:  { color: '#0d6efd' },
@@ -158,8 +160,30 @@ function normalizePoiType(type) {
     return map[type] || 'transport';
 }
 
+const CATEGORY_PALETTE = [
+    '#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4', '#008080',
+    '#f032e6', '#9a6324', '#800000', '#808000', '#000075', '#e6a800',
+    '#00a6d6', '#7cb518', '#b5179e', '#ff6f59',
+];
+const assignedCategoryColors = new globalThis.Map();
+
+// Every category selected after another one gets the next unused color, kept for the rest of the session.
+function assignCategoryColors(types) {
+    types.forEach(type => {
+        if (assignedCategoryColors.has(type)) return;
+
+        const index = assignedCategoryColors.size;
+        assignedCategoryColors.set(
+            type,
+            index < CATEGORY_PALETTE.length
+                ? CATEGORY_PALETTE[index]
+                : `hsl(${Math.round((index * 137.508) % 360)}, 70%, 42%)`
+        );
+    });
+}
+
 function getColorForType(type) {
-    return POI_CATEGORIES[type]?.color || '#666';
+    return assignedCategoryColors.get(type) || POI_CATEGORIES[type]?.color || '#666';
 }
 
 function getDistinctColor(index, total) {
@@ -2366,7 +2390,13 @@ async function loadNearby(locationOverride = null) {
                         || group.dataset.type,
                 ])
         );
-        const requests = buildPoiCategoryRequests(selectedTypes, {
+        const cacheKey = `${lat.toFixed(4)}:${lon.toFixed(4)}:${app_radius}`;
+        if (poiResultCache.key !== cacheKey) {
+            poiResultCache = { key: cacheKey, tokens: new Set(), data: [] };
+        }
+        // Only filters not already loaded for this place and radius are requested again.
+        const pendingTypes = selectedTypes.filter(token => !poiResultCache.tokens.has(token));
+        const requests = buildPoiCategoryRequests(pendingTypes, {
             transitEndpoints,
             categoryEndpoints,
             wazeEndpoint: '/api/poi/waze-traffic',
@@ -2386,7 +2416,31 @@ async function loadNearby(locationOverride = null) {
             .flatMap((result, index) => result.status === 'rejected'
                 ? [`${requests[index].label} (${result.reason?.message || 'cerere eșuată'})`]
                 : []);
-        const data = successfulResponses.flatMap(result => result.value);
+
+        responses.forEach((result, index) => {
+            if (result.status !== 'fulfilled') return;
+            const { category } = requests[index];
+            if (category === 'poi') {
+                pendingTypes
+                    .filter(token => !Object.hasOwn(transitEndpoints, token))
+                    .forEach(token => poiResultCache.tokens.add(token));
+            } else if (category !== 'waze-traffic') {
+                pendingTypes
+                    .filter(token => token === category || token.startsWith(`subcategory:${category}:`))
+                    .forEach(token => poiResultCache.tokens.add(token));
+            }
+            poiResultCache.data.push(...result.value);
+        });
+        if (successfulResponses.length > 0 || pendingTypes.length === 0) {
+            const seen = new Set();
+            poiResultCache.data = poiResultCache.data.filter(poi => {
+                const key = `${poi.type}:${poi.id ?? ''}:${poi.lat}:${poi.lon}:${poi.name ?? ''}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        }
+        const data = poiResultCache.data;
 
         if (requestId !== poiRequestId) return;
         if (successfulResponses.length === 0 && failedRequests.length > 0) {
@@ -2576,6 +2630,9 @@ function syncPoiFilterSelection(container) {
             });
         }
     });
+
+    assignCategoryColors(activePoiFilters);
+    poiLayer.changed();
 }
 
 function selectedPoiFilterTokens(container) {
@@ -2756,6 +2813,7 @@ function showPOIModal() {
     if (!poiLoadingModalEventsBound) {
         modalEl.addEventListener('shown.bs.modal', () => {
             poiLoadingModalShown = true;
+            poiLoadingModalShowing = false;
             startPoiElapsedTimer();
             if (poiLoadingModalHidePending) {
                 poiLoadingModalHidePending = false;
@@ -2764,6 +2822,7 @@ function showPOIModal() {
         });
         modalEl.addEventListener('hidden.bs.modal', () => {
             poiLoadingModalShown = false;
+            poiLoadingModalShowing = false;
             poiLoadingModalHidePending = false;
             stopPoiElapsedTimer();
             poiLoadingModalHidePromise = null;
@@ -2775,6 +2834,7 @@ function showPOIModal() {
     startPoiElapsedTimer();
 
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    if (!poiLoadingModalShown) poiLoadingModalShowing = true;
     modal.show();
 }
 
@@ -2821,7 +2881,8 @@ function hidePOIModal() {
     if (!modal) return Promise.resolve();
 
     if (!poiLoadingModalShown) {
-        if (!modalEl.classList.contains('show') && modalEl.style.display === 'none') {
+        // show() was already requested but the fade-in has not finished: hide as soon as it does.
+        if (!poiLoadingModalShowing && !modalEl.classList.contains('show') && modalEl.style.display === 'none') {
             return Promise.resolve();
         }
         poiLoadingModalHidePending = true;

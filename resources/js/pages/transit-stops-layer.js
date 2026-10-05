@@ -168,7 +168,16 @@ export function createTransitLayer(map) {
         const body = document.createElement('div');
         body.className = 'mt-1 text-muted';
         body.textContent = 'Se încarcă liniile…';
-        popupElement.append(title, body);
+        const header = document.createElement('div');
+        header.className = 'd-flex justify-content-between align-items-start gap-2';
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'poi-map-tooltip-close';
+        closeButton.textContent = '×';
+        closeButton.setAttribute('aria-label', 'Close');
+        closeButton.addEventListener('click', () => popup.setPosition(undefined));
+        header.append(title, closeButton);
+        popupElement.append(header, body);
         popup.setPosition(coordinate);
 
         try {
