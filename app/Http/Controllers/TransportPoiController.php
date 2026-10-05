@@ -568,25 +568,7 @@ class TransportPoiController extends Controller
             static fn (string $type): string => preg_quote($type, '/'),
             $routeTypes
         ));
-        $subwayOnly = $routeTypes === ['subway'];
-        $stopSelectors = $subwayOnly
-            ? ['["subway"="yes"]']
-            : ['["public_transport"~"^(platform|stop_position|station)$"]'];
-        if (array_intersect($routeTypes, ['bus', 'trolleybus']) !== []) {
-            $stopSelectors[] = '["highway"="bus_stop"]';
-            $stopSelectors[] = '["amenity"="bus_station"]';
-            $stopSelectors[] = '["public_transport"~"^(platform|stop_position)$"]["bus"="yes"]';
-        }
-        if (! $subwayOnly && in_array('subway', $routeTypes, true)) {
-            $stopSelectors[] = '["railway"~"^(station|subway_entrance)$"]';
-        }
-        if (array_intersect($routeTypes, ['train', 'light_rail', 'tram', 'monorail', 'funicular']) !== []) {
-            $stopSelectors[] = '["railway"~"^(station|halt|tram_stop|subway_entrance)$"]';
-            $stopSelectors[] = '["railway"="stop"]';
-        }
-        if (in_array('airline', $routeTypes, true)) {
-            $stopSelectors[] = '["aeroway"="aerodrome"]';
-        }
+        $stopSelectors = $this->transitStopSelectors($routeTypes);
 
         $nearbyPoints = [];
         foreach ($features as $feature) {
@@ -674,6 +656,35 @@ class TransportPoiController extends Controller
 
             return ['stops' => [], 'routes' => [], 'available' => false];
         }
+    }
+
+    /**
+     * @param  list<string>  $routeTypes
+     * @return list<string>
+     */
+    private function transitStopSelectors(array $routeTypes): array
+    {
+        $subwayOnly = $routeTypes === ['subway'];
+        $stopSelectors = $subwayOnly
+            ? ['["subway"="yes"]']
+            : ['["public_transport"~"^(platform|stop_position|station)$"]'];
+        if (array_intersect($routeTypes, ['bus', 'trolleybus']) !== []) {
+            $stopSelectors[] = '["highway"="bus_stop"]';
+            $stopSelectors[] = '["amenity"="bus_station"]';
+            $stopSelectors[] = '["public_transport"~"^(platform|stop_position)$"]["bus"="yes"]';
+        }
+        if (! $subwayOnly && in_array('subway', $routeTypes, true)) {
+            $stopSelectors[] = '["railway"~"^(station|subway_entrance)$"]';
+        }
+        if (array_intersect($routeTypes, ['train', 'light_rail', 'tram', 'monorail', 'funicular']) !== []) {
+            $stopSelectors[] = '["railway"~"^(station|halt|tram_stop|subway_entrance)$"]';
+            $stopSelectors[] = '["railway"="stop"]';
+        }
+        if (in_array('airline', $routeTypes, true)) {
+            $stopSelectors[] = '["aeroway"="aerodrome"]';
+        }
+
+        return $stopSelectors;
     }
 
     /**

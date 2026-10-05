@@ -588,10 +588,11 @@ function showPoiTooltip(feature, coordinate) {
         routeList.replaceChildren();
         activeTransitRoutes.clear();
         emptyMessage.hidden = routeGroups.length > 0;
-        emptyMessage.textContent = feature.get('routes_available') === false
-            ? 'Liniile nu au putut fi încărcate din OpenStreetMap. Încearcă din nou mai târziu.'
-            : 'Nu există linii asociate acestei stații în OpenStreetMap.';
+        emptyMessage.textContent = 'Nu există linii asociate acestei stații în OpenStreetMap.';
         sourceInfo.textContent = 'Linii și trasee din OpenStreetMap; statutul în teren poate fi diferit.';
+        if (feature.get('routes_available') === false) {
+            sourceInfo.textContent += ' Încărcarea automată a eșuat; încearcă din nou mai târziu.';
+        }
         trainLiveInfo.hidden = featureType !== 'train';
         metroEstimate.hidden = featureType !== 'subway' || routeGroups.length === 0;
         metroEstimate.textContent = 'Selectează exact o magistrală pentru estimarea următorului tren.';
@@ -771,9 +772,10 @@ function showPoiTooltip(feature, coordinate) {
         if (feature.get('type') === 'train' && feature.get('train_services_available') === false) {
             emptyRoutes.textContent = 'Orarele feroviare nu au putut fi încărcate din data.gov.ro.';
         } else {
-            emptyRoutes.textContent = feature.get('routes_available') === false
-                ? 'Liniile nu au putut fi încărcate din OpenStreetMap.'
-                : 'Nu există linii asociate stației în OpenStreetMap.';
+            emptyRoutes.textContent = 'Nu există linii asociate stației în OpenStreetMap.';
+            if (feature.get('routes_available') === false) {
+                emptyRoutes.textContent += ' Încărcarea automată a eșuat; încearcă din nou mai târziu.';
+            }
         }
         poiTooltipRoutes.appendChild(emptyRoutes);
     }
@@ -1877,7 +1879,8 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
         status.className = 'col-12 small text-success';
         setTimeout(() => map.updateSize(), 100);
         watchTransitCoverage(result.lat, result.lon, status, () => {
-            transitStops.load(result.lat, result.lon, Number(app_radius) || 1500).catch(() => {});
+            transitStops.load(result.lat, result.lon, Math.min(Number(app_radius) || 1500, 15000))
+                .catch(error => console.error('Stored transit stops could not be preloaded.', error));
             transitStops.watchVehicles(result.lat, result.lon);
             if (selectedPoiFilterTokens(document.getElementById('mobility_card')).includes('bus')) {
                 loadNearby({ lat: result.lat, lon: result.lon });
@@ -2281,6 +2284,14 @@ async function loadNearby(locationOverride = null) {
             return;
         }
 
+        const poiContainer = document.getElementById('mobility_card');
+        const hasSelectedFilters = Boolean(
+            poiContainer?.querySelector('.location-category:checked, .location-subcategory:checked')
+        );
+        if (hasSelectedFilters) {
+            showPOIModal();
+        }
+
         allPoisRaw = [];
         allPois = [];
         activePoiFilters.clear();
@@ -2289,14 +2300,25 @@ async function loadNearby(locationOverride = null) {
         await updateSubcategoryAvailability(lat, lon);
         if (requestId !== poiRequestId) return;
 
-        const poiContainer = document.getElementById('mobility_card');
         let selectedTypes = poiContainer ? selectedPoiFilterTokens(poiContainer) : [];
         transitStops.setVisible(selectedTypes.includes('bus'));
         // Bus stops and lines come from the stored transit feeds (blue stops) wherever they exist;
         // the OpenStreetMap bus POI layer stays only as a fallback for uncovered areas.
-        if (selectedTypes.includes('bus') && await transitStops.covers(lat, lon)) {
-            selectedTypes = selectedTypes.filter(type => type !== 'bus');
+        if (selectedTypes.includes('bus')) {
+            let hasStoredStops = false;
+            try {
+                hasStoredStops = await transitStops.load(
+                    lat,
+                    lon,
+                    Math.min(Number(app_radius) || 1500, 15000)
+                );
+            } catch (error) {
+                console.error('Stored transit stops could not be loaded; trying OpenStreetMap POIs.', error);
+            }
             if (requestId !== poiRequestId) return;
+            if (hasStoredStops) {
+                selectedTypes = selectedTypes.filter(type => type !== 'bus');
+            }
         }
         if (selectedTypes.length === 0) {
             poiRequestId++;
@@ -2307,8 +2329,6 @@ async function loadNearby(locationOverride = null) {
 
             return;
         }
-
-        showPOIModal();
 
         const transitEndpoints = {
             bus: '/api/transport/bus',
@@ -2524,12 +2544,12 @@ function syncPoiFilterSelection(container) {
             parent.indeterminate = selectedChildren.length > 0 && selectedChildren.length < children.length;
         }
 
-        if (selectedChildren.length > 0) {
+        if (parent?.checked) {
+            activePoiFilters.add(group.dataset.type);
+        } else if (selectedChildren.length > 0) {
             selectedChildren.forEach(child => {
                 activePoiFilters.add(child.dataset.type || group.dataset.type);
             });
-        } else if (children.length === 0 && parent?.checked) {
-            activePoiFilters.add(group.dataset.type);
         }
     });
 }
@@ -2541,6 +2561,13 @@ function selectedPoiFilterTokens(container) {
         const type = group.dataset.type;
         const children = Array.from(group.querySelectorAll('.location-subcategory:not(:disabled)'));
         const checkedChildren = children.filter(checkbox => checkbox.checked);
+
+        if (children.length === 0) {
+            if (group.querySelector('.location-category')?.checked) {
+                selected.push(type);
+            }
+            return;
+        }
 
         const childTypes = new Set(children.map(child => child.dataset.type || type));
         if (children.length > 0 && checkedChildren.length === children.length && childTypes.size === 1) {

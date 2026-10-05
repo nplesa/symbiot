@@ -223,17 +223,6 @@ export function createTransitLayer(map) {
     }
 
     return {
-        /** True when imported transit data already covers this point, so legacy bus POIs would duplicate it. */
-        async covers(lat, lon) {
-            try {
-                const data = await fetchJson(`/api/transit/stops?lat=${lat}&lon=${lon}&radius=1500`);
-
-                return data.stops.length > 0;
-            } catch {
-                return false;
-            }
-        },
-
         watchVehicles(lat, lon, radius = 3000) {
             clearInterval(vehicleTimer);
             vehicleSource.clear();
@@ -259,7 +248,7 @@ export function createTransitLayer(map) {
             popup.setPosition(undefined);
             const data = await fetchJson(`/api/transit/stops?lat=${lat}&lon=${lon}&radius=${radius}`);
             if (run !== loadRun) {
-                return;
+                return false;
             }
             stopSource.clear();
             stopSource.addFeatures(data.stops.map((stop) => {
@@ -268,6 +257,8 @@ export function createTransitLayer(map) {
 
                 return feature;
             }));
+
+            return data.stops.length > 0;
         },
     };
 }
