@@ -26,7 +26,7 @@
                     </div>
                 </section>
 
-                <section>
+                <section id="fuelBestCountrySection" hidden>
                     <h6 class="text-uppercase text-muted small mb-2">Cel mai bun din țară</h6>
                     <p class="text-muted small" id="fuelBestCountryStatus" role="status"></p>
                     <div id="fuelBestCountryResult" hidden>

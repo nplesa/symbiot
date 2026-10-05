@@ -86,6 +86,26 @@ class FuelBestPriceApiTest extends TestCase
             ->assertJsonPath('chains.0.nearest.price', 9.8);
     }
 
+    public function test_country_scope_chooses_the_nearest_station_when_national_prices_tie(): void
+    {
+        Cache::flush();
+        $xml = '<GasItems xmlns="http://schemas.datacontract.org/2004/07/pmonsvc.Models.Protos"><Products>'
+            . $this->product('A1', 'PETROM', '10.05') . $this->product('A2', 'PETROM', '10.05')
+            . '</Products><Stations>'
+            . $this->station('A1', 'PETROM', 46.07, 23.58) . $this->station('A2', 'PETROM', 45.65, 25.60)
+            . '</Stations></GasItems>';
+        Http::fake(['*' => Http::response($xml)]);
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/fuel/best?lat=45.65&lon=25.60&fuel=11&scope=country')
+            ->assertOk()
+            ->assertJsonPath('chains.0.name', 'Petrom')
+            ->assertJsonPath('chains.0.nearest.name', 'SA2')
+            ->assertJsonPath('chains.0.nearest.price', 10.05)
+            ->assertJsonPath('chains.0.nearest.meters', 0)
+            ->assertJsonPath('chains.0.nearest.city', 'Brașov');
+    }
+
     public function test_rejects_unknown_fuel(): void
     {
         $this->actingAs(User::factory()->create())

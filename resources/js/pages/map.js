@@ -826,6 +826,7 @@ function fuelBestRefs() {
         result: el('fuelBestResult'), chain: el('fuelBestChain'), price: el('fuelBestPrice'),
         meta: el('fuelBestMeta'), station: el('fuelBestStation'), ranking: el('fuelBestRanking'),
         navigate: el('fuelBestNavigate'), source: el('fuelBestSource'),
+        countrySection: el('fuelBestCountrySection'),
         countryStatus: el('fuelBestCountryStatus'), countryResult: el('fuelBestCountryResult'),
         countryChain: el('fuelBestCountryChain'), countryPrice: el('fuelBestCountryPrice'),
         countryMeta: el('fuelBestCountryMeta'), countryStation: el('fuelBestCountryStation'),
@@ -861,7 +862,7 @@ async function loadBestFuelPrice() {
 
     const lat = parseFloat(cl?.dataset.lat);
     const lon = parseFloat(cl?.dataset.lon);
-    [refs.result, refs.countryResult, refs.source, refs.navigate, refs.countryNavigate]
+    [refs.result, refs.countrySection, refs.countryResult, refs.source, refs.navigate, refs.countryNavigate]
         .forEach((node) => { node.hidden = true; });
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
         refs.status.textContent = 'Alege mai întâi o locație.';
@@ -884,10 +885,10 @@ async function loadBestFuelPrice() {
     const renderLocal = async () => {
         try {
             const data = await requestBestFuel(localParams);
-            if (requestId !== fuelBestRequest) return;
+            if (requestId !== fuelBestRequest) return null;
             if (!Array.isArray(data.chains) || data.chains.length === 0) {
                 refs.status.textContent = `Nu există prețuri raportate pentru ${data.fuel.toLowerCase()} la lanțurile din subcategorii, în zona ta.`;
-                return;
+                return null;
             }
 
             const best = data.chains[0];
@@ -909,12 +910,16 @@ async function loadBestFuelPrice() {
             refs.result.hidden = false;
             refs.source.textContent = `Sursa: ${data.source}. Prețurile sunt informative; clasamentul folosește prețul mediu al lanțului.`;
             refs.source.hidden = false;
+            return best;
         } catch (error) {
-            if (requestId !== fuelBestRequest) return;
+            if (requestId !== fuelBestRequest) return null;
             console.error('Best fuel price request failed.', error);
             refs.status.textContent = 'Prețurile nu au putut fi încărcate acum. Încearcă din nou.';
+            return null;
         }
     };
+
+    const localResultPromise = renderLocal();
 
     const renderCountry = async () => {
         try {
@@ -926,12 +931,16 @@ async function loadBestFuelPrice() {
             }
 
             const best = data.chains[0];
+            const localBest = await localResultPromise;
+            if (requestId !== fuelBestRequest || !localBest || best.average_price >= localBest.average_price) return;
+
+            refs.countrySection.hidden = false;
             refs.countryStatus.textContent = `Calculat din ${data.cities} orașe reședință de județ.`;
             refs.countryChain.textContent = best.name;
             refs.countryPrice.textContent = `${best.average_price.toFixed(2)} lei/l`;
             refs.countryMeta.textContent = `preț mediu, ${best.stations} stații`;
             const cheapest = best.nearest;
-            refs.countryStation.textContent = `Cea mai ieftină stație: ${[cheapest.name, cheapest.address].filter(Boolean).join(', ')} (${cheapest.price.toFixed(2)} lei/l)`;
+            refs.countryStation.textContent = `Cea mai ieftină stație: ${[cheapest.name, cheapest.address, cheapest.city].filter(Boolean).join(', ')} (${cheapest.price.toFixed(2)} lei/l)`;
             refs.countryNavigate.href = mapsDirectionsUrl(cheapest);
             refs.countryNavigate.hidden = false;
             refs.countryResult.hidden = false;
@@ -942,7 +951,7 @@ async function loadBestFuelPrice() {
         }
     };
 
-    await Promise.all([renderLocal(), renderCountry()]);
+    await Promise.all([localResultPromise, renderCountry()]);
 }
 document.addEventListener('click', (event) => {
     if (!event.target.closest('.fuel-best-button')) return;

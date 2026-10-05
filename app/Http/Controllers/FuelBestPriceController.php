@@ -22,7 +22,7 @@ class FuelBestPriceController extends Controller
 
         try {
             $result = ($data['scope'] ?? 'local') === 'country'
-                ? $prices->bestChainsInCountry($data['fuel'])
+                ? $prices->bestChainsInCountry($data['fuel'], (float) $data['lat'], (float) $data['lon'])
                 : $prices->bestChains(
                     (float) $data['lat'],
                     (float) $data['lon'],

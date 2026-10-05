@@ -148,9 +148,9 @@ class FuelPriceService
      *
      * @return array{chains: list<array<string, mixed>>, cities: int, source: string}
      */
-    public function bestChainsInCountry(string $category): array
+    public function bestChainsInCountry(string $category, float $lat, float $lon): array
     {
-        return Cache::remember('fuel_best_country:v1:' . $category, now()->addHour(), function () use ($category): array {
+        $data = Cache::remember('fuel_best_country:v3:' . $category, now()->addHour(), function () use ($category): array {
             $verify = $this->caBundle();
             $responses = Http::pool(fn (Pool $pool) => collect(self::CITIES)
                 ->map(fn (array $city, string $name) => $pool->as($name)->withOptions(['verify' => $verify])->timeout(20)->get(self::ENDPOINT, [
@@ -180,8 +180,28 @@ class FuelPriceService
                 throw new \RuntimeException('Monitorul Prețurilor is unavailable.');
             }
 
-            return ['chains' => $this->rank($priced, null, null, null), 'cities' => $cities, 'source' => self::SOURCE];
+            foreach ($priced as &$station) {
+                $nearestCity = null;
+                $nearestCityDistance = PHP_FLOAT_MAX;
+                foreach (self::CITIES as $cityName => [$cityLat, $cityLon]) {
+                    $distance = $this->meters($station['lat'], $station['lon'], $cityLat, $cityLon);
+                    if ($distance < $nearestCityDistance) {
+                        $nearestCity = $cityName;
+                        $nearestCityDistance = $distance;
+                    }
+                }
+                $station['city'] = $nearestCity;
+            }
+            unset($station);
+
+            return ['priced' => $priced, 'cities' => $cities];
         });
+
+        return [
+            'chains' => $this->rank($data['priced'], $lat, $lon, null, true),
+            'cities' => $data['cities'],
+            'source' => self::SOURCE,
+        ];
     }
 
     /** @return array<string, array<string, mixed>> Stations with their lowest price for the requested fuel, by station id. */
@@ -230,7 +250,7 @@ class FuelPriceService
      * @param  ?list<string>  $brands
      * @return list<array<string, mixed>>
      */
-    private function rank(array $priced, ?float $lat, ?float $lon, ?array $brands): array
+    private function rank(array $priced, ?float $lat, ?float $lon, ?array $brands, bool $preferCheapestStation = false): array
     {
         $chains = [];
         foreach ($priced as $station) {
@@ -243,8 +263,10 @@ class FuelPriceService
             $chains[$brand['id']]['name'] = $brand['label'];
             $chains[$brand['id']]['prices'][] = $station['price'];
             $current = $chains[$brand['id']]['station'] ?? null;
-            $better = $current === null
-                || ($meters !== null ? $meters < $current['meters'] : $station['price'] < $current['price']);
+            $better = $current === null || ($preferCheapestStation
+                ? ($station['price'] < $current['price']
+                    || ($station['price'] === $current['price'] && $meters < $current['meters']))
+                : ($meters !== null ? $meters < $current['meters'] : $station['price'] < $current['price']));
             if ($better) {
                 $chains[$brand['id']]['station'] = [
                     'name' => $station['name'],
@@ -253,6 +275,7 @@ class FuelPriceService
                     'lon' => $station['lon'],
                     'price' => $station['price'],
                     'meters' => $meters,
+                    ...(isset($station['city']) ? ['city' => $station['city']] : []),
                 ];
             }
         }
