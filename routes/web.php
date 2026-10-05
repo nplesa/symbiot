@@ -88,6 +88,7 @@ Route::name('app.')->middleware(['auth'])->group(function () {
         Route::get('/vehicles', VehicleController::class)->name('vehicles');
         Route::get('/stops', [TransitMapController::class, 'stops'])->name('stops');
         Route::get('/stops/{feed}/{stop}/routes', [TransitMapController::class, 'stopRoutes'])->where('feed', '[0-9]+')->where('stop', '.+')->name('stop-routes');
+        Route::get('/stops/{feed}/{stop}/next-departure', [TransitMapController::class, 'nextDeparture'])->where('feed', '[0-9]+')->where('stop', '.+')->name('next-departure');
         Route::get('/routes/{feed}/{route}/shape', [TransitMapController::class, 'routeShape'])->where('feed', '[0-9]+')->where('route', '.+')->name('route-shape');
     });
 

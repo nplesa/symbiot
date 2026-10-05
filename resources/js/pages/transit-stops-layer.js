@@ -111,25 +111,32 @@ export function createTransitLayer(map) {
             : 'background:#fff;border:2px solid #6c757d;color:#212529;';
     }
 
-    function chip(feed, route) {
+    function chip(feed, stopId, route) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'd-inline-flex flex-column align-items-start me-2 mb-1';
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'btn btn-sm me-1 mb-1';
+        button.className = 'btn btn-sm';
         button.textContent = route.short_name || route.long_name || route.route_id;
         button.title = `${modeLabel(route.route_type)}${route.long_name ? `: ${route.long_name}` : ''}`;
         paintChip(button, activeRoutes.get(routeKey(feed, route))?.color);
-        button.addEventListener('click', () => toggleRoute(feed, route, button));
+        const schedule = document.createElement('span');
+        schedule.className = 'small text-muted mt-1';
+        schedule.hidden = true;
+        button.addEventListener('click', () => toggleRoute(feed, stopId, route, button, schedule));
+        wrapper.append(button, schedule);
 
-        return button;
+        return wrapper;
     }
 
-    async function toggleRoute(feed, route, button) {
+    async function toggleRoute(feed, stopId, route, button, schedule) {
         const key = routeKey(feed, route);
         const active = activeRoutes.get(key);
         if (active) {
             active.features.forEach((line) => shapeSource.removeFeature(line));
             activeRoutes.delete(key);
             paintChip(button, null);
+            schedule.hidden = true;
 
             return;
         }
@@ -138,6 +145,22 @@ export function createTransitLayer(map) {
         const entry = { color, features: [] };
         activeRoutes.set(key, entry);
         paintChip(button, color);
+        schedule.textContent = 'Se caută următoarea plecare programată…';
+        schedule.hidden = false;
+        fetchJson(`/api/transit/stops/${feed}/${encodeURIComponent(stopId)}/next-departure?route_id=${encodeURIComponent(route.route_id)}`)
+            .then(({ departure }) => {
+                if (activeRoutes.get(key) !== entry) return;
+                if (!departure) {
+                    schedule.textContent = 'Nu este programată o plecare în următoarele zile.';
+                    return;
+                }
+                const countdown = departure.minutes_until === 0 ? 'acum' : `în ${departure.minutes_until} min`;
+                schedule.textContent = `Următoarea plecare: ${departure.time} (${countdown})${departure.headsign ? ` spre ${departure.headsign}` : ''} · orar programat`;
+            })
+            .catch(() => {
+                if (activeRoutes.get(key) === entry) schedule.textContent = 'Orarul nu este disponibil.';
+            });
+
         try {
             const data = await fetchJson(`/api/transit/routes/${feed}/${encodeURIComponent(route.route_id)}/shape`);
             if (activeRoutes.get(key) !== entry) {
@@ -192,7 +215,7 @@ export function createTransitLayer(map) {
                 body.className = 'mt-1 text-muted';
                 body.textContent = 'Nicio linie cu orar la această stație.';
             }
-            data.routes.forEach((route) => body.append(chip(feed, route)));
+            data.routes.forEach((route) => body.append(chip(feed, feature.get('stopId'), route)));
         } catch {
             body.textContent = 'Nu am putut încărca liniile.';
         }

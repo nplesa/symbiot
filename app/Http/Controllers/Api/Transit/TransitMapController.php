@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Transit;
 use App\Http\Controllers\Controller;
 use App\Transit\Models\TransitFeed;
 use App\Transit\Services\FeedDiscovery;
+use DateTimeZone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -89,6 +90,98 @@ class TransitMapController extends Controller
                 'color' => $r->color,
                 'text_color' => $r->text_color,
             ])->all(),
+        ]);
+    }
+
+    public function nextDeparture(Request $request, int $feed, string $stop): JsonResponse
+    {
+        $data = $request->validate([
+            'route_id' => 'required|string|max:100',
+        ]);
+        $stopIds = DB::table('transit_stops')
+            ->where('feed_id', $feed)
+            ->where('parent_station', $stop)
+            ->pluck('stop_id')
+            ->push($stop)
+            ->all();
+        $timezone = DB::table('transit_agencies')->where('feed_id', $feed)->value('timezone') ?: config('app.timezone');
+        try {
+            new DateTimeZone($timezone);
+        } catch (\Exception) {
+            $timezone = config('app.timezone');
+        }
+        $now = now($timezone);
+        $activeDatesByService = [];
+
+        for ($offset = -1; $offset <= 7; $offset++) {
+            $serviceDate = $now->copy()->startOfDay()->addDays($offset);
+            $date = $serviceDate->toDateString();
+            $weekdayBit = 1 << ($serviceDate->dayOfWeekIso - 1);
+            $activeServices = DB::table('transit_calendars')
+                ->where('feed_id', $feed)
+                ->whereDate('start_date', '<=', $date)
+                ->whereDate('end_date', '>=', $date)
+                ->whereRaw('(days_mask & ?) != 0', [$weekdayBit])
+                ->pluck('service_id')
+                ->flip();
+
+            foreach (DB::table('transit_calendar_dates')
+                ->where('feed_id', $feed)
+                ->whereDate('date', $date)
+                ->get(['service_id', 'exception_type']) as $exception) {
+                if ((int) $exception->exception_type === 1) {
+                    $activeServices->put($exception->service_id, true);
+                } elseif ((int) $exception->exception_type === 2) {
+                    $activeServices->forget($exception->service_id);
+                }
+            }
+
+            foreach ($activeServices->keys() as $serviceId) {
+                $activeDatesByService[$serviceId][] = $serviceDate;
+            }
+        }
+
+        if ($activeDatesByService === []) {
+            return response()->json(['departure' => null]);
+        }
+
+        $times = DB::table('transit_stop_times as st')
+            ->join('transit_trips as t', fn ($join) => $join->on('t.feed_id', '=', 'st.feed_id')->on('t.trip_id', '=', 'st.trip_id'))
+            ->where('st.feed_id', $feed)
+            ->where('t.route_id', $data['route_id'])
+            ->whereIn('t.service_id', array_keys($activeDatesByService))
+            ->whereIn('st.stop_id', $stopIds)
+            ->where(fn ($query) => $query->whereNotNull('st.arrival_seconds')->orWhereNotNull('st.departure_seconds'))
+            ->get([
+                't.service_id',
+                't.headsign',
+                'st.arrival_seconds',
+                'st.departure_seconds',
+            ]);
+
+        $next = null;
+        foreach ($times as $time) {
+            $seconds = $time->arrival_seconds ?? $time->departure_seconds;
+            foreach ($activeDatesByService[$time->service_id] ?? [] as $serviceDate) {
+                $departure = $serviceDate->copy()->addSeconds((int) $seconds);
+                if ($departure->lt($now) || ($next !== null && ! $departure->lt($next['at']))) {
+                    continue;
+                }
+                $next = ['at' => $departure, 'headsign' => $time->headsign];
+            }
+        }
+
+        if ($next === null) {
+            return response()->json(['departure' => null]);
+        }
+
+        return response()->json([
+            'departure' => [
+                'time' => $next['at']->format('H:i'),
+                'minutes_until' => (int) ceil($now->diffInSeconds($next['at']) / 60),
+                'headsign' => $next['headsign'],
+                'timezone' => $timezone,
+            ],
         ]);
     }
 

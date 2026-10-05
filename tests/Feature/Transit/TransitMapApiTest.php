@@ -4,6 +4,7 @@ namespace Tests\Feature\Transit;
 
 use App\Models\User;
 use App\Transit\Models\TransitFeed;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -92,6 +93,43 @@ class TransitMapApiTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->getJson("/api/transit/stops/{$feed->id}/ST/routes")
             ->assertJsonPath('routes.0.short_name', 'M1');
+    }
+
+    public function test_next_departure_uses_the_active_gtfs_service_and_stop_arrival_time(): void
+    {
+        $feed = $this->seedFeed();
+        Carbon::setTestNow('2026-10-05 10:00:00');
+        DB::table('transit_agencies')->insert([
+            'feed_id' => $feed->id, 'agency_id' => 'agency', 'name' => 'Agency', 'timezone' => 'UTC',
+        ]);
+        DB::table('transit_calendars')->insert([
+            'feed_id' => $feed->id,
+            'service_id' => 's',
+            'days_mask' => 127,
+            'start_date' => '2026-10-01',
+            'end_date' => '2026-10-10',
+        ]);
+        DB::table('transit_trips')->where('trip_id', 't1')->update(['headsign' => 'Centru']);
+        DB::table('transit_stop_times')->where('trip_id', 't1')->update([
+            'arrival_seconds' => 10 * 3600 + 15 * 60,
+            'departure_seconds' => 10 * 3600 + 16 * 60,
+        ]);
+        DB::table('transit_stop_times')->where('trip_id', 't2')->update([
+            'arrival_seconds' => 10 * 3600 + 30 * 60,
+            'departure_seconds' => 10 * 3600 + 31 * 60,
+        ]);
+
+        try {
+            $this->actingAs(User::factory()->create())
+                ->getJson("/api/transit/stops/{$feed->id}/A%2F1/next-departure?route_id=M1")
+                ->assertOk()
+                ->assertJsonPath('departure.time', '10:15')
+                ->assertJsonPath('departure.minutes_until', 15)
+                ->assertJsonPath('departure.headsign', 'Centru')
+                ->assertJsonPath('departure.timezone', 'UTC');
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_route_shape_returns_one_line_per_direction(): void
