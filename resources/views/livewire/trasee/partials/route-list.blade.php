@@ -41,8 +41,7 @@
                     <button
                         type="button"
                         class="trasee-item__delete btn btn-sm btn-outline-danger"
-                        wire:click.stop="deleteRoute({{ $route->id }})"
-                        wire:confirm="Sigur vrei să ștergi acest traseu? Această acțiune nu poate fi anulată."
+                        x-on:click.stop="Swal.fire({ title: 'Ștergi traseul?', text: 'Această acțiune nu poate fi anulată.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Șterge', cancelButtonText: 'Anulează', confirmButtonColor: '#dc3545', reverseButtons: true }).then((result) => { if (result.isConfirmed) { $wire.deleteRoute({{ $route->id }}) } })"
                         wire:loading.attr="disabled"
                         wire:target="deleteRoute({{ $route->id }})"
                         title="Șterge traseul"

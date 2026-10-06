@@ -2,11 +2,14 @@
 
 namespace App\Jobs;
 
+use App\Models\Route;
+use App\Models\RoutePoint;
 use App\Models\TrackingSession;
 use App\Services\TrackProcessingService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\DB;
 
 class ProcessTrackingSessionJob implements ShouldBeUnique, ShouldQueue
 {
@@ -67,11 +70,59 @@ class ProcessTrackingSessionJob implements ShouldBeUnique, ShouldQueue
         array $geojson
     ): void {
 
-        $session->update([
+        DB::transaction(function () use ($session, $distance, $geojson): void {
+            $duration = $session->started_at->diffInSeconds($session->ended_at);
+
+            $session->update([
+                'distance' => round($distance, 2),
+                'duration' => $duration,
+                'route_geojson' => $geojson,
+                'processed_at' => now(),
+            ]);
+
+            $this->saveRoute($session, $distance, $duration, $geojson);
+        });
+    }
+
+    /** @param array<string, mixed> $geojson */
+    private function saveRoute(
+        TrackingSession $session,
+        float $distance,
+        int $duration,
+        array $geojson
+    ): void {
+        $sourceUrl = 'tracking-session:' . $session->id;
+
+        if (Route::query()->where('user_id', $session->user_id)->where('source_url', $sourceUrl)->exists()) {
+            return;
+        }
+
+        $route = Route::create([
+            'user_id' => $session->user_id,
+            'name' => $session->name ?: 'Tracking ' . $session->started_at->format('d.m.Y H:i'),
+            'format' => 'geojson',
+            'geometry' => $geojson,
             'distance' => round($distance, 2),
-            'duration' => $session->started_at->diffInSeconds($session->ended_at),
-            'route_geojson' => $geojson,
-            'processed_at' => now(),
+            'duration' => $duration,
+            'source' => 'tracking',
+            'source_url' => $sourceUrl,
         ]);
+
+        $now = now();
+
+        foreach (array_chunk($geojson['coordinates'], 500, true) as $chunk) {
+            RoutePoint::query()->insert(array_map(
+                static fn (array $coordinate, int $index): array => [
+                    'route_id' => $route->id,
+                    'sequence' => $index,
+                    'longitude' => $coordinate[0],
+                    'latitude' => $coordinate[1],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+                $chunk,
+                array_keys($chunk)
+            ));
+        }
     }
 }

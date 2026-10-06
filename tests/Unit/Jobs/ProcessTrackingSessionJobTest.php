@@ -75,6 +75,15 @@ class ProcessTrackingSessionJobTest extends TestCase
         $this->assertNotNull($session->distance);
         $this->assertGreaterThan(0, $session->distance);
         $this->assertIsArray($session->route_geojson);
+        $this->assertDatabaseHas('routes', [
+            'user_id' => $session->user_id,
+            'source' => 'tracking',
+            'source_url' => 'tracking-session:' . $session->id,
+        ]);
+        $this->assertDatabaseCount('route_points', 2);
+
+        (new ProcessTrackingSessionJob($session->id))->handle(app(TrackProcessingService::class));
+        $this->assertDatabaseCount('routes', 1);
     }
 
     public function test_processed_session_contains_correct_geojson(): void

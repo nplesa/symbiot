@@ -2627,8 +2627,12 @@ function syncPoiFilterSelection(container) {
         const selectedChildren = children.filter(checkbox => checkbox.checked);
 
         if (parent) {
-            parent.checked = children.length > 0 && selectedChildren.length === children.length;
-            parent.indeterminate = selectedChildren.length > 0 && selectedChildren.length < children.length;
+            if (children.length > 0) {
+                parent.checked = selectedChildren.length === children.length;
+                parent.indeterminate = selectedChildren.length > 0 && selectedChildren.length < children.length;
+            } else {
+                parent.indeterminate = false;
+            }
         }
 
         if (parent?.checked) {

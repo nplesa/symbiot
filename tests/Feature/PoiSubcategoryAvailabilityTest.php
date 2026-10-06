@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Transit\Models\TransitFeed;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,15 @@ class PoiSubcategoryAvailabilityTest extends TestCase
         DB::table('transport_points')->insert([
             'name' => $tags['name'] ?? 'Benzinărie', 'type' => 'fuel', 'source' => 'openstreetmap',
             'osm_type' => 'n', 'osm_id' => (string) random_int(1, 999999), 'tags' => json_encode($tags + ['amenity' => 'fuel']),
+            'lat' => $lat, 'lon' => $lon, 'imported_at' => now(), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+    }
+
+    private function point(string $type, array $tags, float $lat, float $lon): void
+    {
+        DB::table('transport_points')->insert([
+            'name' => $tags['name'] ?? ucfirst($type), 'type' => $type, 'source' => 'openstreetmap',
+            'osm_type' => 'n', 'osm_id' => (string) random_int(1, 999999), 'tags' => json_encode($tags),
             'lat' => $lat, 'lon' => $lon, 'imported_at' => now(), 'created_at' => now(), 'updated_at' => now(),
         ]);
     }
@@ -79,7 +89,7 @@ class PoiSubcategoryAvailabilityTest extends TestCase
         ], $ids);
     }
 
-    public function test_subway_remains_available_when_geoapify_has_no_stations_but_transit_osm_can(): void
+    public function test_subway_is_unavailable_when_no_nearby_source_reports_it(): void
     {
         Cache::flush();
         config(['services.geoapify.key' => 'test-key']);
@@ -93,7 +103,82 @@ class PoiSubcategoryAvailabilityTest extends TestCase
             ->assertOk()
             ->json('subcategories.subway');
 
+        $this->assertSame([], $subcategories);
+    }
+
+    public function test_subway_is_available_when_a_nearby_gtfs_route_is_a_subway(): void
+    {
+        Cache::flush();
+        config(['services.geoapify.key' => 'test-key']);
+        Http::fake([
+            'api.geoapify.com/*' => Http::response(['features' => []]),
+            '*' => Http::response(['elements' => []]),
+        ]);
+        $feed = TransitFeed::create([
+            'slug' => 'nearby-subway',
+            'name' => 'Nearby Subway',
+            'static_hash' => 'imported',
+            'import_status' => 'imported',
+            'min_lat' => 44.9,
+            'max_lat' => 45.0,
+            'min_lon' => 25.4,
+            'max_lon' => 25.5,
+        ]);
+        DB::table('transit_stops')->insert([
+            'feed_id' => $feed->id, 'stop_id' => 'metro-stop', 'name' => 'Metro', 'lat' => 44.9268, 'lon' => 25.4627,
+        ]);
+        DB::table('transit_routes')->insert([
+            'feed_id' => $feed->id, 'route_id' => 'M1', 'route_type' => 1,
+        ]);
+        DB::table('transit_trips')->insert([
+            'feed_id' => $feed->id, 'trip_id' => 'metro-trip', 'route_id' => 'M1', 'service_id' => 'daily',
+        ]);
+        DB::table('transit_stop_times')->insert([
+            'feed_id' => $feed->id, 'trip_id' => 'metro-trip', 'stop_id' => 'metro-stop', 'stop_sequence' => 1,
+        ]);
+
+        $subcategories = $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/subcategories?lat=44.9267&lon=25.4626&radius=3000')
+            ->assertOk()
+            ->json('subcategories.subway');
+
         $this->assertContains('subcategory:subway:public_transport.subway.entrance', $subcategories);
+    }
+
+    public function test_local_cafes_keep_the_category_available_when_geoapify_has_no_subtype_match(): void
+    {
+        Cache::flush();
+        config(['services.geoapify.key' => 'test-key']);
+        Http::fake([
+            'api.geoapify.com/*' => Http::response(['features' => []]),
+            '*' => Http::response(['elements' => []]),
+        ]);
+        $this->point('cafe', ['amenity' => 'cafe', 'name' => 'Cafe din centru'], 44.43, 26.10);
+
+        $available = $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/subcategories?lat=44.43&lon=26.10&radius=3000')
+            ->assertOk()
+            ->json('subcategories.cafe');
+
+        $this->assertContains('cafe', $available);
+    }
+
+    public function test_local_cafes_outside_the_radius_do_not_enable_the_category(): void
+    {
+        Cache::flush();
+        config(['services.geoapify.key' => 'test-key']);
+        Http::fake([
+            'api.geoapify.com/*' => Http::response(['features' => []]),
+            '*' => Http::response(['elements' => []]),
+        ]);
+        $this->point('cafe', ['amenity' => 'cafe', 'name' => 'Cafe departe'], 44.50, 26.10);
+
+        $available = $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/subcategories?lat=44.43&lon=26.10&radius=1000')
+            ->assertOk()
+            ->json('subcategories.cafe');
+
+        $this->assertSame([], $available);
     }
 
     public function test_airports_are_available_when_geoapify_finds_them_in_range(): void

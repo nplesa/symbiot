@@ -18,7 +18,7 @@ class PoiSubcategoryAvailability
      */
     public function around(float $lat, float $lon, int $radius): array
     {
-        $key = sprintf('poi_subcategories:v2:%.2f:%.2f:%d', $lat, $lon, intdiv($radius, 500));
+        $key = sprintf('poi_subcategories:v3:%.2f:%.2f:%d', $lat, $lon, intdiv($radius, 500));
 
         return Cache::remember($key, now()->addHours(6), fn (): array => $this->compute($lat, $lon, $radius));
     }
@@ -28,6 +28,16 @@ class PoiSubcategoryAvailability
     {
         $result = [];
         $geoapifyTypes = [];
+        $hasNearbyCafes = $this->hasNearbyOsmPoints('cafe', $lat, $lon, $radius);
+        $hasNearbySubway = $this->hasNearbyOsmPoints('subway', $lat, $lon, $radius)
+            || $this->hasNearbyGtfsSubwayStops($lat, $lon, $radius);
+
+        if ($hasNearbyCafes) {
+            $result['cafe'] = ['cafe'];
+        }
+        if ($hasNearbySubway) {
+            $result['subway'] = [$this->catalog->subcategories('subway')[0]['id']];
+        }
 
         foreach (array_keys($this->catalog->categories()) as $type) {
             $subcategories = $this->catalog->subcategories($type);
@@ -57,9 +67,13 @@ class PoiSubcategoryAvailability
         foreach ($this->geoapifyAvailability($geoapifyTypes, $lat, $lon, $radius) as $type => $found) {
             $subcategories = $this->catalog->subcategories($type);
             $matched = $this->matchGeoapify($subcategories, $found);
-            if ($type === 'subway' && $matched === []) {
-                // The transit endpoint can find OSM subway stops even when Geoapify reports none.
-                $matched = array_column($subcategories, 'id');
+            if ($type === 'cafe' && $matched === [] && $this->hasGeoapifyRootCategory($type, $found)) {
+                $matched[] = 'cafe';
+            } elseif ($type === 'subway' && $matched === [] && $this->hasGeoapifyRootCategory($type, $found)) {
+                $matched[] = $subcategories[0]['id'];
+            }
+            if ($type === 'subway' && $hasNearbySubway) {
+                $matched = array_merge($matched, array_column($subcategories, 'id'));
             }
             $result[$type] = array_values(array_unique(array_merge(
                 $result[$type] ?? $this->unconditionalIds($subcategories),
@@ -99,6 +113,77 @@ class PoiSubcategoryAvailability
         }
 
         return $matched;
+    }
+
+    /** @param list<string> $found */
+    private function hasGeoapifyRootCategory(string $type, array $found): bool
+    {
+        foreach ($this->catalog->categories()[$type]['geoapify'] as $category) {
+            if (in_array($category, $found, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasNearbyOsmPoints(string $type, float $lat, float $lon, int $radius): bool
+    {
+        $latPad = $radius / 111320;
+        $lonPad = $radius / (111320 * max(0.01, cos(deg2rad($lat))));
+
+        return DB::table('transport_points')
+            ->where('type', $type)
+            ->whereBetween('lat', [$lat - $latPad, $lat + $latPad])
+            ->whereBetween('lon', [$lon - $lonPad, $lon + $lonPad])
+            ->get(['lat', 'lon'])
+            ->contains(fn ($point): bool => $this->metersBetween(
+                $lat,
+                $lon,
+                (float) $point->lat,
+                (float) $point->lon,
+            ) <= $radius);
+    }
+
+    private function hasNearbyGtfsSubwayStops(float $lat, float $lon, int $radius): bool
+    {
+        $latPad = $radius / 111320;
+        $lonPad = $radius / (111320 * max(0.01, cos(deg2rad($lat))));
+        $stops = DB::table('transit_stops as s')
+            ->join('transit_stop_times as st', fn ($join) => $join
+                ->on('st.feed_id', '=', 's.feed_id')
+                ->on('st.stop_id', '=', 's.stop_id'))
+            ->join('transit_trips as t', fn ($join) => $join
+                ->on('t.feed_id', '=', 'st.feed_id')
+                ->on('t.trip_id', '=', 'st.trip_id'))
+            ->join('transit_routes as r', fn ($join) => $join
+                ->on('r.feed_id', '=', 't.feed_id')
+                ->on('r.route_id', '=', 't.route_id'))
+            ->join('transit_feeds as f', 'f.id', '=', 's.feed_id')
+            ->where('f.active', true)
+            ->whereNotNull('f.static_hash')
+            ->where('r.route_type', 1)
+            ->whereBetween('s.lat', [$lat - $latPad, $lat + $latPad])
+            ->whereBetween('s.lon', [$lon - $lonPad, $lon + $lonPad])
+            ->distinct()
+            ->get(['s.lat', 's.lon']);
+
+        return $stops->contains(fn ($stop): bool => $this->metersBetween(
+            $lat,
+            $lon,
+            (float) $stop->lat,
+            (float) $stop->lon,
+        ) <= $radius);
+    }
+
+    private function metersBetween(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        $a = sin($dLat / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
+
+        return 6371000 * 2 * asin(min(1, sqrt($a)));
     }
 
     /**
