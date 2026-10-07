@@ -27,8 +27,28 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'approved_at' => 'datetime',
+            'is_admin' => 'boolean',
             'password' => 'hashed',
         ];
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->approved_at !== null;
+    }
+
+    public function countryName(): ?string
+    {
+        if (! $this->country) {
+            return null;
+        }
+
+        if (strlen($this->country) === 2 && class_exists(\Locale::class)) {
+            return \Locale::getDisplayRegion('-' . $this->country, 'ro') ?: $this->country;
+        }
+
+        return $this->country;
     }
 
     /** @return HasMany<Device, $this> */

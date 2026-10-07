@@ -31,10 +31,6 @@
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    <!-- Left Side Of Navbar -->
-                    <ul class="navbar-nav me-auto">
-
-                    </ul>
 
                     <!-- Right Side Of Navbar -->
                     <ul class="navbar-nav ms-auto">
@@ -68,6 +64,13 @@
                                         Trasee
                                     </a>
 
+                                        @auth
+                                            @if (Auth::user()->is_admin)
+                                                <a class="dropdown-item" href="{{ route('app.admin.users') }}">Utilizatori</a>
+                                            @endif
+                                        @endauth
+
+
                                     <a class="dropdown-item" href="{{ route('logout') }}"
                                        onclick="event.preventDefault();
                                                      document.getElementById('logout-form').submit();">
@@ -84,6 +87,16 @@
                 </div>
             </div>
         </nav>
+
+        @if (session('ghost_admin_id'))
+            <div class="alert alert-warning rounded-0 mb-0 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <span>E?ti conectat ca <strong>{{ Auth::user()->name }}</strong> (mod GHOST).</span>
+                <form method="POST" action="{{ route('ghost.leave') }}">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-dark">Revino la contul t?u</button>
+                </form>
+            </div>
+        @endif
 
         <main class="py-4">
             @yield('content')

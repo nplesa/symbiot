@@ -13,6 +13,7 @@ use App\Http\Controllers\FirePoiController;
 use App\Http\Controllers\FuelBestPriceController;
 use App\Http\Controllers\FuelPoiController;
 use App\Http\Controllers\FuelPriceController;
+use App\Http\Controllers\GhostController;
 use App\Http\Controllers\GoogleMapsController;
 use App\Http\Controllers\GoogleMapsKmlController;
 use App\Http\Controllers\HomeController;
@@ -46,7 +47,16 @@ Route::get('/', fn () => view('welcome'));
 
 Auth::routes();
 
-Route::name('app.')->middleware(['auth'])->group(function () {
+Route::middleware('auth')->group(function () {
+    Route::view('/pending-approval', 'auth.pending')->name('pending');
+    Route::post('/ghost/leave', [GhostController::class, 'leave'])->name('ghost.leave');
+});
+
+Route::name('app.')->middleware(['auth', 'approved'])->group(function () {
+    Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/users', fn () => view('admin.users'))->name('users');
+        Route::post('/users/{user}/ghost', [GhostController::class, 'enter'])->name('users.ghost');
+    });
     Route::get('/home', [HomeController::class, 'index'])->name('home');
     Route::post('/location/update', [LocationController::class, 'update']);
     Route::get('/api/location/city', CityLocationController::class)->middleware('throttle:30,1');
@@ -113,8 +123,8 @@ Route::name('app.')->middleware(['auth'])->group(function () {
     Route::get('/tracking/{session}/route', [TrackingController::class, 'route'])->name('tracking.route');
 });
 
-Route::middleware('auth')->get('/api/google-maps/resolve', [GoogleMapsController::class, 'resolve'])
+Route::middleware(['auth', 'approved'])->get('/api/google-maps/resolve', [GoogleMapsController::class, 'resolve'])
     ->name('api.google-maps.resolve');
 
-Route::middleware('auth')->post('/api/trasee/google-maps-kml', GoogleMapsKmlController::class)
+Route::middleware(['auth', 'approved'])->post('/api/trasee/google-maps-kml', GoogleMapsKmlController::class)
     ->name('api.trasee.google-maps-kml');

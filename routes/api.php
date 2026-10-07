@@ -14,7 +14,7 @@ Route::prefix('v1')->group(function () {
     )
         ->middleware('throttle:login');
 
-    Route::middleware('auth:sanctum')
+    Route::middleware(['auth:sanctum', 'approved'])
         ->group(function () {
 
             Route::post(

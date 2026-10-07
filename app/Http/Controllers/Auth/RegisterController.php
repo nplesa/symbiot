@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\IpCountryResolver;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator as ValidatorFacade;
@@ -33,10 +34,15 @@ class RegisterController extends Controller
     /** @param array<string, mixed> $data */
     protected function create(array $data): User
     {
-        return User::create([
+        $user = new User([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
+        $user->registration_ip = request()->ip();
+        $user->country = app(IpCountryResolver::class)->resolve(request());
+        $user->save();
+
+        return $user;
     }
 }
