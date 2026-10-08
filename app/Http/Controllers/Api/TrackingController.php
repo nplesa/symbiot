@@ -159,7 +159,6 @@ class TrackingController extends Controller
 
     private function device(Request $request, string $uuid): Device
     {
-        dd($uuid, $request->user()->id, $request); // Debugging line to inspect the UUID and user ID
         return Device::firstOrCreate(
             [
                 'uuid' => $uuid,

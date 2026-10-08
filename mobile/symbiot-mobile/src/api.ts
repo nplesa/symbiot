@@ -59,6 +59,9 @@ async function request<T>(
   options: RequestInit = {},
   authenticated = true
 ): Promise<T> {
+
+  const url = `${config.apiUrl}/v1${path}`;
+
   const headers = new Headers(options.headers);
 
   headers.set('Accept', 'application/json');
@@ -67,34 +70,80 @@ async function request<T>(
     headers.set('Content-Type', 'application/json');
   }
 
+  var token = null; 
   if (authenticated) {
-    const token = getToken();
+    token = getToken();
 
     if (!token) {
       throw new Error('Not authenticated.');
     }
 
-    headers.set('Authorization', `Bearer ${token}`);
+    headers.set(
+      'Authorization',
+      `Bearer ${token}`
+    );
   }
 
-  const response = await fetch(
-    `${config.apiUrl}/v1${path}`,
-    {
-      ...options,
-      headers,
-    }
+  console.log('==============================');
+  console.log('API REQUEST');
+  console.log('URL:', url);
+  console.log('TOKEN:', token);
+  console.log('METHOD:', options.method ?? 'GET');
+  console.log('BODY:', options.body);
+
+  let response: Response;
+
+  try {
+
+    response = await fetch(
+      url,
+      {
+        ...options,
+        headers,
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      'FETCH FAILED:',
+      error
+    );
+
+    throw new Error(
+      `Network error while calling ${url}: ${
+        error instanceof Error
+          ? error.message
+          : String(error)
+      }`
+    );
+  }
+
+  console.log(
+    'HTTP STATUS:',
+    response.status
   );
 
   let body: unknown;
 
   try {
+
     body = await response.json();
+
   } catch {
+
     body = null;
   }
 
+  console.log(
+    'API RESPONSE:',
+    body
+  );
+
   if (!response.ok) {
-    const error = body as ApiError | null;
+
+    const error =
+      body as ApiError | null;
 
     if (response.status === 401) {
       clearToken();
@@ -108,6 +157,7 @@ async function request<T>(
 
   return body as T;
 }
+
 
 export async function login(
   email: string,
