@@ -1,0 +1,97 @@
+:root {
+  font-family: Arial, sans-serif;
+  color: #222;
+  background: #f4f5f7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+header {
+  background: #111827;
+  color: white;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+header h1 {
+  margin: 0;
+}
+
+.status {
+  font-size: 13px;
+  background: #374151;
+  padding: 6px 10px;
+  border-radius: 20px;
+}
+
+main {
+  padding: 20px;
+  max-width: 600px;
+  margin: auto;
+}
+
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.setting:last-child {
+  border-bottom: 0;
+}
+
+.setting input {
+  width: 22px;
+  height: 22px;
+}
+
+button {
+  width: 100%;
+  padding: 18px;
+  border: 0;
+  border-radius: 12px;
+  background: #2563eb;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+button:active {
+  transform: scale(.98);
+}
+
+.location {
+  text-align: center;
+}
+
+#location-status {
+  margin-top: 20px;
+  line-height: 1.7;
+  color: #555;
+}
