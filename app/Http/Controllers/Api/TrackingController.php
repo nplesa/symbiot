@@ -150,11 +150,26 @@ class TrackingController extends Controller
         return $this->success(null, 'Tracking session deleted.');
     }
 
+    // private function device(Request $request, string $uuid): Device
+    // {
+    //     return Device::where('uuid', $uuid)
+    //         ->where('user_id', $request->user()->id)
+    //         ->firstOrFail();
+    // }
+
     private function device(Request $request, string $uuid): Device
     {
-        return Device::where('uuid', $uuid)
-            ->where('user_id', $request->user()->id)
-            ->firstOrFail();
+        dd($uuid, $request->user()->id, $request); // Debugging line to inspect the UUID and user ID
+        return Device::firstOrCreate(
+            [
+                'uuid' => $uuid,
+                'user_id' => $request->user()->id,
+            ],
+            [
+                'name' => 'Android Device',
+                'platform' => 'android',
+            ]
+        );
     }
 
     private function session(Request $request, int $sessionId): TrackingSession

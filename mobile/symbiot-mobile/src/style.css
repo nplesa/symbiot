@@ -1,97 +1,452 @@
+/* ================================
+   GLOBAL
+   ================================ */
+
 :root {
-  font-family: Arial, sans-serif;
-  color: #222;
-  background: #f4f5f7;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #1f2937;
+  background: #f3f4f6;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  background: #f3f4f6;
 }
 
-.app {
+body {
   min-height: 100vh;
 }
 
+button,
+input {
+  font-family: inherit;
+}
+
+
+/* ================================
+   APP
+   ================================ */
+
+.app {
+  width: 100%;
+  min-height: 100vh;
+}
+
+
+/* ================================
+   HEADER
+   ================================ */
+
 header {
-  background: #111827;
-  color: white;
-  padding: 20px;
+  width: 100%;
+  min-height: 64px;
+
+  padding: 16px 20px;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
+
+  background: #111827;
+  color: #ffffff;
 }
 
 header h1 {
   margin: 0;
+
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 700;
 }
 
 .status {
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 28px;
+
+  padding: 5px 10px;
+
   background: #374151;
-  padding: 6px 10px;
-  border-radius: 20px;
+  color: #ffffff;
+
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 600;
 }
+
+
+/* ================================
+   MAIN
+   ================================ */
 
 main {
-  padding: 20px;
+  width: 100%;
   max-width: 600px;
-  margin: auto;
+
+  margin: 0 auto;
+  padding: 20px;
 }
 
+
+/* ================================
+   CARD
+   ================================ */
+
 .card {
-  background: white;
-  border-radius: 16px;
+  width: 100%;
+
+  margin: 0 0 16px 0;
   padding: 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+
+  background: #ffffff;
+
+  border-radius: 16px;
+
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .card h2 {
-  margin-top: 0;
+  margin: 0 0 20px 0;
+
+  color: #111827;
+
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 700;
 }
+
+
+/* ================================
+   LOGIN FORM
+   ================================ */
+
+#login-form {
+  width: 100%;
+}
+
+
+/* Login labels */
+
+#login-form .setting {
+  display: block;
+
+  width: 100%;
+
+  margin: 0 0 18px 0;
+  padding: 0;
+
+  border: 0;
+}
+
+
+/* Email / Password label */
+
+#login-form .setting span {
+  display: block;
+
+  margin: 0 0 8px 0;
+
+  color: #374151;
+
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+
+/* Email + Password */
+
+#login-form input[type="email"],
+#login-form input[type="password"] {
+  display: block;
+
+  width: 100%;
+  height: 52px;
+
+  margin: 0;
+  padding: 0 14px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+
+  background: #ffffff;
+  color: #111827;
+
+  font-size: 16px;
+  line-height: 52px;
+
+  outline: none;
+
+  -webkit-appearance: none;
+  appearance: none;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+
+/* Placeholder */
+
+#login-form input::placeholder {
+  color: #9ca3af;
+}
+
+
+/* Input focus */
+
+#login-form input[type="email"]:focus,
+#login-form input[type="password"]:focus {
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+
+/* Login button */
+
+#login-button {
+  width: 100%;
+  min-height: 52px;
+
+  margin-top: 2px;
+
+  padding: 14px 18px;
+
+  border: 0;
+  border-radius: 10px;
+
+  background: #2563eb;
+  color: #ffffff;
+
+  font-size: 16px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+#login-button:active {
+  background: #1d4ed8;
+  transform: scale(0.99);
+}
+
+#login-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* Login status */
+
+#login-status {
+  width: 100%;
+
+  margin-top: 14px;
+
+  color: #6b7280;
+
+  font-size: 14px;
+  line-height: 1.5;
+
+  text-align: center;
+}
+
+
+/* ================================
+   GENERAL SETTINGS
+   ================================ */
 
 .setting {
   display: flex;
+
   align-items: center;
   justify-content: space-between;
-  padding: 16px 0;
-  border-bottom: 1px solid #eee;
+
+  width: 100%;
+
+  min-height: 56px;
+
+  padding: 12px 0;
+
+  border-bottom: 1px solid #eeeeee;
 }
 
 .setting:last-child {
   border-bottom: 0;
 }
 
-.setting input {
+
+/* Checkbox */
+
+.setting input[type="checkbox"] {
   width: 22px;
   height: 22px;
+
+  margin: 0;
+
+  accent-color: #2563eb;
 }
 
+
+/* ================================
+   BUTTONS
+   ================================ */
+
 button {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
   width: 100%;
-  padding: 18px;
+  min-height: 52px;
+
+  padding: 14px 18px;
+
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
+
   background: #2563eb;
-  color: white;
-  font-size: 18px;
-  font-weight: bold;
+  color: #ffffff;
+
+  font-size: 16px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:active {
-  transform: scale(.98);
+  background: #1d4ed8;
+  transform: scale(0.99);
 }
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* ================================
+   LOCATION
+   ================================ */
 
 .location {
   text-align: center;
 }
 
 #location-status {
-  margin-top: 20px;
+  width: 100%;
+
+  margin-top: 18px;
+
+  color: #555555;
+
+  font-size: 14px;
   line-height: 1.7;
-  color: #555;
+
+  overflow-wrap: anywhere;
+}
+
+
+/* ================================
+   DEVICE
+   ================================ */
+
+.card strong {
+  color: #111827;
+  word-break: break-word;
+}
+
+
+/* ================================
+   SMALL PHONES
+   Samsung S8 / S8+
+   ================================ */
+
+@media (max-width: 400px) {
+
+  main {
+    padding: 14px;
+  }
+
+  .card {
+    padding: 16px;
+
+    border-radius: 14px;
+  }
+
+  header {
+    min-height: 60px;
+
+    padding: 14px 16px;
+  }
+
+  header h1 {
+    font-size: 20px;
+  }
+
+  .status {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+
+  .card h2 {
+    font-size: 19px;
+    margin-bottom: 18px;
+  }
+
+  #login-form input[type="email"],
+  #login-form input[type="password"] {
+    height: 50px;
+
+    font-size: 16px;
+  }
+
+  #login-button {
+    min-height: 50px;
+  }
+}
+
+
+/* ================================
+   VERY SMALL SCREENS
+   ================================ */
+
+@media (max-width: 340px) {
+
+  main {
+    padding: 10px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  header {
+    padding: 12px;
+  }
+
+  header h1 {
+    font-size: 18px;
+  }
 }
