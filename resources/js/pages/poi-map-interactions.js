@@ -365,15 +365,11 @@ export function withReadbackCanvas(callback) {
     }
 }
 
-export function poiFeatureAtPixel(map, poiSource, poiLayer, pixel) {
-    const hitFeature = withReadbackCanvas(() => map.forEachFeatureAtPixel(pixel, feature => feature, {
-        hitTolerance: 12,
-        layerFilter: layer => layer === poiLayer,
-    }));
-    if (hitFeature) return hitFeature;
-
+export function poiFeatureAtPixel(map, poiSource, pixel) {
+    // POI features are points, so a coordinate-distance check avoids creating
+    // and reading OpenLayers' hit-detection canvas on every pointer movement.
     let nearestFeature;
-    let nearestDistance = 32;
+    let nearestDistance = 24;
     poiSource.getFeatures().forEach(feature => {
         const coordinates = feature.getGeometry()?.getCoordinates();
         if (!Array.isArray(coordinates) || coordinates.length < 2) return;
@@ -396,7 +392,6 @@ export function bindPoiMapClick({
     target,
     map,
     poiSource,
-    poiLayer,
     tooltipElement,
     showTooltip,
     hideTooltip,
@@ -414,7 +409,7 @@ export function bindPoiMapClick({
         if (tooltipElement.contains(event.target)) return;
 
         const pixel = map.getEventPixel(event);
-        const feature = poiFeatureAtPixel(map, poiSource, poiLayer, pixel);
+        const feature = poiFeatureAtPixel(map, poiSource, pixel);
         if (feature) {
             showTooltip(feature, map.getCoordinateFromPixel(pixel));
         } else {

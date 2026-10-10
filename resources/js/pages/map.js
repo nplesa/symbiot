@@ -242,6 +242,7 @@ const userSource = new VectorSource();
 
 const poiSource = new VectorSource();
 const transitRouteSource = new VectorSource();
+const unavailableTransitRouteGeometry = new Set();
 const visibleTransitRoutes = new Set();
 const activeTransitRoutes = new globalThis.Map();
 const transitRouteColors = new globalThis.Map();
@@ -587,6 +588,81 @@ function showPoiTooltip(feature, coordinate) {
         ? splitTransitRouteDirections(groupedRoutes)
         : groupedRoutes;
 
+    if (featureType === 'bus') {
+        const busRouteGroups = groupedRoutes;
+        hidePoiTooltip();
+        poiTooltipName.textContent = feature.get('name') || 'Stație de autobuz';
+        poiTooltipType.hidden = true;
+        poiTooltipRoutes.replaceChildren();
+        poiTooltipRoutes.classList.add('poi-bus-route-list');
+        poiTooltipElement.classList.add('poi-bus-tooltip');
+        activeTransitRoutes.clear();
+        assignTransitRouteColors(busRouteGroups, transitRouteColors, manuallySelectedTransitRouteColors);
+        const routeButtons = document.createElement('div');
+        routeButtons.className = 'poi-bus-route-buttons';
+        poiTooltipRoutes.appendChild(routeButtons);
+        const schedule = document.createElement('small');
+        schedule.className = 'poi-transit-arrival-status poi-route-info';
+        schedule.setAttribute('role', 'status');
+        schedule.setAttribute('aria-live', 'polite');
+        schedule.hidden = true;
+
+        if (busRouteGroups.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'poi-route-info';
+            empty.textContent = feature.get('routes_available') === false
+                ? 'Liniile nu au putut fi încărcate. Încearcă din nou mai târziu.'
+                : 'Nu există linii asociate acestei stații în OpenStreetMap.';
+            poiTooltipRoutes.appendChild(empty);
+        }
+
+        busRouteGroups.forEach(group => {
+            activeTransitRoutes.set(group.key, group);
+            const routeEntry = document.createElement('div');
+            routeEntry.className = 'poi-transit-route-entry';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'poi-route-checkbox poi-route-chip-checkbox';
+            checkbox.dataset.routeKey = group.key;
+            checkbox.checked = visibleTransitRoutes.has(group.key);
+            checkbox.disabled = !group.routes.some(route => /^relation\/\d+$/.test(route.id));
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'poi-transit-route-chip';
+            button.style.setProperty('--transit-route-color', getTransitRouteColor(group.key, transitRouteColors));
+            button.textContent = group.label.replace(/^(Autobuz|Troleibuz)\s+/i, '');
+            button.setAttribute('aria-pressed', String(checkbox.checked));
+            button.title = 'Afișează traseul pe hartă și caută următoarea plecare';
+            button.addEventListener('click', () => {
+                if (!checkbox.disabled) {
+                    checkbox.checked = !checkbox.checked;
+                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                const selected = !button.classList.contains('is-selected');
+                button.classList.toggle('is-selected', selected);
+                button.setAttribute('aria-pressed', String(selected));
+                if (selected) {
+                    loadBusArrival(feature, group, schedule);
+                } else if (schedule.dataset.routeKey === group.key) {
+                    schedule.hidden = true;
+                    schedule.dataset.routeKey = '';
+                }
+            });
+            checkbox._routeButton = button;
+            routeEntry.append(checkbox, button);
+            routeButtons.appendChild(routeEntry);
+        });
+
+        poiTooltipRoutes.appendChild(schedule);
+
+        poiTooltipAddress.hidden = true;
+        poiTooltipRoutes.hidden = false;
+        poiTooltipElement.hidden = false;
+        poiTooltip.setPosition(coordinate);
+        return;
+    }
+
     if (transitTypes.has(featureType)) {
         const modalElement = document.getElementById('trainStatusModal');
         const modalTitle = document.getElementById('trainStatusModalTitle');
@@ -694,9 +770,12 @@ function showPoiTooltip(feature, coordinate) {
 
     poiTooltipName.textContent = feature.get('name') || 'Necunoscut';
     poiTooltipType.textContent = poiTypeLabels[feature.get('type')] || 'Punct de interes';
+    poiTooltipType.hidden = false;
+    poiTooltipElement.classList.remove('poi-bus-tooltip');
     const featureTrainServices = feature.get('train_services');
     const trainServices = Array.isArray(featureTrainServices) ? featureTrainServices : [];
     poiTooltipRoutes.replaceChildren();
+    poiTooltipRoutes.classList.remove('poi-bus-route-list');
     activeTransitRoutes.clear();
     if (routeGroups.length > 0) {
         const heading = document.createElement('div');
@@ -817,6 +896,50 @@ function showPoiTooltip(feature, coordinate) {
     poiTooltip.setPosition(coordinate);
 }
 
+async function loadBusArrival(feature, group, statusElement) {
+    const coordinates = feature.get('coordinates') || {};
+    const routeRef = group.label.replace(/^(Autobuz|Troleibuz)\s+/i, '').trim();
+    statusElement.textContent = 'Se caută următoarea plecare…';
+    statusElement.dataset.routeKey = group.key;
+    statusElement.hidden = false;
+
+    try {
+        const params = new URLSearchParams({
+            lat: String(coordinates.lat),
+            lon: String(coordinates.lon),
+            route_ref: routeRef,
+        });
+        const response = await fetch(`/api/transit/stops/nearest-next-departure?${params}`, {
+            headers: { Accept: 'application/json' },
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || `HTTP ${response.status}`);
+        }
+        if (statusElement.dataset.routeKey !== group.key) return;
+        if (!result.departure) {
+            statusElement.textContent = result.reason === 'no_upcoming_departure'
+                ? 'Nu există plecări programate în următoarele zile.'
+                : result.reason === 'feed_importing'
+                    ? 'Orarul orașului se pregătește. Reîncearcă în câteva momente.'
+                : result.reason === 'feed_import_failed'
+                    ? 'Descărcarea orarului pentru orașul selectat a eșuat. Reîncearcă mai târziu.'
+                    : result.reason === 'no_schedule_feed'
+                        ? 'Nu există un orar GTFS disponibil pentru această zonă.'
+                        : 'Nu am găsit un orar pentru linia aceasta la stația selectată.';
+            return;
+        }
+
+        const departure = result.departure;
+        const countdown = departure.minutes_until === 0 ? 'acum' : `în ${departure.minutes_until} min`;
+        statusElement.textContent = `Următorul autobuz pentru ${routeRef}: ${departure.time} (${countdown})${departure.headsign ? ` spre ${departure.headsign}` : ''} · orar GTFS`;
+    } catch {
+        if (statusElement.dataset.routeKey === group.key) {
+            statusElement.textContent = 'Orarul nu a putut fi încărcat.';
+        }
+    }
+}
+
 let fuelBestRequest = 0;
 
 function fuelBestRefs() {
@@ -872,6 +995,13 @@ async function loadBestFuelPrice() {
 
     const requestId = ++fuelBestRequest;
     const fuel = refs.select.value;
+    const isInRomania = lat >= 43.5 && lat <= 48.4 && lon >= 20 && lon <= 30;
+    if (!isInRomania) {
+        refs.status.textContent = 'Datele despre prețurile carburantului sunt disponibile doar pentru România.';
+        refs.countryStatus.textContent = '';
+        return;
+    }
+
     refs.status.textContent = 'Se caută cele mai bune prețuri în zona ta...';
     refs.countryStatus.textContent = 'Se caută cel mai bun preț din țară...';
     const base = { lat, lon, fuel };
@@ -959,6 +1089,11 @@ document.addEventListener('click', (event) => {
     if (!refs) return;
     bootstrap.Modal.getOrCreateInstance(refs.modal).show();
     loadBestFuelPrice();
+});
+document.addEventListener('hide.bs.modal', (event) => {
+    if (event.target instanceof HTMLElement && event.target.contains(document.activeElement)) {
+        document.activeElement.blur();
+    }
 });
 document.addEventListener('change', (event) => {
     if (event.target.id === 'fuelBestSelect') loadBestFuelPrice();
@@ -1270,7 +1405,7 @@ function enableTransitModalDragging(modalElement) {
     });
 }
 
-document.getElementById('transitLinesList')?.addEventListener('change', async event => {
+document.addEventListener('change', async event => {
     const colorPicker = event.target.closest('.poi-route-color');
     if (colorPicker) {
         const routeKey = colorPicker.dataset.routeKey;
@@ -1283,6 +1418,11 @@ document.getElementById('transitLinesList')?.addEventListener('change', async ev
 
     const checkbox = event.target.closest('.poi-route-checkbox');
     if (!checkbox) return;
+
+    if (checkbox.dataset.geometryUnavailable === 'true') {
+        checkbox.checked = false;
+        return;
+    }
 
     updateMetroArrivalEstimate();
 
@@ -1301,14 +1441,19 @@ document.getElementById('transitLinesList')?.addEventListener('change', async ev
                     routeGroup.routes.map(async route => {
                         const match = /^relation\/(\d+)$/.exec(route.id);
                         if (!match) return [];
+                        if (unavailableTransitRouteGeometry.has(route.id)) return [];
 
                         const response = await fetch(`/api/transit-route/${match[1]}`);
                         const data = await response.json();
+                        if (response.status === 404) {
+                            unavailableTransitRouteGeometry.add(route.id);
+                            return [];
+                        }
                         if (!response.ok) {
                             throw new Error(data.error || `HTTP ${response.status}`);
                         }
 
-                        return Array.isArray(data.segments)
+                        const segments = Array.isArray(data.segments)
                             ? data.segments
                                 .filter(segment => Array.isArray(segment) && segment.length >= 2)
                                 .map(segment => segment
@@ -1316,6 +1461,9 @@ document.getElementById('transitLinesList')?.addEventListener('change', async ev
                                     .map(([lon, lat]) => fromLonLat([lon, lat]))
                                 )
                             : [];
+                        if (segments.length === 0) unavailableTransitRouteGeometry.add(route.id);
+
+                        return segments;
                     })
                 );
                 const lineCoordinates = routeGeometries.flat()
@@ -1335,12 +1483,17 @@ document.getElementById('transitLinesList')?.addEventListener('change', async ev
                 visibleTransitRoutes.add(routeKey);
             } catch (error) {
                 checkbox.checked = false;
-                console.error('Transit route geometry could not be loaded:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Traseul nu a putut fi încărcat',
-                    text: error.message,
-                });
+                if (checkbox._routeButton) {
+                    checkbox.dataset.geometryUnavailable = 'true';
+                    checkbox._routeButton.title = 'Orarul se poate consulta; geometria traseului nu este disponibilă în OpenStreetMap.';
+                } else {
+                    console.error('Transit route geometry could not be loaded:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Traseul nu a putut fi încărcat',
+                        text: error.message,
+                    });
+                }
             } finally {
                 checkbox.disabled = false;
             }
@@ -1381,7 +1534,7 @@ function clearVisibleTransitRoutes() {
 }
 
 map.on('pointermove', event => {
-    const feature = poiFeatureAtPixel(map, poiSource, poiLayer, event.pixel);
+    const feature = poiFeatureAtPixel(map, poiSource, event.pixel);
     map.getTargetElement().style.cursor = feature ? 'pointer' : '';
 });
 
@@ -1389,7 +1542,6 @@ bindPoiMapClick({
     target: document,
     map,
     poiSource,
-    poiLayer,
     tooltipElement: poiTooltipElement,
     showTooltip: showPoiTooltip,
     hideTooltip: hidePoiTooltip,
@@ -1911,14 +2063,51 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
         status.textContent = `Locația a fost fixată în ${result.label || result.name}, cu raza de ${cityRadiusMeters.toLocaleString('ro-RO')} m.`;
         status.className = 'col-12 small text-success';
         setTimeout(() => map.updateSize(), 100);
+
+        // watchTransitCoverage(result.lat, result.lon, status, () => {
+        //     transitStops.load(result.lat, result.lon, Math.min(Number(app_radius) || 1500, 15000))
+        //         .catch(error => console.error('Stored transit stops could not be preloaded.', error));
+        //     transitStops.watchVehicles(result.lat, result.lon);
+        //     if (selectedPoiFilterTokens(document.getElementById('mobility_card')).includes('bus')) {
+        //         loadNearby({ lat: result.lat, lon: result.lon });
+        //     }
+        // });
+
         watchTransitCoverage(result.lat, result.lon, status, () => {
-            transitStops.load(result.lat, result.lon, Math.min(Number(app_radius) || 1500, 15000))
-                .catch(error => console.error('Stored transit stops could not be preloaded.', error));
-            transitStops.watchVehicles(result.lat, result.lon);
-            if (selectedPoiFilterTokens(document.getElementById('mobility_card')).includes('bus')) {
-                loadNearby({ lat: result.lat, lon: result.lon });
+            const selectedFilters = selectedPoiFilterTokens(
+                document.getElementById('mobility_card')
+            );
+
+            if (!selectedFilters.includes('bus')) {
+                return;
             }
-        });
+
+            transitStops.load(
+                result.lat,
+                result.lon,
+                Math.min(Number(app_radius) || 1500, 15000)
+            ).catch(error => {
+                console.error('Transit stops load failed:', error);
+            });
+
+            transitStops.watchVehicles(result.lat, result.lon);
+
+            loadNearby({
+                lat: result.lat,
+                lon: result.lon
+            });
+        }, Math.min(Number(app_radius) || 1500, 15000));
+
+        if (
+            selectedPoiFilterTokens(
+                document.getElementById('mobility_card')
+            ).length > 0
+        ) {
+            loadNearby({
+                lat: result.lat,
+                lon: result.lon
+            });
+        }
 
         if (selectedPoiFilterTokens(document.getElementById('mobility_card')).length > 0) {
             loadNearby({ lat: result.lat, lon: result.lon });

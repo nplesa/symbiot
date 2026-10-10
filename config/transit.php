@@ -6,6 +6,9 @@ use App\Transit\Providers\OsmRouteProvider;
 return [
     'catalog_url' => env('TRANSIT_CATALOG_URL', 'https://files.mobilitydatabase.org/feeds_v2.csv'),
 
+    // These agencies publish official GTFS feeds that may be omitted from a catalog snapshot.
+    'preserved_gtfs_references' => array_filter(array_map('trim', explode(',', env('TRANSIT_PRESERVED_GTFS_REFERENCES', 'mdb-757,mdb-763')))),
+
     // Feeds are discovered by location and imported the first time an area is requested.
     'reimport_after_hours' => (int) env('TRANSIT_REIMPORT_AFTER_HOURS', 168),
     'retry_failed_after_hours' => (int) env('TRANSIT_RETRY_FAILED_AFTER_HOURS', 6),

@@ -76,6 +76,9 @@
     line-height: 1.35;
     pointer-events: auto;
 }
+.poi-map-tooltip.poi-bus-tooltip {
+    max-width: min(340px, calc(100vw - 32px));
+}
 .poi-map-tooltip-name {
     font-weight: 600;
 }
@@ -122,6 +125,42 @@
     flex: 0 0 auto;
     margin: 0.75rem 0.5rem 0 0.75rem;
 }
+.poi-route-chip-checkbox {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+.poi-transit-route-chip {
+    min-width: 2.4rem;
+    min-height: 1.85rem;
+    margin: 0.15rem 0.3rem 0.15rem 0;
+    padding: 0.2rem 0.45rem;
+    border: 2px solid #6c757d;
+    border-radius: 0.25rem;
+    background: #fff;
+    color: #212529;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.poi-transit-route-entry {
+    display: inline-flex;
+    align-items: flex-start;
+    margin: 0;
+}
+.poi-transit-route-chip.is-selected {
+    border-color: var(--transit-route-color, #0d6efd);
+    background: var(--transit-route-color, #0d6efd);
+    color: #fff;
+}
+.poi-transit-route-chip:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
 .poi-route-color {
     width: 2.75rem;
     height: 2.75rem;
@@ -144,6 +183,24 @@
     color: #6c757d;
     font-size: 0.7rem;
     line-height: 1.2;
+}
+.poi-bus-route-list {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+}
+.poi-bus-route-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+.poi-transit-arrival-status {
+    display: block;
+    max-width: 18rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
 }
 .transit-modal-drag-handle {
     cursor: move;

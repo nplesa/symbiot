@@ -16,9 +16,14 @@ class CoverageController extends Controller
         $validated = $request->validate([
             'lat' => 'required|numeric|between:-90,90',
             'lon' => 'required|numeric|between:-180,180',
+            'radius' => 'nullable|integer|min:100|max:15000',
         ]);
 
-        $feeds = $discovery->ensureImported((float) $validated['lat'], (float) $validated['lon']);
+        $feeds = $discovery->ensureImported(
+            (float) $validated['lat'],
+            (float) $validated['lon'],
+            isset($validated['radius']) ? (int) $validated['radius'] : null,
+        );
 
         return response()->json([
             'feeds' => $feeds->map(fn (TransitFeed $feed): array => [

@@ -10,7 +10,6 @@ import Stroke from 'ol/style/Stroke.js';
 import Style from 'ol/style/Style.js';
 import Text from 'ol/style/Text.js';
 import { fromLonLat } from 'ol/proj.js';
-import { withReadbackCanvas } from './poi-map-interactions.js';
 
 const ROUTE_PALETTE = ['#e6194b', '#3cb44b', '#0d6efd', '#f58231', '#911eb4', '#008080', '#f032e6', '#9a6324', '#800000', '#808000', '#000075', '#e6a800'];
 
@@ -148,10 +147,12 @@ export function createTransitLayer(map) {
         schedule.textContent = 'Se caută următoarea plecare programată…';
         schedule.hidden = false;
         fetchJson(`/api/transit/stops/${feed}/${encodeURIComponent(stopId)}/next-departure?route_id=${encodeURIComponent(route.route_id)}`)
-            .then(({ departure }) => {
+            .then(({ departure, reason }) => {
                 if (activeRoutes.get(key) !== entry) return;
                 if (!departure) {
-                    schedule.textContent = 'Nu este programată o plecare în următoarele zile.';
+                    schedule.textContent = reason === 'schedule_unavailable'
+                        ? 'Orarul nu este disponibil pentru acest traseu.'
+                        : 'Nu este programată o plecare în următoarele zile.';
                     return;
                 }
                 const countdown = departure.minutes_until === 0 ? 'acum' : `în ${departure.minutes_until} min`;
@@ -222,12 +223,26 @@ export function createTransitLayer(map) {
     }
 
     map.on('singleclick', (event) => {
-        const feature = withReadbackCanvas(() => map.forEachFeatureAtPixel(event.pixel, (f) => f, { layerFilter: (layer) => layer === stopLayer }));
-        if (feature) {
-            showStop(feature, feature.getGeometry().getCoordinates());
-        } else {
+        let feature;
+        let nearestDistance = 10;
+        stopSource.getFeatures().forEach((candidate) => {
+            const coordinates = candidate.getGeometry()?.getCoordinates();
+            if (!Array.isArray(coordinates)) return;
+
+            const candidatePixel = map.getPixelFromCoordinate(coordinates);
+            const distance = Math.hypot(candidatePixel[0] - event.pixel[0], candidatePixel[1] - event.pixel[1]);
+            if (distance <= nearestDistance) {
+                feature = candidate;
+                nearestDistance = distance;
+            }
+        });
+
+        if (!feature) {
             popup.setPosition(undefined);
+            return;
         }
+
+        showStop(feature, feature.getGeometry().getCoordinates());
     });
 
     let loadRun = 0;
@@ -265,11 +280,28 @@ export function createTransitLayer(map) {
         },
 
         /** Stops, lines and vehicles are drawn only while the bus category is selected. */
+        // setVisible(visible) {
+        //     stopLayer.setVisible(visible);
+        //     vehicleLayer.setVisible(visible);
+        //     shapeLayer.setVisible(visible);
+        //     if (!visible) {
+        //         popup.setPosition(undefined);
+        //         clearRoutes();
+        //     }
+        // },
+
         setVisible(visible) {
             stopLayer.setVisible(visible);
             vehicleLayer.setVisible(visible);
             shapeLayer.setVisible(visible);
+
             if (!visible) {
+                clearInterval(vehicleTimer);
+                vehicleTimer = null;
+                vehicleRun++;
+
+                vehicleSource.clear();
+
                 popup.setPosition(undefined);
                 clearRoutes();
             }

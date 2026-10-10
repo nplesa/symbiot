@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class TransitMapController extends Controller
 {
-    private const MAX_STOPS = 3000;
+    private const MAX_STOPS = 15000;
 
     public function stops(Request $request, FeedDiscovery $discovery): JsonResponse
     {
@@ -25,10 +25,9 @@ class TransitMapController extends Controller
         $lon = (float) $v['lon'];
         $radius = (int) ($v['radius'] ?? 1500);
 
-        $feedIds = $discovery->coverageFor($lat, $lon)
+        $feedIds = $discovery->coverageWithinRadius($lat, $lon, $radius)
             ->filter(fn (TransitFeed $feed): bool => $feed->static_hash !== null)
             ->pluck('id');
-
         $dLat = $radius / 111320;
         $dLon = $radius / (111320 * max(0.1, cos(deg2rad($lat))));
 
@@ -38,7 +37,6 @@ class TransitMapController extends Controller
             ->whereBetween('lon', [$lon - $dLon, $lon + $dLon])
             ->where(fn ($q) => $q->whereNull('location_type')->orWhereIn('location_type', [0, 1]))
             ->get(['feed_id', 'stop_id', 'name', 'lat', 'lon'])
-            // The query above selects a square; keep only stops inside the circle.
             ->filter(fn ($s): bool => $this->metersBetween($lat, $lon, (float) $s->lat, (float) $s->lon) <= $radius)
             ->sortBy(fn ($s): float => (($s->lat - $lat) ** 2) + (($s->lon - $lon) ** 2))
             ->take(self::MAX_STOPS)
@@ -93,11 +91,142 @@ class TransitMapController extends Controller
         ]);
     }
 
+    public function nearestNextDeparture(Request $request, FeedDiscovery $discovery): JsonResponse
+    {
+        $data = $request->validate([
+            'lat' => 'required|numeric|between:-90,90',
+            'lon' => 'required|numeric|between:-180,180',
+            'route_ref' => 'required|string|max:100',
+        ]);
+        $lat = (float) $data['lat'];
+        $lon = (float) $data['lon'];
+        $routeRef = mb_strtolower(trim($data['route_ref']));
+        $feeds = $discovery->ensureImported($lat, $lon);
+        $feedIds = $feeds
+            ->filter(fn (TransitFeed $feed): bool => $feed->provider !== 'osm' && $feed->static_hash !== null)
+            ->pluck('id');
+
+        if ($feedIds->isEmpty()) {
+            if ($feeds->contains(fn (TransitFeed $feed): bool => in_array($feed->import_status, ['pending', 'queued', 'importing'], true))) {
+                $reason = 'feed_importing';
+            } elseif ($feeds->contains(fn (TransitFeed $feed): bool => $feed->import_status === 'failed')) {
+                $reason = 'feed_import_failed';
+            } else {
+                $reason = 'no_schedule_feed';
+            }
+
+            return response()->json(['departure' => null, 'reason' => $reason]);
+        }
+
+        $radius = 500;
+        $dLat = $radius / 111320;
+        $dLon = $radius / (111320 * max(0.1, cos(deg2rad($lat))));
+        $candidates = DB::table('transit_stops as s')
+            ->join('transit_stop_times as st', fn ($join) => $join->on('st.feed_id', '=', 's.feed_id')->on('st.stop_id', '=', 's.stop_id'))
+            ->join('transit_trips as t', fn ($join) => $join->on('t.feed_id', '=', 'st.feed_id')->on('t.trip_id', '=', 'st.trip_id'))
+            ->join('transit_routes as r', fn ($join) => $join->on('r.feed_id', '=', 't.feed_id')->on('r.route_id', '=', 't.route_id'))
+            ->whereIn('s.feed_id', $feedIds)
+            ->whereBetween('s.lat', [$lat - $dLat, $lat + $dLat])
+            ->whereBetween('s.lon', [$lon - $dLon, $lon + $dLon])
+            ->whereRaw('LOWER(TRIM(r.short_name)) = ?', [$routeRef])
+            ->distinct()
+            ->limit(100)
+            ->get(['s.feed_id', 's.stop_id', 's.name', 's.lat', 's.lon', 'r.route_id'])
+            ->map(fn ($stop): array => [
+                ...((array) $stop),
+                'distance' => $this->metersBetween($lat, $lon, (float) $stop->lat, (float) $stop->lon),
+            ])
+            ->filter(fn (array $stop): bool => $stop['distance'] <= $radius)
+            ->sortBy('distance')
+            ->values();
+
+        foreach ($candidates as $candidate) {
+            $scheduleRequest = Request::create('/', 'GET', ['route_id' => $candidate['route_id']]);
+            $schedule = $this->nextDeparture($scheduleRequest, (int) $candidate['feed_id'], (string) $candidate['stop_id'])->getData(true);
+            if ($schedule['departure'] === null) {
+                continue;
+            }
+
+            return response()->json([
+                'departure' => $schedule['departure'],
+                'stop_name' => $candidate['name'],
+                'distance_meters' => (int) round($candidate['distance']),
+            ]);
+        }
+
+        return response()->json([
+            'departure' => null,
+            'reason' => $candidates->isEmpty() ? 'no_matching_stop_or_route' : 'no_upcoming_departure',
+        ]);
+    }
+
     public function nextDeparture(Request $request, int $feed, string $stop): JsonResponse
     {
         $data = $request->validate([
             'route_id' => 'required|string|max:100',
         ]);
+
+        // OSM route relations provide geometry and stop order, but never a timetable.
+        // If the clicked OSM route has a matching GTFS route nearby, use its schedule.
+        $feedRecord = TransitFeed::query()->find($feed);
+        if ($feedRecord?->provider === 'osm') {
+            $osmRoute = DB::table('transit_routes')
+                ->where('feed_id', $feed)
+                ->where('route_id', $data['route_id'])
+                ->first(['short_name']);
+            $osmStop = DB::table('transit_stops')
+                ->where('feed_id', $feed)
+                ->where('stop_id', $stop)
+                ->first(['lat', 'lon']);
+
+            if ($osmRoute?->short_name && $osmStop) {
+                $radius = 500;
+                $dLat = $radius / 111320;
+                $dLon = $radius / (111320 * max(0.1, cos(deg2rad((float) $osmStop->lat))));
+                $gtfsFeedIds = TransitFeed::query()
+                    ->where('provider', 'gtfs')
+                    ->whereNotNull('static_hash')
+                    ->where('min_lat', '<=', (float) $osmStop->lat)
+                    ->where('max_lat', '>=', (float) $osmStop->lat)
+                    ->where('min_lon', '<=', (float) $osmStop->lon)
+                    ->where('max_lon', '>=', (float) $osmStop->lon)
+                    ->pluck('id');
+
+                $matchingStops = DB::table('transit_stops as s')
+                    ->join('transit_stop_times as st', fn ($join) => $join->on('st.feed_id', '=', 's.feed_id')->on('st.stop_id', '=', 's.stop_id'))
+                    ->join('transit_trips as t', fn ($join) => $join->on('t.feed_id', '=', 'st.feed_id')->on('t.trip_id', '=', 'st.trip_id'))
+                    ->join('transit_routes as r', fn ($join) => $join->on('r.feed_id', '=', 't.feed_id')->on('r.route_id', '=', 't.route_id'))
+                    ->whereIn('s.feed_id', $gtfsFeedIds)
+                    ->whereBetween('s.lat', [(float) $osmStop->lat - $dLat, (float) $osmStop->lat + $dLat])
+                    ->whereBetween('s.lon', [(float) $osmStop->lon - $dLon, (float) $osmStop->lon + $dLon])
+                    ->whereRaw('LOWER(TRIM(r.short_name)) = ?', [mb_strtolower(trim($osmRoute->short_name))])
+                    ->distinct()
+                    ->get(['s.feed_id', 's.stop_id', 's.name', 's.lat', 's.lon', 'r.route_id'])
+                    ->map(fn ($candidate): array => [
+                        ...((array) $candidate),
+                        'distance' => $this->metersBetween((float) $osmStop->lat, (float) $osmStop->lon, (float) $candidate->lat, (float) $candidate->lon),
+                    ])
+                    ->filter(fn (array $candidate): bool => $candidate['distance'] <= $radius)
+                    ->sortBy('distance');
+
+                $next = null;
+                foreach ($matchingStops as $candidate) {
+                    $scheduleRequest = Request::create('/', 'GET', ['route_id' => $candidate['route_id']]);
+                    $schedule = $this->nextDeparture($scheduleRequest, (int) $candidate['feed_id'], (string) $candidate['stop_id'])->getData(true);
+                    if ($schedule['departure'] !== null
+                        && ($next === null || $schedule['departure']['minutes_until'] < $next['departure']['minutes_until'])) {
+                        $next = $schedule;
+                    }
+                }
+
+                if ($next !== null) {
+                    return response()->json($next);
+                }
+            }
+
+            return response()->json(['departure' => null, 'reason' => 'schedule_unavailable']);
+        }
+
         $stopIds = DB::table('transit_stops')
             ->where('feed_id', $feed)
             ->where('parent_station', $stop)

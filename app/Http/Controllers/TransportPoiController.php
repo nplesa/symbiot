@@ -610,24 +610,41 @@ class TransportPoiController extends Controller
             . '.routes out meta;'
             . '.routes out body;';
 
-        try {
-            $response = Http::withHeaders([
-                'User-Agent' => 'Symbiot/1.0 nearby POI map',
-            ])->timeout(35)
-                ->retry(1, 300)
-                ->acceptJson()
-                ->asForm()
-                ->post('https://overpass-api.de/api/interpreter', [
-                    'data' => $query,
-                ]);
+        $payload = null;
+        $lastError = null;
+        foreach ([
+            'https://overpass-api.de/api/interpreter',
+            'https://overpass.private.coffee/api/interpreter',
+        ] as $endpoint) {
+            try {
+                $response = Http::withHeaders([
+                    'User-Agent' => 'Symbiot/1.0 nearby POI map',
+                ])->timeout(25)
+                    ->acceptJson()
+                    ->asForm()
+                    ->post($endpoint, [
+                        'data' => $query,
+                    ]);
 
-            if (! $response->successful()) {
-                throw new \RuntimeException('OpenStreetMap transit route service returned HTTP ' . $response->status() . '.');
+                if (! $response->successful()) {
+                    throw new \RuntimeException('OpenStreetMap transit route service returned HTTP ' . $response->status() . '.');
+                }
+
+                $candidate = $response->json();
+                if (! is_array($candidate) || isset($candidate['remark'])) {
+                    throw new \RuntimeException('OpenStreetMap transit route service returned an incomplete result.');
+                }
+
+                $payload = $candidate;
+                break;
+            } catch (\Throwable $e) {
+                $lastError = $e;
             }
+        }
 
-            $payload = $response->json();
-            if (isset($payload['remark'])) {
-                throw new \RuntimeException('OpenStreetMap transit route service returned an incomplete result.');
+        try {
+            if ($payload === null) {
+                throw $lastError ?? new \RuntimeException('OpenStreetMap transit route services are unavailable.');
             }
 
             $elements = $payload['elements'] ?? [];

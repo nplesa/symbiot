@@ -5,7 +5,6 @@ import {glob} from "glob";
 import * as fs from "node:fs";
 import laravel from 'laravel-vite-plugin';
 
-
 let sass = Object.fromEntries(
     glob.sync("resources/sass/pages/**/*.scss")
         .map((file) => [
@@ -16,6 +15,7 @@ let sass = Object.fromEntries(
             fileURLToPath(new URL(file, import.meta.url)),
         ])
 );
+
 sass = Object.values(sass);
 
 let js = Object.fromEntries(
@@ -50,7 +50,6 @@ let input = [
     ...n4m
 ];
 
-
 export default defineConfig({
     css: {
         preprocessorOptions: {
@@ -74,33 +73,32 @@ export default defineConfig({
         },
     },
     server: {
-        origin: 'https://symbiot.npsoft.ro:5173',
-        host: "0.0.0.0",
+        host: '0.0.0.0',
         port: 5173,
+        strictPort: true,
+
+        origin: 'https://symbiot.local:5173',
+
         https: {
-            // key: fs.readFileSync("/etc/letsencrypt/live/symbiot.npsoft.ro/privkey.pem"),
-            // cert: fs.readFileSync("/etc/letsencrypt/live/symbiot.npsoft.ro/fullchain.pem"),
-            key: fs.readFileSync("C:\\Developer\\PhpWebStudy-Data\\server\\CA\\1786422883336\\CA-1786422883336.key"),
-            cert: fs.readFileSync("C:\\Developer\\PhpWebStudy-Data\\server\\CA\\1786422883336\\CA-1786422883336.crt"),
+            key: fs.readFileSync(
+                'C:/Developer/PhpWebStudy-Data/server/CA/1786422883336/CA-1786422883336.key'
+            ),
+            cert: fs.readFileSync(
+                'C:/Developer/PhpWebStudy-Data/server/CA/1786422883336/CA-1786422883336.crt'
+            ),
         },
-        cors: true,
+
+        ws: {
+            protocol: 'wss',
+            host: 'symbiot.local',
+            clientPort: 5173,
+        },
+
+        cors: {
+            origin: ['https://symbiot.local'],
+        },
     },
     plugins: [
-/*
-         obfuscatorPlugin({
-            apply: "build",
-            options: {
-                compact: true,
-                numbersToExpressions: true,
-
-
-                simplify: true,
-                deadCodeInjection: true,
-                selfDefending: true,
-                debugProtection: true,
-            },
-        }),
-*/
         laravel({
             input,
             refresh: true,

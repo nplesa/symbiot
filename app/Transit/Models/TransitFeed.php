@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class TransitFeed extends Model
 {
     protected $fillable = [
-        'slug', 'name', 'country_code', 'city', 'provider', 'static_url',
+        'slug', 'name', 'country_code', 'city', 'provider', 'static_url', 'backup_static_url',
         'vehicle_positions_url', 'trip_updates_url', 'alerts_url',
         'source_reference', 'license', 'active', 'static_hash',
         'import_status', 'import_error', 'last_imported_at',

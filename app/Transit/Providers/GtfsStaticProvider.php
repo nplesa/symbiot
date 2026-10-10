@@ -35,7 +35,11 @@ class GtfsStaticProvider implements TransitProvider
 
     public function importStatic(TransitFeed $feed, bool $force = false): bool
     {
-        if (! $feed->static_url) {
+        $downloadUrls = collect([$feed->static_url, $feed->backup_static_url])
+            ->filter(fn (?string $url): bool => is_string($url) && $url !== '')
+            ->unique()
+            ->values();
+        if ($downloadUrls->isEmpty()) {
             throw new RuntimeException("Feed {$feed->slug} has no static GTFS URL.");
         }
 
@@ -45,17 +49,37 @@ class GtfsStaticProvider implements TransitProvider
         $this->progress->report($feed, 'downloading', 1);
 
         try {
-            $response = Http::withHeaders(['User-Agent' => 'Symbiot/1.0 GTFS importer'])
-                ->timeout(300)
-                ->retry(2, 500)
-                ->sink($path)
-                ->withOptions(['progress' => function ($total, $downloaded) use ($feed): void {
-                    if ($total > 0) {
-                        $this->progress->report($feed, 'downloading', 1 + 14 * $downloaded / $total, null, false);
+            $downloadErrors = [];
+            $downloaded = false;
+            foreach ($downloadUrls as $url) {
+                try {
+                    file_put_contents($path, '');
+                    $response = Http::withHeaders(['User-Agent' => 'Symbiot/1.0 GTFS importer'])
+                        ->timeout(300)
+                        ->retry(2, 500)
+                        ->sink($path)
+                        ->withOptions(['progress' => function ($total, $bytes) use ($feed): void {
+                            if ($total > 0) {
+                                $this->progress->report($feed, 'downloading', 1 + 14 * $bytes / $total, null, false);
+                            }
+                        }])
+                        ->get($url);
+                    $response->throw();
+
+                    $probe = new ZipArchive;
+                    if ($probe->open($path) !== true) {
+                        throw new RuntimeException('The GTFS download is not a valid ZIP archive.');
                     }
-                }])
-                ->get($feed->static_url);
-            $response->throw();
+                    $probe->close();
+                    $downloaded = true;
+                    break;
+                } catch (Throwable $e) {
+                    $downloadErrors[] = $url . ': ' . $e->getMessage();
+                }
+            }
+            if (! $downloaded) {
+                throw new RuntimeException('All GTFS download URLs failed. ' . implode(' | ', $downloadErrors));
+            }
 
             $hash = hash_file('sha256', $path);
             if (! $force && $feed->import_status === 'imported' && $feed->static_hash === $hash) {

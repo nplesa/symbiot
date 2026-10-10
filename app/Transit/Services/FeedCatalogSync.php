@@ -85,7 +85,11 @@ class FeedCatalogSync
         }
 
         $now = now();
-        $existingByReference = TransitFeed::query()->where('provider', 'gtfs')->whereNotNull('source_reference')->pluck('id', 'source_reference');
+        $existingByReference = TransitFeed::query()
+            ->where('provider', 'gtfs')
+            ->whereNotNull('source_reference')
+            ->get(['id', 'source_reference', 'backup_static_url', 'import_status', 'static_hash'])
+            ->keyBy('source_reference');
         $existingByUrl = TransitFeed::query()->where('provider', 'gtfs')->whereNull('source_reference')->pluck('id', 'static_url');
         $count = 0;
 
@@ -98,9 +102,20 @@ class FeedCatalogSync
                 'catalog_synced_at' => $now,
             ];
 
-            $id = $existingByReference[$reference] ?? $existingByUrl[$attributes['static_url']] ?? null;
+            $existing = $existingByReference->get($reference);
+            $id = $existing?->id ?? $existingByUrl[$attributes['static_url']] ?? null;
             if ($id !== null) {
-                TransitFeed::query()->whereKey($id)->update($attributes + ['source_reference' => $reference]);
+                $updates = $attributes + ['source_reference' => $reference];
+                if ($existing !== null
+                    && $existing->import_status === 'failed'
+                    && $existing->static_hash === null
+                    && ! empty($attributes['backup_static_url'])
+                    && $existing->backup_static_url !== $attributes['backup_static_url']) {
+                    // A new mirror is available, so let the next location request try it immediately.
+                    $updates['import_status'] = 'pending';
+                    $updates['import_error'] = null;
+                }
+                TransitFeed::query()->whereKey($id)->update($updates);
             } else {
                 TransitFeed::create($attributes + [
                     'slug' => $this->slug($reference),
@@ -112,7 +127,10 @@ class FeedCatalogSync
         }
 
         // Feeds that left the catalog keep their data but stop being auto-imported.
-        $removed = $existingByReference->except(array_keys($feeds))->values();
+        $preservedReferences = config('transit.preserved_gtfs_references', []);
+        $removed = $existingByReference
+            ->except([...array_keys($feeds), ...$preservedReferences])
+            ->pluck('id');
         foreach ($removed->chunk(500) as $ids) {
             TransitFeed::query()->whereKey($ids->all())->update(['active' => false]);
         }
@@ -124,6 +142,12 @@ class FeedCatalogSync
     private function staticFeed(array $row): ?array
     {
         $url = $row['urls.direct_download'];
+        $latestUrl = $row['urls.latest'] ?? '';
+        $backupUrl = filter_var($latestUrl, FILTER_VALIDATE_URL)
+            && in_array(parse_url($latestUrl, PHP_URL_SCHEME), ['http', 'https'], true)
+            && $latestUrl !== $url
+                ? $latestUrl
+                : null;
         $box = [
             $row['location.bounding_box.minimum_latitude'],
             $row['location.bounding_box.maximum_latitude'],
@@ -145,6 +169,7 @@ class FeedCatalogSync
             'country_code' => $row['location.country_code'] ?: null,
             'city' => $row['location.municipality'] ?: ($row['location.subdivision_name'] ?: null),
             'static_url' => $url,
+            'backup_static_url' => $backupUrl,
             'license' => $row['urls.license'] ?: null,
             'is_official' => strcasecmp($row['is_official'], 'true') === 0,
             'min_lat' => $box[0],

@@ -150,13 +150,6 @@ class TrackingController extends Controller
         return $this->success(null, 'Tracking session deleted.');
     }
 
-    // private function device(Request $request, string $uuid): Device
-    // {
-    //     return Device::where('uuid', $uuid)
-    //         ->where('user_id', $request->user()->id)
-    //         ->firstOrFail();
-    // }
-
     private function device(Request $request, string $uuid): Device
     {
         return Device::firstOrCreate(
