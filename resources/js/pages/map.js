@@ -124,6 +124,38 @@ const POI_CATEGORIES = {
     transport:{ color: '#6c757d' }
 };
 
+
+function resetPOIs() {
+    const container = document.getElementById('mobility_card');
+
+    if (container) {
+        container.querySelectorAll(
+            '.location-category, .location-subcategory'
+        ).forEach(checkbox => {
+            checkbox.checked = false;
+            checkbox.indeterminate = false;
+        });
+    }
+
+    // Golește filtrele active și rezultatele POI.
+    activePoiFilters.clear();
+    allPois = [];
+    allPoisRaw = [];
+    poiSource.clear();
+
+    // Invalidează cererile POI în curs.
+    poiRequestId++;
+
+    // Elimină traseele și tooltip-ul asociat hărții.
+    clearVisibleTransitRoutes();
+    hidePoiTooltip();
+    hidePOIModal();
+
+    // Actualizează afișarea filtrelor pe hartă.
+    poiLayer.changed();
+    clusterLayer.changed();
+}
+
 function normalizePoiType(type) {
     const map = {
         fuel: 'fuel',
@@ -2030,6 +2062,8 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
 
             result = candidates[0];
         }
+
+        resetPOIs();
 
         pendingCityResults = [];
         resultsSelect.disabled = true;

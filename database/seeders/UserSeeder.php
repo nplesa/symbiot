@@ -15,11 +15,15 @@ class UserSeeder extends Seeder
                 'name' => 'Plesa Nicolae',
                 'email' => 'nicu.plesa@gmail.com',
                 'password' => Hash::make('Tinpen99'),
+                'is_admin' => true,
+                'approved_at' => now(),
             ],
             [
                 'name' => 'Nicu Plesa',
                 'email' => 'nicolae.plesa.a7@gmail.com',
                 'password' => Hash::make('Tinpen99'),
+                'is_admin' => true,
+                'approved_at' => now(),
             ],
             [
                 'name' => 'Claudia Plesa',
