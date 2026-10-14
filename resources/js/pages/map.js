@@ -2075,8 +2075,6 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
 
         resetPOIs();
         showBestGasPriceButton(result.country_code);
-        document.getElementById('mobility_card')?.classList.remove('d-none');
-
 
         pendingCityResults = [];
         resultsSelect.disabled = true;
@@ -2116,6 +2114,11 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
             const selectedFilters = selectedPoiFilterTokens(
                 document.getElementById('mobility_card')
             );
+
+            if(mbc?.classList.contains('d-none')) {
+                mbc?.classList.remove('d-none');
+            }
+
 
             if (!selectedFilters.includes('bus')) {
                 return;
