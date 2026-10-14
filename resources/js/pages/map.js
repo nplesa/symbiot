@@ -1994,6 +1994,11 @@ document.getElementById('city-location-mode')?.addEventListener('change', async 
 document.getElementById('city-location-form')?.addEventListener('submit', async event => {
     event.preventDefault();
 
+    let mbc = document.getElementById('mobility_card');
+    if(!mbc?.classList.contains('d-none')) {
+        mbc?.classList.add('d-none');
+    }
+
     const input = document.getElementById('city-location-input');
     const radiusInput = document.getElementById('city-location-radius');
     const button = document.getElementById('city-location-submit');
@@ -2070,6 +2075,8 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
 
         resetPOIs();
         showBestGasPriceButton(result.country_code);
+        document.getElementById('mobility_card')?.classList.remove('d-none');
+
 
         pendingCityResults = [];
         resultsSelect.disabled = true;
@@ -2098,20 +2105,12 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
         map.getView().setCenter(center);
         map.getView().setZoom(13);
         document.getElementById('map_card')?.classList.remove('d-none');
-        document.getElementById('mobility_card')?.classList.remove('d-none');
+
+        // document.getElementById('mobility_card')?.classList.remove('d-none');
 
         status.textContent = `Locația a fost fixată în ${result.label || result.name}, cu raza de ${cityRadiusMeters.toLocaleString('ro-RO')} m.`;
         status.className = 'col-12 small text-success';
         setTimeout(() => map.updateSize(), 100);
-
-        // watchTransitCoverage(result.lat, result.lon, status, () => {
-        //     transitStops.load(result.lat, result.lon, Math.min(Number(app_radius) || 1500, 15000))
-        //         .catch(error => console.error('Stored transit stops could not be preloaded.', error));
-        //     transitStops.watchVehicles(result.lat, result.lon);
-        //     if (selectedPoiFilterTokens(document.getElementById('mobility_card')).includes('bus')) {
-        //         loadNearby({ lat: result.lat, lon: result.lon });
-        //     }
-        // });
 
         watchTransitCoverage(result.lat, result.lon, status, () => {
             const selectedFilters = selectedPoiFilterTokens(
