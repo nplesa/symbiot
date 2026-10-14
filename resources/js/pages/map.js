@@ -48,9 +48,6 @@ import {
 } from './poi-map-interactions.js';
 
 
-
-
-
 let tracking = false;
 let watchId = null;
 
@@ -124,6 +121,14 @@ const POI_CATEGORIES = {
     transport:{ color: '#6c757d' }
 };
 
+function showBestGasPriceButton(country) {
+    let button = document.querySelector('.fuel-best-button');
+    if(country === 'ro') {
+        button.classList.remove('d-none');
+    } else {
+        button.classList.add('d-none');
+    }
+}
 
 function resetPOIs() {
     const container = document.getElementById('mobility_card');
@@ -2064,6 +2069,7 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
         }
 
         resetPOIs();
+        showBestGasPriceButton(result.country_code);
 
         pendingCityResults = [];
         resultsSelect.disabled = true;
