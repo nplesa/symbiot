@@ -45,7 +45,7 @@
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="location-mode" id="city-location-mode" value="city">
-                                            <label class="form-check-label" for="city-location-mode">Introdu oraș</label>
+                                            <label class="form-check-label" for="city-location-mode">Add City</label>
                                         </div>
                                     </div>
                                     <div class="form-check form-switch">
@@ -71,20 +71,20 @@
 
                             <form class="row g-2 align-items-end mt-2 d-none" id="city-location-form">
                                 <div class="col-12 col-md-6">
-                                    <label class="form-label" for="city-location-input">Caută un oraș oriunde în lume</label>
+                                    <label class="form-label" for="city-location-input">Search city </label>
                                     <input class="form-control" id="city-location-input" type="text" autocomplete="address-level2" placeholder="Ex.: Quebec, Canada" minlength="2" maxlength="100" required>
                                 </div>
                                 <div class="col-12 col-sm-6 col-md-3">
-                                    <label class="form-label" for="city-location-radius">Raza de căutare (metri)</label>
+                                    <label class="form-label" for="city-location-radius">Search radius (meters)</label>
                                     <input class="form-control" id="city-location-radius" type="number" min="100" max="35000" step="100" value="5000" required>
                                 </div>
                                 <div class="col-12 col-sm-6 col-md-auto">
-                                    <button class="btn btn-primary w-100" id="city-location-submit" type="submit">Fixează locația</button>
+                                    <button class="btn btn-primary w-100" id="city-location-submit" type="submit">Set Location</button>
                                 </div>
                                 <div class="col-12 d-none" id="city-location-results-container">
-                                    <label class="form-label" for="city-location-results">Alege localitatea și țara</label>
+                                    <label class="form-label" for="city-location-results">Select city and country</label>
                                     <select class="form-select" id="city-location-results" disabled>
-                                        <option value="">Selectează o localitate</option>
+                                        <option value="">Select a city</option>
                                     </select>
                                 </div>
                                 <div class="col-12 small" id="city-location-status" aria-live="polite"></div>
@@ -98,7 +98,7 @@
                                 <div class="card-body">
                                     <div class="row poi-category-filters">
                                         <div class="col-12">
-                                            <div class="fw-semibold mb-2">Selectează categoriile POI afișate pe hartă</div>
+                                            <div class="fw-semibold mb-2">Select the POI categories displayed on the map</div>
                                             <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-2">
                                                 @foreach ($locations as $location)
                                                     @if ($location === 'police' || $poiCategories[$location]['group'] !== 'Poliție')

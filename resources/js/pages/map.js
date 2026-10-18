@@ -2054,18 +2054,18 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
                     && Number(candidate.lon) <= 180)
                 : [];
             if (candidates.length === 0) {
-                throw new Error('Localitatea nu a fost găsită. Încearcă să adaugi și țara.');
+                throw new Error('City not found. Try adding the country as well.');
             }
             if (candidates.length > 1) {
                 pendingCityResults = candidates;
-                resultsSelect.replaceChildren(new Option('Selectează o localitate', ''));
+                resultsSelect.replaceChildren(new Option('Select a city', ''));
                 candidates.forEach((candidate, index) => {
                     resultsSelect.add(new Option(candidate.label || candidate.name || city, String(index)));
                 });
                 resultsSelect.value = '';
                 resultsSelect.disabled = false;
                 resultsContainer.classList.remove('d-none');
-                status.textContent = `Am găsit ${candidates.length} rezultate. Alege localitatea și țara, apoi fixează locația.`;
+                status.textContent = `Found ${candidates.length} results. Select the city and country, then set the location.`;
                 status.className = 'col-12 small text-primary';
                 return;
             }
@@ -2104,9 +2104,7 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
         map.getView().setZoom(13);
         document.getElementById('map_card')?.classList.remove('d-none');
 
-        // document.getElementById('mobility_card')?.classList.remove('d-none');
-
-        status.textContent = `Locația a fost fixată în ${result.label || result.name}, cu raza de ${cityRadiusMeters.toLocaleString('ro-RO')} m.`;
+        status.textContent = `Location has been set to ${result.label || result.name}, with a radius of ${cityRadiusMeters.toLocaleString('ro-RO')} m.`;
         status.className = 'col-12 small text-success';
         setTimeout(() => map.updateSize(), 100);
 
