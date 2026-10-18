@@ -2008,12 +2008,12 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
     const city = input.value.trim();
     const radiusMeters = Number(radiusInput.value);
     if (city.length < 2) {
-        status.textContent = 'Introdu numele unui oraș sau al unei localități.';
+        status.textContent = 'Enter the name of a city or locality.';
         status.className = 'col-12 small text-danger';
         return;
     }
     if (!Number.isInteger(radiusMeters) || radiusMeters < 100 || radiusMeters > 35000) {
-        status.textContent = 'Raza trebuie să fie între 100 și 35.000 de metri.';
+        status.textContent = 'Radius must be between 100 and 35,000 meters.';
         status.className = 'col-12 small text-danger';
         radiusInput.focus();
         return;
@@ -2023,7 +2023,7 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
     if (pendingCityResults.length > 0) {
         const selectedIndex = Number(resultsSelect.value);
         if (resultsSelect.value === '' || !pendingCityResults[selectedIndex]) {
-            status.textContent = 'Selectează localitatea corectă din listă.';
+            status.textContent = 'Select the correct city from the list.';
             status.className = 'col-12 small text-danger';
             resultsSelect.focus();
             return;
@@ -2033,7 +2033,7 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
     }
 
     button.disabled = true;
-    status.textContent = result ? 'Fixez locația...' : 'Caut localitatea...';
+    status.textContent = result ? 'Setting location...' : 'Searching for the city...';
     status.className = 'col-12 small text-muted';
 
     try {
@@ -2209,251 +2209,562 @@ document.getElementById('city-location-radius')?.addEventListener('change', even
 
 
 
+// document
+//     .getElementById('toggleLocation')
+//     ?.addEventListener('change', async function () {
+
+//         if (!this.checked) return;
+
+//         tracking = true;
+//         fixedCityLocation = null;
+//         app_radius = deviceRadiusMeters;
+//         document.getElementById('city-location-mode').checked = false;
+//         document.getElementById('city-location-form')?.classList.add('d-none');
+
+//         let mapCard =
+//             document.getElementById('map_card');
+
+//         let mobCard =
+//             document.getElementById('mobility_card');
+
+//         let shareBtn = document.getElementById('shareLocation');    
+//         let turismBtn = document.getElementById('turismLocations');
+//         await fetch(
+//             '/location/toggle',
+//             {
+//                 method: 'POST',
+
+//                 headers: {
+//                     'Content-Type': 'application/json',
+//                     'X-CSRF-TOKEN':  csrfToken
+//                 },
+
+//                 body: JSON.stringify({
+//                     location: this.checked
+//                 })
+//             }
+//         );
+
+
+//         document.getElementById("i_location").classList.add("rotate3d-y");
+
+//         mobCard.querySelector('.row')
+//             .classList.remove('mt-3');
+
+//         mobCard.classList.remove('d-none');
+//         mapCard.classList.remove('d-none');
+
+//         setTimeout(() => {
+//             map.updateSize();
+//         }, 100);
+
+//         createInputLocationElement(true);
+
+//         if (!navigator.geolocation) {
+//             Swal.fire({
+//                 icon: 'error',
+//                 title: 'Geolocation not supported',
+//                 text: 'Your browser does not support geolocation.'
+//             });
+
+//             tracking = false;
+//             this.checked = false;
+//             return;
+//         }
+
+//         watchId =
+//             navigator.geolocation.watchPosition(
+
+//                 (position) => {
+
+//                     let lon =
+//                         position.coords.longitude;
+
+//                     let lat =
+//                         position.coords.latitude;
+
+//                     if (lastCoords) {
+
+//                         lon =
+//                             lastCoords.lon * 0.7 +
+//                             lon * 0.3;
+
+//                         lat =
+//                             lastCoords.lat * 0.7 +
+//                             lat * 0.3;
+//                     }
+
+//                     lastCoords = {
+//                         lon,
+//                         lat
+//                     };
+
+//                     currentUserLocation = {
+//                         lon,
+//                         lat
+//                     };
+
+//                     document
+//                         .getElementById('shareLocation')
+//                         ?.classList.remove('d-none');
+//                     document
+//                         .getElementById('turismLocations')
+//                         ?.classList.remove('d-none');
+
+//                     const coords =
+//                         fromLonLat([lon, lat]);
+//                     const isFirstLocationFix = !hasCentered;
+
+//                     if (lastPosition) {
+
+//                         const dx =
+//                             lon - lastPosition.lon;
+
+//                         const dy =
+//                             lat - lastPosition.lat;
+
+//                         heading =
+//                             Math.atan2(dy, dx);
+//                     }
+
+//                     lastPosition = {
+//                         lon,
+//                         lat
+//                     };
+
+//                     requestAnimationFrame(() => {
+
+//                         userFeature
+//                             .getGeometry()
+//                             .setCoordinates(coords);                        
+
+//                         if (radiusFeature) {
+
+//                             radiusFeature.setGeometry(
+//                                 circular(
+//                                     [lon, lat],
+//                                     Number(app_radius),
+//                                     64
+//                                 ).transform('EPSG:4326', 'EPSG:3857')
+//                             );
+//                         }                        
+
+//                         userStyle
+//                             .getImage()
+//                             .setRotation(heading);
+
+//                         userFeature.setStyle(
+//                             userStyle
+//                         );
+
+//                         const geometry =
+//                             trackFeature.getGeometry();
+
+//                         geometry.appendCoordinate(
+//                             coords
+//                         );
+
+//                         const coordinates =
+//                             geometry.getCoordinates();
+
+//                         if (
+//                             coordinates.length > 1000
+//                         ) {
+
+//                             coordinates.shift();
+
+//                             geometry.setCoordinates(
+//                                 coordinates
+//                             );
+//                         }
+//                     });
+
+//                     if (!hasCentered) {
+
+//                         map.getView().animate({
+
+//                             center: coords,
+
+//                             zoom: 17,
+
+//                             duration: 500
+//                         });
+
+//                         hasCentered = true;
+//                     }
+
+
+//                     let shareBtn = document.getElementById('shareLocation');
+//                     shareBtn.classList.remove('d-none');
+
+//                     let currentLocation = document.getElementById('current_location');
+//                     currentLocation.dataset.lat = lat;    
+//                     currentLocation.dataset.lon = lon;
+
+//                     initLocalFeatures();
+//                     updateSubcategoryAvailability(lat, lon);
+//                     const mobilityCard = document.getElementById('mobility_card');
+//                     if (isFirstLocationFix
+//                         && mobilityCard
+//                         && selectedPoiFilterTokens(mobilityCard).length > 0) {
+//                         loadNearby({ lat, lon });
+//                     }
+
+//                     const now = Date.now();
+
+//                     if (
+//                         now - lastSent > 5000
+//                     ) {
+
+//                         lastSent = now;
+
+//                         fetch(
+//                             '/location/update',
+//                             {
+//                                 method: 'POST',
+
+//                                 headers: {
+//                                     'Content-Type':
+//                                         'application/json',
+
+//                                     'X-CSRF-TOKEN':
+//                                         csrfToken
+//                                 },
+
+//                                 body: JSON.stringify({
+//                                     lat,
+//                                     lon,
+//                                     active: true,
+//                                     heading
+//                                 })
+//                             }
+//                         );
+//                     }
+//                 },
+
+//                 console.error,
+
+//                 {
+//                     enableHighAccuracy: true,
+//                     timeout: 10000,
+//                     maximumAge: 0
+//                 }
+//             );
+//     });
+
+
+
 document
     .getElementById('toggleLocation')
     ?.addEventListener('change', async function () {
+        const toggle = this;
 
-        if (!this.checked) return;
-
-        tracking = true;
-        fixedCityLocation = null;
-        app_radius = deviceRadiusMeters;
-        document.getElementById('city-location-mode').checked = false;
-        document.getElementById('city-location-form')?.classList.add('d-none');
-
-        let mapCard =
-            document.getElementById('map_card');
-
-        let mobCard =
-            document.getElementById('mobility_card');
-
-        let shareBtn = document.getElementById('shareLocation');    
-        let turismBtn = document.getElementById('turismLocations');
-        await fetch(
-            '/location/toggle',
-            {
-                method: 'POST',
-
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN':  csrfToken
-                },
-
-                body: JSON.stringify({
-                    location: this.checked
-                })
+        if (!toggle.checked) {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
             }
-        );
-
-
-        document.getElementById("i_location").classList.add("rotate3d-y");
-
-        mobCard.querySelector('.row')
-            .classList.remove('mt-3');
-
-        mobCard.classList.remove('d-none');
-        mapCard.classList.remove('d-none');
-
-        setTimeout(() => {
-            map.updateSize();
-        }, 100);
-
-        createInputLocationElement(true);
-
-        if (!navigator.geolocation) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Geolocation not supported',
-                text: 'Your browser does not support geolocation.'
-            });
 
             tracking = false;
-            this.checked = false;
+            hasCentered = false;
+            lastCoords = null;
+            lastPosition = null;
+            currentUserLocation = null;
             return;
         }
 
-        watchId =
-            navigator.geolocation.watchPosition(
+        if (!navigator.geolocation) {
+            toggle.checked = false;
 
-                (position) => {
+            await Swal.fire({
+                icon: 'error',
+                title: 'GPS indisponibil',
+                text: 'Browserul nu suportă geolocația.'
+            });
 
-                    let lon =
-                        position.coords.longitude;
+            return;
+        }
 
-                    let lat =
-                        position.coords.latitude;
+        // Oprește orice urmărire GPS precedentă.
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
 
-                    if (lastCoords) {
+        tracking = true;
+        hasCentered = false;
+        lastCoords = null;
+        lastPosition = null;
+        fixedCityLocation = null;
 
-                        lon =
-                            lastCoords.lon * 0.7 +
-                            lon * 0.3;
+        app_radius = deviceRadiusMeters;
 
-                        lat =
-                            lastCoords.lat * 0.7 +
-                            lat * 0.3;
+        const mapCard = document.getElementById('map_card');
+        const mobilityCard = document.getElementById('mobility_card');
+        const status = document.getElementById('city-location-status');
+
+        document.getElementById('city-location-mode').checked = false;
+        document.getElementById('city-location-form')?.classList.add('d-none');
+
+        mapCard?.classList.remove('d-none');
+        mobilityCard?.classList.remove('d-none');
+
+        mobilityCard?.querySelector('.row')?.classList.remove('mt-3');
+
+        document.getElementById('i_location')?.classList.add('rotate3d-y');
+
+        createInputLocationElement(true);
+
+        const currentLocation = document.getElementById('current_location');
+
+        if (status) {
+            status.textContent = 'Se determină poziția GPS...';
+            status.className = 'col-12 small text-muted';
+        }
+
+        setTimeout(() => map.updateSize(), 100);
+
+        // Înregistrează activarea locației pe server.
+        try {
+            const response = await fetch('/location/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({ location: true })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Location activation failed:', error);
+        }
+
+        let initialized = false;
+
+        const initializeGpsArea = async (lat, lon) => {
+            if (initialized) return;
+            initialized = true;
+
+            const radiusMeters = Number(deviceRadiusMeters);
+
+            if (!Number.isFinite(radiusMeters) || radiusMeters <= 0) {
+                initialized = false;
+                throw new Error('Raza GPS configurată nu este validă.');
+            }
+
+            // Salvează coordonatele GPS reale.
+            currentLocation.dataset.lat = String(lat);
+            currentLocation.dataset.lon = String(lon);
+
+            currentUserLocation = { lat, lon };
+            fixedCityLocation = null;
+            app_radius = radiusMeters;
+            cityRadiusMeters = radiusMeters;
+
+            // Inițializează markerul și geometria locală.
+            initLocalFeatures();
+            updateSubcategoryAvailability(lat, lon);
+
+            const center = fromLonLat([lon, lat]);
+
+            userFeature.getGeometry().setCoordinates(center);
+            trackFeature.getGeometry().setCoordinates([]);
+
+            // Desenează cercul exact la raza configurată.
+            radiusFeature.setGeometry(
+                circular([lon, lat], radiusMeters, 96)
+                    .transform('EPSG:4326', 'EPSG:3857')
+            );
+
+            map.getView().animate({
+                center: center,
+                zoom: 16,
+                duration: 500
+            });
+
+            mapCard?.classList.remove('d-none');
+            mobilityCard?.classList.remove('d-none');
+
+            setTimeout(() => map.updateSize(), 100);
+
+            document.getElementById('shareLocation')?.classList.remove('d-none');
+            document.getElementById('turismLocations')?.classList.remove('d-none');
+
+            if (status) {
+                status.textContent =
+                    `Locație GPS activată. Raza: ${radiusMeters.toLocaleString('ro-RO')} m.`;
+                status.className = 'col-12 small text-success';
+            }
+
+            // Inițializează acoperirea de transport și folosește
+            // fluxul GTFS deja implementat în aplicație.
+            watchTransitCoverage(
+                lat,
+                lon,
+                status,
+                async () => {
+                    const selectedFilters = selectedPoiFilterTokens(mobilityCard);
+
+                    if (!mobilityCard?.classList.contains('d-none')) {
+                        mobilityCard?.classList.remove('d-none');
                     }
 
-                    lastCoords = {
-                        lon,
-                        lat
-                    };
-
-                    currentUserLocation = {
-                        lon,
-                        lat
-                    };
-
-                    document
-                        .getElementById('shareLocation')
-                        ?.classList.remove('d-none');
-                    document
-                        .getElementById('turismLocations')
-                        ?.classList.remove('d-none');
-
-                    const coords =
-                        fromLonLat([lon, lat]);
-                    const isFirstLocationFix = !hasCentered;
-
-                    if (lastPosition) {
-
-                        const dx =
-                            lon - lastPosition.lon;
-
-                        const dy =
-                            lat - lastPosition.lat;
-
-                        heading =
-                            Math.atan2(dy, dx);
-                    }
-
-                    lastPosition = {
-                        lon,
-                        lat
-                    };
-
-                    requestAnimationFrame(() => {
-
-                        userFeature
-                            .getGeometry()
-                            .setCoordinates(coords);                        
-
-                        if (radiusFeature) {
-
-                            radiusFeature.setGeometry(
-                                circular(
-                                    [lon, lat],
-                                    Number(app_radius),
-                                    64
-                                ).transform('EPSG:4326', 'EPSG:3857')
+                    if (selectedFilters.includes('bus')) {
+                        try {
+                            await transitStops.load(
+                                lat,
+                                lon,
+                                Math.min(radiusMeters, 15000)
                             );
-                        }                        
 
-                        userStyle
-                            .getImage()
-                            .setRotation(heading);
-
-                        userFeature.setStyle(
-                            userStyle
-                        );
-
-                        const geometry =
-                            trackFeature.getGeometry();
-
-                        geometry.appendCoordinate(
-                            coords
-                        );
-
-                        const coordinates =
-                            geometry.getCoordinates();
-
-                        if (
-                            coordinates.length > 1000
-                        ) {
-
-                            coordinates.shift();
-
-                            geometry.setCoordinates(
-                                coordinates
+                            transitStops.watchVehicles(lat, lon);
+                        } catch (error) {
+                            console.error(
+                                'GTFS transit stops could not be loaded:',
+                                error
                             );
                         }
-                    });
-
-                    if (!hasCentered) {
-
-                        map.getView().animate({
-
-                            center: coords,
-
-                            zoom: 17,
-
-                            duration: 500
-                        });
-
-                        hasCentered = true;
-                    }
-
-
-                    let shareBtn = document.getElementById('shareLocation');
-                    shareBtn.classList.remove('d-none');
-
-                    let currentLocation = document.getElementById('current_location');
-                    currentLocation.dataset.lat = lat;    
-                    currentLocation.dataset.lon = lon;
-
-                    initLocalFeatures();
-                    updateSubcategoryAvailability(lat, lon);
-                    const mobilityCard = document.getElementById('mobility_card');
-                    if (isFirstLocationFix
-                        && mobilityCard
-                        && selectedPoiFilterTokens(mobilityCard).length > 0) {
-                        loadNearby({ lat, lon });
-                    }
-
-                    const now = Date.now();
-
-                    if (
-                        now - lastSent > 5000
-                    ) {
-
-                        lastSent = now;
-
-                        fetch(
-                            '/location/update',
-                            {
-                                method: 'POST',
-
-                                headers: {
-                                    'Content-Type':
-                                        'application/json',
-
-                                    'X-CSRF-TOKEN':
-                                        csrfToken
-                                },
-
-                                body: JSON.stringify({
-                                    lat,
-                                    lon,
-                                    active: true,
-                                    heading
-                                })
-                            }
-                        );
                     }
                 },
-
-                console.error,
-
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
+                Math.min(radiusMeters, 15000)
             );
+
+            // Încarcă POI-urile pentru toate filtrele selectate.
+            if (selectedPoiFilterTokens(mobilityCard).length > 0) {
+                await loadNearby({ lat, lon });
+            }
+        };
+
+        watchId = navigator.geolocation.watchPosition(
+            async position => {
+                if (!tracking || !toggle.checked) return;
+
+                const lon = position.coords.longitude;
+                const lat = position.coords.latitude;
+
+                if (
+                    !Number.isFinite(lat) ||
+                    !Number.isFinite(lon) ||
+                    lat < -90 || lat > 90 ||
+                    lon < -180 || lon > 180
+                ) {
+                    return;
+                }
+
+                lastCoords = { lat, lon };
+                currentUserLocation = { lat, lon };
+
+                const currentCenter = fromLonLat([lon, lat]);
+
+                if (lastPosition) {
+                    heading = Math.atan2(
+                        lat - lastPosition.lat,
+                        lon - lastPosition.lon
+                    );
+                }
+
+                lastPosition = { lat, lon };
+
+                currentLocation.dataset.lat = String(lat);
+                currentLocation.dataset.lon = String(lon);
+
+                requestAnimationFrame(() => {
+                    userFeature.getGeometry().setCoordinates(currentCenter);
+
+                    if (radiusFeature) {
+                        radiusFeature.setGeometry(
+                            circular(
+                                [lon, lat],
+                                Number(app_radius),
+                                96
+                            ).transform('EPSG:4326', 'EPSG:3857')
+                        );
+                    }
+
+                    userFeature.setStyle(userStyle);
+                    userStyle.getImage().setRotation(heading);
+
+                    const geometry = trackFeature.getGeometry();
+                    geometry.appendCoordinate(currentCenter);
+
+                    const coordinates = geometry.getCoordinates();
+
+                    if (coordinates.length > 1000) {
+                        coordinates.shift();
+                        geometry.setCoordinates(coordinates);
+                    }
+                });
+
+                // Prima poziție inițializează întreaga zonă.
+                if (!initialized) {
+                    try {
+                        await initializeGpsArea(lat, lon);
+                    } catch (error) {
+                        initialized = false;
+                        console.error('GPS area initialization failed:', error);
+
+                        if (status) {
+                            status.textContent = error.message;
+                            status.className = 'col-12 small text-danger';
+                        }
+                    }
+                }
+
+                const now = Date.now();
+
+                if (now - lastSent > 5000) {
+                    lastSent = now;
+
+                    fetch('/location/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken
+                        },
+                        body: JSON.stringify({
+                            lat,
+                            lon,
+                            active: true,
+                            heading
+                        })
+                    }).catch(error => {
+                        console.error('Location update failed:', error);
+                    });
+                }
+            },
+            error => {
+                console.error('GPS error:', error);
+
+                if (status) {
+                    status.textContent =
+                        error.code === 1
+                            ? 'Accesul la locație a fost refuzat.'
+                            : error.code === 2
+                                ? 'Poziția GPS nu este disponibilă.'
+                                : 'Determinarea poziției GPS a expirat.';
+                    status.className = 'col-12 small text-danger';
+                }
+
+                if (!initialized) {
+                    tracking = false;
+                    toggle.checked = false;
+
+                    if (watchId !== null) {
+                        navigator.geolocation.clearWatch(watchId);
+                        watchId = null;
+                    }
+                }
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0
+            }
+        );
     });
-
-
-
 
 
 
