@@ -42,6 +42,8 @@ use App\Http\Controllers\TrainPoiController;
 use App\Http\Controllers\TransportPoiController;
 use App\Http\Controllers\VignetteControlPoiController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ReverseGeocodeController;
+
 
 Route::get('/', fn () => view('welcome'));
 
@@ -122,6 +124,14 @@ Route::name('app.')->middleware(['auth', 'approved'])->group(function () {
     Route::get('/tracking/sessions', [TrackingController::class, 'sessions'])->name('tracking.sessions');
     Route::get('/tracking/{session}/points', [TrackingController::class, 'points'])->name('tracking.points');
     Route::get('/tracking/{session}/route', [TrackingController::class, 'route'])->name('tracking.route');
+
+    Route::get('/current-position', function () {
+        return view('current-position');
+    })->name('position');
+
+    Route::get('/api/location/reverse', ReverseGeocodeController::class)
+    ->middleware('throttle:30,1')
+    ->name('api.location.reverse');
 });
 
 Route::middleware(['auth', 'approved'])->get('/api/google-maps/resolve', [GoogleMapsController::class, 'resolve'])

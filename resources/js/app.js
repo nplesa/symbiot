@@ -8,3 +8,5 @@ import './swal-confirm';
 
 import './trasee/google-maps-import';
 import './trasee/file-import';
+
+import './pages/dashboard.js';
