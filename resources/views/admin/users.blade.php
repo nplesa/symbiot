@@ -12,5 +12,8 @@
 @endsection
 
 @push('css')
-    @vite('resources/sass/pages/admin-users.scss')
+    @vite([
+        'resources/sass/pages/dashboard.scss',
+        'resources/sass/pages/admin-users.scss'
+        ])
 @endpush

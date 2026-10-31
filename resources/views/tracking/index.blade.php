@@ -65,6 +65,7 @@
 @endsection
 @push('js')
     @vite([
+        'resources/sass/pages/dashboard.scss',
         'resources/sass/pages/tracks.scss',
         'resources/js/pages/tracks.js',
         ])

@@ -16,7 +16,10 @@
 @endsection
 
 @push('css')
-    @vite('resources/sass/pages/traseu.scss')
+    @vite([
+    'resources/sass/pages/dashboard.scss',
+    'resources/sass/pages/traseu.scss'
+    ])
 @endpush
 
 @push('js')
