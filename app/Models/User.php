@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\UserProfile;
 
 #[Fillable(['name', 'email', 'password', 'tracking'])]
 #[Hidden(['password', 'remember_token'])]
@@ -61,5 +63,10 @@ class User extends Authenticatable
     public function trackingSessions(): HasMany
     {
         return $this->hasMany(TrackingSession::class);
+    }
+
+    public function profile(): HasOne
+    {
+        return $this->hasOne(UserProfile::class);
     }
 }

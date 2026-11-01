@@ -43,7 +43,7 @@ use App\Http\Controllers\TransportPoiController;
 use App\Http\Controllers\VignetteControlPoiController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ReverseGeocodeController;
-
+use App\Http\Controllers\UserProfileController;
 
 Route::get('/', fn () => view('welcome'));
 
@@ -132,6 +132,14 @@ Route::name('app.')->middleware(['auth', 'approved'])->group(function () {
     Route::get('/api/location/reverse', ReverseGeocodeController::class)
     ->middleware('throttle:30,1')
     ->name('api.location.reverse');
+
+    Route::prefix('profile')->name('profile.')->controller(UserProfileController::class)->group(function () {
+        Route::get('/', 'edit')->name('edit');
+        Route::put('/', 'update')->name('update');
+        Route::post('/avatar', 'avatar')->name('avatar');
+        Route::delete('/avatar', 'removeAvatar')->name('avatar.remove');
+        Route::put('/password', 'updatePassword')->name('password');
+    });
 });
 
 Route::middleware(['auth', 'approved'])->get('/api/google-maps/resolve', [GoogleMapsController::class, 'resolve'])

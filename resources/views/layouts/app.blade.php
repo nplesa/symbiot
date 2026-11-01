@@ -146,15 +146,11 @@
 
                             @endif
 
-                            <button type="button"
-                                    class="symbiot-nav-link"
-                                    disabled
-                                    title="Profile - coming soon">
-
+                            <a href="{{ route('app.profile.edit') }}"
+                               class="symbiot-nav-link {{ request()->routeIs('app.profile.*') ? 'active' : '' }}">
                                 <i class="fa-solid fa-user"></i>
                                 <span>Profile</span>
-
-                            </button>
+                            </a>
 
                             <button type="button"
                                     class="symbiot-nav-link"
