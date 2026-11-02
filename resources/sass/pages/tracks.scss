@@ -553,3 +553,223 @@
         padding: .9rem 1rem;
     }
 }
+
+/* =========================================================
+   MOBILE USABILITY OVERRIDES
+   Desktop layout above 768px remains unchanged.
+   ========================================================= */
+
+.tracking-page,
+.tracking-page * {
+    box-sizing: border-box;
+}
+
+.tracking-page {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
+}
+
+.tracking-heading > div:first-child,
+.tracking-card-header > div,
+.tracking-player-label,
+.tracking-field,
+.tracking-summary-item {
+    min-width: 0;
+}
+
+.tracking-heading p,
+.tracking-card-header small,
+.tracking-status span,
+.tracking-map-empty > span {
+    overflow-wrap: anywhere;
+}
+
+.tracking-map-container,
+.tracking-map-container #track_map {
+    max-width: 100%;
+}
+
+@media (max-width: 767.98px) {
+    .tracking-page {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .tracking-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: .75rem;
+        margin-bottom: 1rem;
+    }
+
+    .tracking-heading h2 {
+        font-size: clamp(1.25rem, 5vw, 1.5rem);
+    }
+
+    .tracking-heading p {
+        max-width: 100%;
+        font-size: .82rem;
+        line-height: 1.45;
+    }
+
+    .tracking-map-indicator {
+        align-self: flex-start;
+    }
+
+    .tracking-status {
+        align-items: flex-start;
+        padding: .75rem .85rem;
+        font-size: .82rem;
+        line-height: 1.4;
+    }
+
+    .tracking-card-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        padding: .9rem 1rem;
+    }
+
+    .tracking-card-header > div {
+        flex: 1 1 180px;
+    }
+
+    .tracking-filters {
+        grid-template-columns: minmax(0, 1fr);
+        gap: .85rem;
+        padding: 1rem;
+    }
+
+    .tracking-field .form-control,
+    .tracking-field .form-select {
+        width: 100%;
+        min-width: 0;
+        min-height: 46px;
+        font-size: 16px;
+    }
+
+    .tracking-player {
+        align-items: stretch;
+        flex-direction: column;
+        gap: .85rem;
+        padding: 1rem;
+    }
+
+    .tracking-player-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        width: 100%;
+        gap: .5rem;
+    }
+
+    .tracking-player-button {
+        min-width: 0;
+        min-height: 44px;
+        padding: .55rem .35rem;
+        white-space: nowrap;
+        font-size: .76rem;
+    }
+
+    .tracking-player-button i {
+        flex: 0 0 auto;
+    }
+
+    .tracking-speed-control {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        margin: .2rem 0 0;
+    }
+
+    .tracking-speed-control select {
+        width: 100px;
+        min-height: 44px;
+    }
+
+    .tracking-summary {
+        grid-template-columns: minmax(0, 1fr);
+        gap: .6rem;
+        margin: 1rem 0;
+    }
+
+    .tracking-summary-item {
+        min-height: 66px;
+        padding: .75rem .9rem;
+    }
+
+    .tracking-summary-icon {
+        width: 38px;
+        height: 38px;
+        flex-basis: 38px;
+    }
+
+    .tracking-summary-item strong {
+        font-size: .95rem;
+    }
+
+    .tracking-map-card {
+        border-radius: 11px;
+    }
+
+    .tracking-map-card > .tracking-card-header {
+        gap: .65rem;
+    }
+
+    .tracking-map-legend {
+        display: flex;
+        flex: 1 1 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: .4rem .55rem;
+        white-space: normal;
+        line-height: 1.5;
+    }
+
+    .tracking-map-legend > span {
+        margin-left: .15rem;
+    }
+
+    .tracking-map-container {
+        height: min(48dvh, 430px);
+        min-height: 270px;
+    }
+
+    .tracking-map-footer {
+        padding: .7rem .85rem;
+        font-size: .66rem;
+    }
+
+    /* Keep map controls reachable without covering the whole map. */
+    .tracking-map-container .ol-control {
+        transform: scale(.9);
+        transform-origin: top right;
+    }
+
+    .tracking-map-container .ol-zoom {
+        top: .5rem;
+        left: .5rem;
+    }
+}
+
+@media (max-width: 380px) {
+    .tracking-player-actions {
+        gap: .35rem;
+    }
+
+    .tracking-player-button {
+        gap: .3rem;
+        padding-right: .2rem;
+        padding-left: .2rem;
+        font-size: .7rem;
+    }
+
+    .tracking-map-container {
+        height: 42dvh;
+        min-height: 245px;
+    }
+
+    .tracking-card-header h5 {
+        font-size: .9rem;
+    }
+}
