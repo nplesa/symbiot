@@ -1,10 +1,125 @@
+/* =========================================================
+   SYMBIOT - ADMIN USERS PAGE
+   Unified Light / Dark Theme & Modern Mobile App UI
+   ========================================================= */
+
 .admin-users {
+    width: 100%;
+    min-width: 0;
+
+    .card {
+        border: 1px solid var(--sym-border, #e5e7eb);
+        border-radius: 16px;
+        background: var(--sym-surface, #ffffff);
+        color: var(--sym-text, #111827);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, .04);
+        overflow: hidden;
+        margin-bottom: 0;
+
+        .card-header {
+            background-color: var(--sym-surface, #ffffff);
+            color: var(--sym-text, #111827);
+            border-bottom: 1px solid var(--sym-border, #e5e7eb);
+            padding: 1.25rem 1.5rem;
+            font-weight: 750;
+            font-size: 1.05rem;
+        }
+
+        .card-body {
+            padding: 0;
+            background: transparent;
+        }
+    }
+
+    .table {
+        width: 100%;
+        margin-bottom: 0;
+        background-color: transparent !important;
+        color: var(--sym-text, #111827);
+        vertical-align: middle;
+        border-color: var(--sym-border, #e5e7eb);
+
+        th {
+            background-color: var(--sym-bg, #f9fafb);
+            color: var(--sym-muted, #6b7280);
+            font-size: .75rem;
+            font-weight: 800;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--sym-border, #e5e7eb);
+            border-top: none;
+        }
+
+        td {
+            background-color: transparent !important;
+            padding: 1.1rem 1.25rem;
+            border-bottom: 1px solid var(--sym-border, #e5e7eb);
+            color: var(--sym-text, #111827);
+            font-size: .92rem;
+        }
+
+        tr {
+            background-color: transparent !important;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .table-warning {
+            background-color: rgba(245, 158, 11, .1) !important;
+            color: inherit !important;
+        }
+    }
+
     .admin-users__actions {
         display: flex;
         flex-wrap: wrap;
         gap: .375rem;
     }
 
+    /* Modal Styling */
+    .modal-content {
+        background-color: var(--sym-surface, #ffffff);
+        color: var(--sym-text, #111827);
+        border: 1px solid var(--sym-border, #e5e7eb);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .2);
+
+        .modal-header,
+        .modal-footer {
+            border-color: var(--sym-border, #e5e7eb);
+            padding: 1.25rem;
+        }
+
+        .modal-body {
+            padding: 1.25rem;
+        }
+
+        .form-label {
+            color: var(--sym-muted, #6b7280);
+            font-size: .85rem;
+            font-weight: 650;
+        }
+
+        .form-control {
+            background-color: var(--sym-bg, #f9fafb);
+            color: var(--sym-text, #111827);
+            border: 1px solid var(--sym-border, #e5e7eb);
+            border-radius: 10px;
+            min-height: 44px;
+            padding: 0.6rem 0.9rem;
+
+            &:focus {
+                border-color: var(--sym-primary, #2563eb);
+                box-shadow: 0 0 0 3px rgba(67, 136, 232, .12);
+                outline: none;
+            }
+        }
+    }
+
+    /* Mobile Responsive */
     @media (max-width: 767.98px) {
         thead {
             display: none;
@@ -19,29 +134,145 @@
         }
 
         tr {
-            border: 1px solid var(--bs-border-color);
-            border-radius: .5rem;
-            margin-bottom: .75rem;
-            padding: .5rem .75rem;
+            border: 1px solid var(--sym-border, #e5e7eb);
+            border-radius: 14px;
+            margin-bottom: 1rem;
+            padding: 1.1rem;
+            background: var(--sym-surface, #ffffff);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, .04);
         }
 
         td {
             border: 0;
-            padding: .25rem 0;
+            padding: .45rem 0;
             word-break: break-word;
+            background-color: transparent !important;
         }
 
         td[data-label]::before {
             content: attr(data-label);
             display: block;
-            font-size: .75rem;
-            font-weight: 600;
+            font-size: .7rem;
+            font-weight: 800;
+            letter-spacing: .08em;
             text-transform: uppercase;
-            color: var(--bs-secondary-color);
+            color: var(--sym-muted, #6b7280);
+            margin-bottom: .2rem;
         }
 
-        .admin-users__actions .btn {
-            flex: 1 1 auto;
+        .admin-users__actions {
+            margin-top: .85rem;
+            padding-top: .75rem;
+            border-top: 1px solid var(--sym-border, #e5e7eb);
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .5rem;
+
+            .btn {
+                width: 100%;
+                flex: none;
+                min-height: 42px;
+                font-size: .8rem;
+                padding: .5rem .4rem;
+                border-radius: 8px;
+            }
+        }
+    }
+}
+
+/* =========================================================
+   DARK THEME OVERRIDES
+   ========================================================= */
+
+.symbiot-shell[data-theme="dark"],
+[data-theme="dark"],
+.dark,
+body.dark {
+    .admin-users {
+        color: var(--sym-text, #f9fafb);
+
+        .card {
+            background-color: var(--sym-surface, #1f2937) !important;
+            color: var(--sym-text, #f9fafb) !important;
+            border-color: var(--sym-border, #374151) !important;
+
+            .card-header {
+                background-color: var(--sym-surface, #1f2937) !important;
+                color: var(--sym-text, #f9fafb) !important;
+                border-bottom-color: var(--sym-border, #374151) !important;
+            }
+        }
+
+        .table {
+            background-color: transparent !important;
+            color: var(--sym-text, #f9fafb) !important;
+            border-color: var(--sym-border, #374151) !important;
+
+            th {
+                background-color: rgba(17, 24, 39, .6) !important;
+                color: var(--sym-muted, #9ca3af) !important;
+                border-bottom-color: var(--sym-border, #374151) !important;
+            }
+
+            td {
+                background-color: transparent !important;
+                border-bottom-color: var(--sym-border, #374151) !important;
+                color: var(--sym-text, #f9fafb) !important;
+            }
+
+            tr {
+                background-color: transparent !important;
+
+                &:hover {
+                    background-color: rgba(255, 255, 255, .02) !important;
+                }
+            }
+
+            .table-warning {
+                background-color: rgba(245, 158, 11, .15) !important;
+                color: #fcd34d !important;
+            }
+        }
+
+        .modal-content {
+            background-color: var(--sym-surface, #1f2937) !important;
+            color: var(--sym-text, #f9fafb) !important;
+            border-color: var(--sym-border, #374151) !important;
+
+            .modal-header,
+            .modal-footer {
+                border-color: var(--sym-border, #374151) !important;
+            }
+
+            .form-label {
+                color: var(--sym-muted, #9ca3af) !important;
+            }
+
+            .form-control {
+                background-color: var(--sym-bg, #111827) !important;
+                color: var(--sym-text, #f9fafb) !important;
+                border-color: var(--sym-border, #374151) !important;
+                color-scheme: dark;
+
+                &::placeholder {
+                    color: var(--sym-muted, #9ca3af) !important;
+                }
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            tr {
+                background-color: var(--sym-surface, #1f2937) !important;
+                border-color: var(--sym-border, #374151) !important;
+            }
+
+            td {
+                background-color: transparent !important;
+            }
+
+            .admin-users__actions {
+                border-top-color: var(--sym-border, #374151) !important;
+            }
         }
     }
 }
