@@ -1,6 +1,6 @@
 /* =========================================================
-   SYMBIOT - ADMIN USERS PAGE
-   Unified Light / Dark Theme & Modern Mobile App UI
+   SYMBIOT - ADMIN USERS PAGE & CONTENT CONTAINER
+   Unified Light / Dark Theme & Explicit Table Borders
    ========================================================= */
 
 .admin-users {
@@ -37,34 +37,41 @@
         background-color: transparent !important;
         color: var(--sym-text, #111827);
         vertical-align: middle;
-        border-color: var(--sym-border, #e5e7eb);
+        border-collapse: collapse !important;
+        border: 1px solid var(--sym-border, #e5e7eb) !important;
 
         th {
-            background-color: var(--sym-bg, #f9fafb);
+            background-color: transparent !important;
             color: var(--sym-muted, #6b7280);
             font-size: .75rem;
             font-weight: 800;
             letter-spacing: .08em;
             text-transform: uppercase;
             padding: 1rem 1.25rem;
-            border-bottom: 1px solid var(--sym-border, #e5e7eb);
+            border-bottom: 2px solid var(--sym-border, #e5e7eb) !important;
             border-top: none;
+            border-left: none;
+            border-right: none;
         }
 
         td {
             background-color: transparent !important;
             padding: 1.1rem 1.25rem;
-            border-bottom: 1px solid var(--sym-border, #e5e7eb);
+            border-bottom: 1px solid var(--sym-border, #e5e7eb) !important;
+            border-top: none;
+            border-left: none;
+            border-right: none;
             color: var(--sym-text, #111827);
             font-size: .92rem;
         }
 
         tr {
             background-color: transparent !important;
+            border-bottom: 1px solid var(--sym-border, #e5e7eb) !important;
         }
 
         tr:last-child td {
-            border-bottom: none;
+            border-bottom: none !important;
         }
 
         .table-warning {
@@ -76,7 +83,7 @@
     .admin-users__actions {
         display: flex;
         flex-wrap: wrap;
-        gap: .375rem;
+        gap: .5rem;
     }
 
     /* Modal Styling */
@@ -119,8 +126,19 @@
         }
     }
 
-    /* Mobile Responsive */
+    /* Mobile Responsive (Card View per user) */
     @media (max-width: 767.98px) {
+        .card {
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            padding: 0;
+
+            .card-body {
+                padding: 0;
+            }
+        }
+
         thead {
             display: none;
         }
@@ -131,22 +149,26 @@
         td {
             display: block;
             width: 100%;
+            border: none !important;
         }
 
         tr {
-            border: 1px solid var(--sym-border, #e5e7eb);
-            border-radius: 14px;
-            margin-bottom: 1rem;
-            padding: 1.1rem;
+            border: 1px solid var(--sym-border, #e5e7eb) !important;
+            border-radius: 16px;
+            margin-bottom: 1.25rem;
+            padding: 1.25rem;
             background: var(--sym-surface, #ffffff);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, .04);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, .05);
         }
 
         td {
-            border: 0;
-            padding: .45rem 0;
-            word-break: break-word;
+            border: 0 !important;
+            padding: .5rem 0;
             background-color: transparent !important;
+            word-break: break-word;
+            display: flex;
+            flex-direction: column;
+            gap: .2rem;
         }
 
         td[data-label]::before {
@@ -157,26 +179,43 @@
             letter-spacing: .08em;
             text-transform: uppercase;
             color: var(--sym-muted, #6b7280);
-            margin-bottom: .2rem;
         }
 
         .admin-users__actions {
-            margin-top: .85rem;
-            padding-top: .75rem;
-            border-top: 1px solid var(--sym-border, #e5e7eb);
+            margin-top: 1rem;
+            padding-top: .85rem;
+            border-top: 1px solid var(--sym-border, #e5e7eb) !important;
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: .5rem;
+            gap: .6rem;
 
             .btn {
                 width: 100%;
                 flex: none;
-                min-height: 42px;
-                font-size: .8rem;
-                padding: .5rem .4rem;
-                border-radius: 8px;
+                min-height: 44px;
+                font-size: .82rem;
+                padding: .6rem .5rem;
+                border-radius: 10px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
             }
         }
+    }
+}
+
+/* =========================================================
+   SYMBIOT CONTENT - MOBILE FULL WIDTH (5px MARGINS)
+   ========================================================= */
+
+@media (max-width: 767.98px) {
+    .symbiot-content {
+        width: calc(100% - 10px) !important;
+        max-width: calc(100% - 10px) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-left: 5px !important;
+        padding-right: 5px !important;
     }
 }
 
@@ -192,36 +231,37 @@ body.dark {
         color: var(--sym-text, #f9fafb);
 
         .card {
-            background-color: var(--sym-surface, #1f2937) !important;
-            color: var(--sym-text, #f9fafb) !important;
-            border-color: var(--sym-border, #374151) !important;
+            background-color: transparent !important;
+            border-color: transparent !important;
 
             .card-header {
                 background-color: var(--sym-surface, #1f2937) !important;
                 color: var(--sym-text, #f9fafb) !important;
-                border-bottom-color: var(--sym-border, #374151) !important;
+                border: 1px solid var(--sym-border, #374151) !important;
+                border-radius: 16px;
             }
         }
 
         .table {
             background-color: transparent !important;
             color: var(--sym-text, #f9fafb) !important;
-            border-color: var(--sym-border, #374151) !important;
+            border: 1px solid var(--sym-border, #374151) !important;
 
             th {
-                background-color: rgba(17, 24, 39, .6) !important;
+                background-color: transparent !important;
                 color: var(--sym-muted, #9ca3af) !important;
-                border-bottom-color: var(--sym-border, #374151) !important;
+                border-bottom: 2px solid var(--sym-border, #374151) !important;
             }
 
             td {
                 background-color: transparent !important;
-                border-bottom-color: var(--sym-border, #374151) !important;
+                border-bottom: 1px solid var(--sym-border, #374151) !important;
                 color: var(--sym-text, #f9fafb) !important;
             }
 
             tr {
                 background-color: transparent !important;
+                border-bottom: 1px solid var(--sym-border, #374151) !important;
 
                 &:hover {
                     background-color: rgba(255, 255, 255, .02) !important;
