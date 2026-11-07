@@ -41,7 +41,6 @@
             <div class="tracking-field">
                 <label for="trackDay">Date</label>
                 <div class="tracking-input-wrap">
-                    <i class="fa-regular fa-calendar"></i>
                     <input
                         type="date"
                         id="trackDay"

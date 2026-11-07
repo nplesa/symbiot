@@ -1,14 +1,34 @@
-
 /* =========================================================
    SYMBIOT - TRASEE PAGE
-   Current Position inspired design
-   Light Theme / Dark Theme / Responsive
+   Unified Light / Dark Theme & Modern Mobile App UI
    ========================================================= */
 
 .trasee-page {
     width: 100%;
     min-width: 0;
-    color: var(--sym-text);
+    color: var(--sym-text, #111827);
+
+    > .card,
+    .card {
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        margin-bottom: 0;
+
+        > .card-header {
+            display: none;
+        }
+
+        > .card-body {
+            padding: 0;
+            background: transparent;
+        }
+    }
+
+    > .row {
+        align-items: stretch;
+        row-gap: 1.5rem;
+    }
 }
 
 /* =========================================================
@@ -19,96 +39,96 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 1.25rem;
+    margin-bottom: 1.75rem;
 
     h2 {
         margin: .25rem 0;
-        color: var(--sym-text);
+        color: var(--sym-text, #111827);
         font-size: 1.65rem;
         font-weight: 750;
     }
 
     p {
         margin: 0;
-        color: var(--sym-muted);
+        color: var(--sym-muted, #6b7280);
     }
 
     .btn {
         flex-shrink: 0;
-        border-radius: 9px;
-        padding: .7rem 1.1rem;
+        border-radius: 10px;
+        padding: .75rem 1.25rem;
     }
 }
 
 .trasee-eyebrow {
-    color: var(--sym-primary);
-    font-size: .68rem;
+    color: var(--sym-primary, #2563eb);
+    font-size: .7rem;
     font-weight: 800;
     letter-spacing: .12em;
 }
 
 /* =========================================================
-   MAIN GRID
+   MAIN PANELS & CONTAINERS
    ========================================================= */
 
-.trasee-page > .row {
-    align-items: start;
-}
-
-.trasee-page .trasee-panel {
+.trasee-panel {
     min-width: 0;
     overflow: hidden;
-    border: 1px solid var(--sym-border);
-    border-radius: 13px;
-    background: var(--sym-surface);
-    color: var(--sym-text);
-    padding: 1rem;
+    border: 1px solid var(--sym-border, #e5e7eb);
+    border-radius: 16px;
+    background: var(--sym-surface, #ffffff);
+    color: var(--sym-text, #111827);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .trasee-route-list-panel {
     min-height: 690px;
 }
 
-/* =========================================================
-   PANEL HEADER
-   ========================================================= */
-
+/* Panel Header */
 .trasee-panel__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    margin-bottom: .85rem;
-    padding: .15rem .15rem .85rem;
-    border-bottom: 1px solid var(--sym-border);
+    margin-bottom: 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--sym-border, #e5e7eb);
 
-    h1,
-    h2,
-    h3,
-    h4,
-    h5 {
+    h1, h2, h3, h4, h5, .h5 {
         margin: 0;
-        color: var(--sym-text);
-        font-size: .95rem;
+        color: var(--sym-text, #111827);
+        font-size: 1.05rem;
         font-weight: 750;
     }
 
-    small,
-    p {
-        color: var(--sym-muted);
+    small, p, .text-muted {
+        color: var(--sym-muted, #6b7280);
+        font-size: .85rem;
+    }
+
+    .badge {
+        font-size: .8rem;
+        padding: .4em .75em;
+        border-radius: 8px;
     }
 }
 
 /* =========================================================
-   ROUTE LIST
+   ROUTE LIST & ITEMS
    ========================================================= */
 
 .trasee-list {
     display: flex;
     flex-direction: column;
-    gap: .65rem;
+    gap: .85rem;
     min-width: 0;
+    overflow-y: auto;
+    max-height: 580px;
 }
 
 .trasee-item {
@@ -116,42 +136,39 @@
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: .75rem;
-    padding: .85rem;
-    border: 1px solid var(--sym-border);
-    border-radius: 10px;
-    background: var(--sym-surface);
-    color: var(--sym-text);
+    gap: 1rem;
+    padding: 1.1rem;
+    border: 1px solid var(--sym-border, #e5e7eb);
+    border-radius: 14px;
+    background: var(--sym-surface, #ffffff);
+    color: var(--sym-text, #111827);
     text-align: left;
     cursor: pointer;
-
-    transition:
-        border-color .15s ease,
-        background-color .15s ease,
-        box-shadow .15s ease;
+    transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
 
     &:hover {
-        border-color: var(--sym-primary);
-        box-shadow: 0 3px 12px rgba(0, 0, 0, .06);
+        border-color: var(--sym-primary, #2563eb);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, .06);
     }
 
     &.is-selected {
-        border-color: var(--sym-primary);
-        background: rgba(67, 136, 232, .08);
-        box-shadow: inset 3px 0 0 var(--sym-primary);
+        border-color: var(--sym-primary, #2563eb);
+        background: rgba(67, 136, 232, .12);
+        box-shadow: inset 4px 0 0 var(--sym-primary, #2563eb);
     }
 }
 
 .trasee-item__icon {
-    width: 36px;
-    height: 36px;
-    flex: 0 0 36px;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 10px;
+    border-radius: 12px;
     background: rgba(67, 136, 232, .1);
-    color: var(--sym-primary);
+    color: var(--sym-primary, #2563eb);
+    font-size: 1.1rem;
 }
 
 .trasee-item__content {
@@ -163,24 +180,23 @@
 
     strong {
         display: block;
-        color: var(--sym-text);
-        font-size: .9rem;
+        color: var(--sym-text, #111827);
+        font-size: .95rem;
         font-weight: 750;
         line-height: 1.4;
+        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
     }
 
     small {
         display: block;
-        margin-top: .2rem;
-        color: var(--sym-muted);
-        font-size: .75rem;
-        line-height: 1.4;
+        margin-top: .3rem;
+        color: var(--sym-muted, #6b7280);
+        font-size: .82rem;
+        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
     }
 }
 
@@ -189,207 +205,246 @@
     flex: 0 0 auto;
     align-items: center;
     justify-content: flex-end;
-    gap: .3rem;
+    gap: .5rem;
     margin-left: auto;
 }
 
-.trasee-item__selected {
-    display: inline-flex;
-    flex: 0 0 auto;
-    align-items: center;
-    justify-content: center;
-    color: var(--sym-primary);
-}
-
 .trasee-item__delete {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    flex: 0 0 28px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    flex: 0 0 36px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     padding: 0 !important;
-    border-radius: 7px;
-    font-size: .78rem;
+    border-radius: 10px;
+    font-size: .85rem;
 
-    i {
-        margin: 0 !important;
-    }
+    i { margin: 0 !important; }
 }
 
 .trasee-item__export {
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
     display: inline-grid;
     place-items: center;
-    border-radius: 7px;
-    color: var(--sym-muted);
+    border-radius: 10px;
+    color: var(--sym-muted, #6b7280);
     text-decoration: none;
-    font-size: .8rem;
+    font-size: .9rem;
 
     &:hover {
-        color: var(--sym-primary);
+        color: var(--sym-primary, #2563eb);
         background: rgba(67, 136, 232, .1);
     }
 }
 
 .trasee-empty {
-    padding: 2rem 1rem;
-    color: var(--sym-muted);
+    padding: 2.5rem 1rem;
+    color: var(--sym-muted, #6b7280);
     text-align: center;
 }
 
 /* =========================================================
-   GOOGLE MAPS IMPORT CARD
+   GOOGLE MAPS IMPORT CARD & FORMS
    ========================================================= */
 
 .trasee-google-import {
-    margin-top: 1.25rem;
-    padding: 1rem;
-    border: 1px solid var(--sym-border);
-    border-radius: 13px;
-    background: var(--sym-surface);
-    color: var(--sym-text);
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid var(--sym-border, #e5e7eb);
+    border-radius: 16px;
+    background: var(--sym-surface, #ffffff);
+    color: var(--sym-text, #111827);
 }
 
 .trasee-google-import__title {
     display: flex;
     align-items: flex-start;
-    gap: .75rem;
+    gap: 1rem;
 
-    h1,
-    h2,
-    h3,
-    h4,
-    h5 {
+    h1, h2, h3, h4, h5 {
         margin: 0;
-        color: var(--sym-text);
-        font-size: .95rem;
+        color: var(--sym-text, #111827);
+        font-size: 1.05rem;
         font-weight: 750;
     }
 
-    p,
-    small {
-        color: var(--sym-muted);
+    p, small {
+        color: var(--sym-muted, #6b7280);
     }
 }
 
 .trasee-google-import__icon {
-    width: 38px;
-    height: 38px;
-    flex: 0 0 38px;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--sym-border);
-    border-radius: 10px;
+    border: 1px solid var(--sym-border, #e5e7eb);
+    border-radius: 12px;
     background: rgba(67, 136, 232, .1);
-    color: var(--sym-primary);
+    color: var(--sym-primary, #2563eb);
+    font-size: 1.1rem;
 }
 
 .trasee-import-form {
-    margin-top: 1rem;
+    margin-top: 1.25rem;
 
-    label,
-    .form-label {
-        color: var(--sym-muted);
-        font-size: .8rem;
+    label, .form-label {
+        color: var(--sym-muted, #6b7280);
+        font-size: .85rem;
         font-weight: 650;
+        display: block;
+        margin-bottom: .45rem;
     }
 
-    .form-control {
-        min-width: 0;
-    }
-
-    .input-group-lg > .form-control {
+    .form-control,
+    input[type="text"],
+    input[type="url"],
+    input[type="search"],
+    input[type="file"] {
+        width: 100%;
+        min-height: 48px;
+        padding: 0.7rem 1rem;
+        background-color: var(--sym-bg, #f9fafb);
+        color: var(--sym-text, #111827);
+        border: 1px solid var(--sym-border, #e5e7eb);
+        border-radius: 12px;
         font-size: .95rem;
+
+        &:focus {
+            border-color: var(--sym-primary, #2563eb);
+            box-shadow: 0 0 0 3px rgba(67, 136, 232, .12);
+            outline: none;
+        }
+    }
+
+    input[type="file"]::file-selector-button {
+        background-color: var(--sym-surface, #ffffff);
+        color: var(--sym-text, #111827);
+        border: 1px solid var(--sym-border, #e5e7eb);
+        padding: 0.45rem 0.85rem;
+        border-radius: 8px;
+        margin-right: 0.85rem;
+        cursor: pointer;
+    }
+
+    .input-group {
+        display: flex;
+        align-items: stretch;
+        width: 100%;
+        gap: .5rem;
+
+        > .form-control {
+            flex: 1 1 auto;
+            border-top-right-radius: 12px !important;
+            border-bottom-right-radius: 12px !important;
+        }
+
+        > .btn {
+            border-top-left-radius: 12px !important;
+            border-bottom-left-radius: 12px !important;
+        }
     }
 
     .btn {
-        border-radius: 9px;
+        border-radius: 12px;
         white-space: nowrap;
+        min-height: 48px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: .65rem 1.25rem;
+        font-weight: 700;
     }
 }
 
 .trasee-import-divider {
     display: flex;
     align-items: center;
-    gap: .75rem;
-    margin: 1.5rem 0 1rem;
-    color: var(--sym-muted);
-    font-size: .68rem;
+    gap: 1rem;
+    margin: 1.75rem 0 1.25rem;
+    color: var(--sym-muted, #6b7280);
+    font-size: .75rem;
     font-weight: 800;
     letter-spacing: .1em;
     text-transform: uppercase;
 
-    &::before,
-    &::after {
+    &::before, &::after {
         content: '';
         height: 1px;
         flex: 1 1 auto;
-        background: var(--sym-border);
+        background: var(--sym-border, #e5e7eb);
     }
 
-    span {
-        flex: 0 0 auto;
-    }
+    span { flex: 0 0 auto; }
 }
 
 /* =========================================================
-   MAP CARD
+   MAP CONTAINER & OPENLAYERS
    ========================================================= */
 
-.trasee-map-container {
+.trasee-map-container,
+#traseu_map_container {
     position: relative;
     width: 100%;
-    min-width: 0;
-    min-height: 420px;
+    min-height: 500px;
+    flex: 1 1 auto;
     overflow: hidden;
-    border-radius: 13px;
-    background: var(--sym-bg);
+    border-radius: 16px;
+    background: var(--sym-bg, #f9fafb);
+    display: flex;
+    flex-direction: column;
 }
 
 .traseu-map {
-    display: grid;
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    min-height: 420px;
+    min-height: 500px;
 }
 
 .traseu-map-empty {
     position: absolute;
     inset: 0;
+    z-index: 2;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: .5rem;
-    color: var(--sym-muted);
+    gap: .75rem;
+    color: var(--sym-muted, #6b7280);
+    background: var(--sym-bg, #f9fafb);
     pointer-events: none;
+    text-align: center;
+    padding: 2rem;
+
+    span, p {
+        color: var(--sym-muted, #6b7280);
+        font-weight: 600;
+    }
 }
 
-/* =========================================================
-   SELECTED ROUTE INFO
-   ========================================================= */
-
+/* Selected Route Floating Bar */
 .traseu-selected-info {
     position: absolute;
     z-index: 5;
-    right: 1rem;
-    bottom: 1rem;
-    left: 1rem;
-
+    right: 1.25rem;
+    bottom: 1.25rem;
+    left: 1.25rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-
-    padding: .9rem 1rem;
-    border: 1px solid var(--sym-border);
-    border-radius: 12px;
-    background: var(--sym-surface);
-    color: var(--sym-text);
-    box-shadow: 0 4px 18px rgba(0, 0, 0, .12);
+    gap: 1.25rem;
+    padding: 1.15rem 1.35rem;
+    border: 1px solid var(--sym-border, #e5e7eb);
+    border-radius: 14px;
+    background: var(--sym-surface, #ffffff);
+    color: var(--sym-text, #111827);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
 }
 
 .traseu-selected-info__details {
@@ -399,17 +454,16 @@
     strong {
         display: block;
         margin-bottom: .25rem;
-        color: var(--sym-text);
-        font-size: .9rem;
+        color: var(--sym-text, #111827);
+        font-size: .95rem;
         font-weight: 750;
         line-height: 1.4;
         overflow-wrap: anywhere;
     }
 
-    small,
-    span {
-        color: var(--sym-muted);
-        font-size: .75rem;
+    small, span {
+        color: var(--sym-muted, #6b7280);
+        font-size: .8rem;
     }
 }
 
@@ -419,188 +473,291 @@
     align-items: center;
     justify-content: flex-end;
     flex-wrap: wrap;
-    gap: .5rem;
-}
+    gap: .6rem;
 
-/* Baza comuna pentru butoane */
-
-.traseu-selected-info__actions .btn {
-    min-height: 39px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: .5rem;
-
-    padding: .55rem .9rem;
-    border: 1px solid transparent;
-    border-radius: 9px;
-
-    font-size: .78rem;
-    font-weight: 700;
-    line-height: 1.2;
-    text-decoration: none;
-    white-space: nowrap;
-
-    transition:
-        color .18s ease,
-        background-color .18s ease,
-        border-color .18s ease,
-        box-shadow .18s ease,
-        transform .18s ease;
-
-    i,
-    svg {
-        flex: 0 0 auto;
-        font-size: .9rem;
-    }
-
-    &:hover {
-        transform: translateY(-1px);
-    }
-
-    &:active {
-        transform: translateY(0);
-    }
-
-    &:focus-visible {
-        outline: 3px solid rgba(67, 136, 232, .25);
-        outline-offset: 2px;
-    }
-
-    &:disabled,
-    &.disabled {
-        opacity: .55;
-        cursor: not-allowed;
-        transform: none;
-    }
-}
-
-/* Buton principal */
-
-.traseu-selected-info__actions .btn-primary {
-    background: var(--sym-primary);
-    border-color: var(--sym-primary);
-    color: #fff;
-    box-shadow: 0 2px 6px rgba(67, 136, 232, .2);
-
-    &:hover {
-        background: var(--sym-primary);
-        border-color: var(--sym-primary);
-        color: #fff;
-        filter: brightness(1.08);
-        box-shadow: 0 4px 12px rgba(67, 136, 232, .25);
-    }
-}
-
-/* Butoane secundare */
-
-.traseu-selected-info__actions .btn-secondary,
-.traseu-selected-info__actions .btn-outline-primary,
-.traseu-selected-info__actions .btn-light {
-    background: var(--sym-bg);
-    border-color: var(--sym-border);
-    color: var(--sym-text);
-
-    &:hover {
-        background: rgba(67, 136, 232, .1);
-        border-color: var(--sym-primary);
-        color: var(--sym-primary);
-    }
-}
-
-/* Buton de ștergere */
-
-.traseu-selected-info__actions .btn-danger,
-.traseu-selected-info__actions .btn-outline-danger {
-    background: rgba(220, 69, 69, .08);
-    border-color: rgba(220, 69, 69, .25);
-    color: #dc4545;
-
-    &:hover {
-        background: #dc4545;
-        border-color: #dc4545;
-        color: #fff;
-        box-shadow: 0 3px 10px rgba(220, 69, 69, .2);
-    }
-}
-
-/* =========================================================
-   ROUTE METADATA
-   ========================================================= */
-
-.traseu-route-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    margin-top: .5rem;
-
-    div {
-        display: flex;
-        flex-direction: column;
-        gap: .2rem;
-    }
-
-    span {
-        color: var(--sym-muted);
-        font-size: .72rem;
-    }
-
-    strong {
-        color: var(--sym-text);
-        font-size: .85rem;
+    .btn {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .5rem;
+        padding: .6rem 1rem;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        font-size: .82rem;
         font-weight: 700;
+        line-height: 1.2;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all .18s ease;
+
+        i, svg {
+            flex: 0 0 auto;
+            font-size: .95rem;
+        }
+
+        &:hover { transform: translateY(-1px); }
+        &:active { transform: translateY(0); }
+    }
+
+    .btn-primary {
+        background: var(--sym-primary, #2563eb);
+        border-color: var(--sym-primary, #2563eb);
+        color: #fff;
+        box-shadow: 0 2px 6px rgba(67, 136, 232, .2);
+
+        &:hover { filter: brightness(1.08); }
+    }
+
+    .btn-secondary,
+    .btn-outline-primary,
+    .btn-light {
+        background: var(--sym-bg, #f9fafb);
+        border-color: var(--sym-border, #e5e7eb);
+        color: var(--sym-text, #111827);
+
+        &:hover {
+            background: rgba(67, 136, 232, .1);
+            border-color: var(--sym-primary, #2563eb);
+            color: var(--sym-primary, #2563eb);
+        }
+    }
+
+    .btn-danger,
+    .btn-outline-danger {
+        background: rgba(220, 69, 69, .08);
+        border-color: rgba(220, 69, 69, .25);
+        color: #dc4545;
+
+        &:hover {
+            background: #dc4545;
+            border-color: #dc4545;
+            color: #fff;
+        }
+    }
+}
+
+/* OpenLayers Controls */
+.traseu-map {
+    .ol-control {
+        padding: 0;
+        border: 1px solid var(--sym-border, #e5e7eb);
+        border-radius: 12px;
+        background: var(--sym-surface, #ffffff);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, .12);
+        display: inline-block;
+        width: auto;
+
+        button {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            margin: 3px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: 8px;
+            background: var(--sym-bg, #f9fafb);
+            color: var(--sym-text, #111827);
+            font-size: 1.15rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color .15s ease, color .15s ease;
+
+            &:hover {
+                background: var(--sym-primary, #2563eb);
+                color: #fff;
+            }
+        }
+    }
+
+    .ol-zoom {
+        top: 1.15rem;
+        left: 1.15rem;
+    }
+
+    .ol-rotate {
+        top: 1.15rem;
+        right: 1.15rem;
+        left: auto;
     }
 }
 
 /* =========================================================
-   PAGE ACTIONS
+   DARK THEME OVERRIDES (SHELL & GLOBAL SELECTORS)
    ========================================================= */
 
-.trasee-actions {
-    margin-top: 1rem;
-    padding: 1rem 0 .1rem;
-    border-top: 1px solid var(--sym-border);
-}
+.symbiot-shell[data-theme="dark"],
+[data-theme="dark"],
+.dark,
+body.dark {
+    .trasee-page {
+        color: var(--sym-text, #f9fafb);
 
-/* =========================================================
-   RESPONSIVE - LARGE TABLETS
-   ========================================================= */
+        .card,
+        .card-body,
+        .card-header,
+        .trasee-panel,
+        .trasee-item,
+        .traseu-selected-info,
+        .trasee-google-import {
+            background-color: var(--sym-surface, #1f2937) !important;
+            color: var(--sym-text, #f9fafb) !important;
+            border-color: var(--sym-border, #374151) !important;
+        }
 
-@media (max-width: 1199.98px) {
-    .trasee-route-list-panel {
-        min-height: 600px;
+        .trasee-panel__header {
+            border-bottom-color: var(--sym-border, #374151) !important;
+
+            h1, h2, h3, h4, h5, .h5 {
+                color: var(--sym-text, #f9fafb) !important;
+            }
+
+            p, small, .text-muted {
+                color: var(--sym-muted, #9ca3af) !important;
+            }
+
+            .badge {
+                background-color: var(--sym-bg, #111827) !important;
+                color: var(--sym-text, #f9fafb) !important;
+                border: 1px solid var(--sym-border, #374151) !important;
+            }
+        }
+
+        .trasee-item__content strong,
+        .traseu-selected-info strong,
+        .trasee-google-import__title h1,
+        .trasee-google-import__title h2,
+        .trasee-google-import__title h3,
+        .trasee-google-import__title h4,
+        .trasee-google-import__title h5 {
+            color: var(--sym-text, #f9fafb) !important;
+        }
+
+        .trasee-item__content small,
+        .trasee-empty,
+        .traseu-route-meta span,
+        .trasee-import-divider,
+        .trasee-google-import p,
+        .trasee-google-import small,
+        .trasee-import-form label,
+        .trasee-import-form .form-label,
+        small.text-muted,
+        p.text-muted {
+            color: var(--sym-muted, #9ca3af) !important;
+        }
+
+        .trasee-item.is-selected {
+            background: rgba(67, 136, 232, .2) !important;
+            border-color: var(--sym-primary, #2563eb) !important;
+        }
+
+        .trasee-item:hover {
+            border-color: var(--sym-primary, #2563eb) !important;
+        }
+
+        .trasee-google-import__icon,
+        .trasee-item__icon {
+            background: rgba(67, 136, 232, .2) !important;
+            border-color: var(--sym-border, #374151) !important;
+            color: var(--sym-primary, #2563eb) !important;
+        }
+
+        .trasee-import-form {
+            input,
+            select,
+            textarea,
+            .form-control,
+            input[type="text"],
+            input[type="url"],
+            input[type="search"],
+            input[type="file"] {
+                background-color: var(--sym-bg, #111827) !important;
+                color: var(--sym-text, #f9fafb) !important;
+                border-color: var(--sym-border, #374151) !important;
+                color-scheme: dark;
+
+                &::placeholder {
+                    color: var(--sym-muted, #9ca3af) !important;
+                }
+            }
+
+            input[type="file"]::file-selector-button {
+                background-color: var(--sym-surface, #1f2937) !important;
+                color: var(--sym-text, #f9fafb) !important;
+                border: 1px solid var(--sym-border, #374151) !important;
+            }
+        }
+
+        .traseu-selected-info__actions {
+            .btn-secondary,
+            .btn-outline-primary,
+            .btn-light {
+                background: rgba(255, 255, 255, .06) !important;
+                border-color: var(--sym-border, #374151) !important;
+                color: var(--sym-text, #f9fafb) !important;
+
+                &:hover {
+                    background: rgba(67, 136, 232, .2) !important;
+                    border-color: var(--sym-primary, #2563eb) !important;
+                    color: var(--sym-primary, #2563eb) !important;
+                }
+            }
+
+            .btn-danger,
+            .btn-outline-danger {
+                background: rgba(220, 69, 69, .15) !important;
+                border-color: rgba(220, 69, 69, .3) !important;
+                color: #ff7777 !important;
+
+                &:hover {
+                    background: #dc4545 !important;
+                    border-color: #dc4545 !important;
+                    color: #fff !important;
+                }
+            }
+        }
+
+        .trasee-map-container,
+        #traseu_map_container,
+        .traseu-map,
+        .traseu-map-empty {
+            background: var(--sym-bg, #111827) !important;
+            color: var(--sym-muted, #9ca3af) !important;
+
+            span, p {
+                color: var(--sym-muted, #9ca3af) !important;
+            }
+        }
     }
 }
 
 /* =========================================================
-   RESPONSIVE - TABLETS
+   RESPONSIVE MEDIA QUERIES (TABLETS & MODERN MOBILE UI)
    ========================================================= */
 
 @media (max-width: 991.98px) {
-    .trasee-page > .row {
-        align-items: start;
-    }
-
     .trasee-route-list-panel {
-        min-height: 0;
+        min-height: auto;
     }
 
     .trasee-map-container,
-    .traseu-map {
-        min-height: 450px;
+    #traseu_map_container {
+        min-height: 420px;
     }
 }
 
-/* =========================================================
-   RESPONSIVE - MOBILE
-   ========================================================= */
-
 @media (max-width: 575.98px) {
+    .trasee-page {
+        padding-bottom: 2.5rem;
+    }
+
     .trasee-heading {
-        display: flex;
-        align-items: flex-start;
         flex-direction: column;
-        gap: .85rem;
+        align-items: stretch;
+        gap: 1rem;
         margin-bottom: 1.25rem;
 
         h2 {
@@ -609,286 +766,199 @@
 
         .btn {
             width: 100%;
+            min-height: 48px;
         }
     }
 
-    .trasee-page .trasee-panel {
-        padding: .85rem;
-        border-radius: 11px;
+    /* Panouri mobile spațioase, stil card mobil nativ */
+    .trasee-panel {
+        padding: 1.1rem;
+        border-radius: 16px;
+        margin-bottom: 0;
+        height: auto;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, .04);
+    }
+
+    .trasee-route-list-panel {
+        min-height: auto;
     }
 
     .trasee-panel__header {
-        gap: .5rem;
-        margin-bottom: .75rem;
+        margin-bottom: .85rem;
+        padding-bottom: .85rem;
+
+        h1, h2, h3, h4, h5, .h5 {
+            font-size: 1rem;
+        }
     }
 
-    .trasee-page .trasee-list {
-        gap: .55rem;
+    .trasee-list {
+        gap: .75rem;
+        overflow-y: visible;
+        max-height: none;
     }
 
-    .trasee-page .trasee-item {
-        gap: .55rem;
-        padding: .7rem;
+    .trasee-item {
+        padding: .9rem 1rem;
+        gap: .85rem;
+        border-radius: 12px;
     }
 
     .trasee-item__icon {
-        width: 32px;
-        height: 32px;
-        flex-basis: 32px;
+        width: 38px;
+        height: 38px;
+        flex-basis: 38px;
+        border-radius: 10px;
+        font-size: 1rem;
     }
 
-    .trasee-item__content strong {
-        font-size: .84rem;
-    }
-
-    .trasee-item__content small {
-        font-size: .7rem;
-    }
-
-    .trasee-item__actions {
-        gap: .15rem;
+    .trasee-item__content {
+        strong {
+            font-size: .9rem;
+        }
+        small {
+            font-size: .78rem;
+            margin-top: .2rem;
+        }
     }
 
     .trasee-item__delete,
     .trasee-item__export {
-        width: 26px;
-        height: 26px;
-        min-width: 26px;
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        border-radius: 8px;
     }
 
+    /* Cardul de import mobil */
     .trasee-google-import {
-        padding: .85rem;
-        border-radius: 11px;
+        padding: 1.1rem;
+        border-radius: 16px;
+        margin-bottom: 0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, .04);
+
+        &__title {
+            gap: .75rem;
+
+            h1, h2, h3, h4, h5 {
+                font-size: 1rem;
+            }
+        }
     }
 
-    .trasee-import-form .input-group {
-        display: flex;
-        flex-wrap: wrap;
-        gap: .5rem;
+    .trasee-google-import__icon {
+        width: 38px;
+        height: 38px;
+        flex-basis: 38px;
+        border-radius: 10px;
+        font-size: 1rem;
     }
 
-    .trasee-import-form .input-group > .form-control,
-    .trasee-import-form .input-group > .btn {
-        width: 100%;
-        max-width: 100%;
-        flex: 0 0 100%;
-        margin: 0 !important;
-        border-radius: 9px !important;
+    .trasee-import-form {
+        margin-top: 1rem;
+
+        .form-control,
+        input[type="text"],
+        input[type="url"],
+        input[type="search"],
+        input[type="file"] {
+            min-height: 46px;
+            padding: 0.65rem 0.9rem;
+            font-size: 16px; /* Previne auto-zoom pe inputuri pe Safari/Chrome Android */
+            border-radius: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: .75rem;
+
+            > .form-control,
+            > .btn {
+                width: 100% !important;
+                border-radius: 10px !important;
+                min-height: 46px;
+            }
+
+            > .btn {
+                font-size: .9rem;
+            }
+        }
+
+        .btn {
+            min-height: 46px;
+            border-radius: 10px;
+        }
     }
 
-    .trasee-import-form .input-group > .btn {
-        min-height: 44px;
-        padding: .7rem .85rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        white-space: normal;
-        line-height: 1.3;
+    .trasee-import-divider {
+        margin: 1.25rem 0 1rem;
+        font-size: .7rem;
     }
 
-    .trasee-import-form .input-group > #generate-google-maps-kml-submit {
-        min-height: 46px;
-    }
-
-    .trasee-map-container {
-        min-height: 320px;
-        height: 55vh;
-        height: 55dvh;
-        border-radius: 11px;
+    /* Harta pe mobil - înălțime optimizată ergonomic */
+    .trasee-map-container,
+    #traseu_map_container {
+        min-height: 360px;
+        height: 45vh;
+        height: 45dvh;
+        border-radius: 16px;
     }
 
     .traseu-map {
-        min-height: 320px;
+        min-height: 360px;
     }
 
+    .traseu-map-empty {
+        padding: 1.25rem;
+        font-size: .85rem;
+    }
+
+    /* Bara flotantă de acțiuni pe traseu selectat (Mobile-First Bottom Sheet style) */
     .traseu-selected-info {
-        right: .6rem;
-        bottom: .6rem;
-        left: .6rem;
-        align-items: stretch;
+        right: .75rem;
+        bottom: .75rem;
+        left: .75rem;
         flex-direction: column;
-        gap: .75rem;
-        padding: .75rem;
-    }
+        align-items: stretch;
+        gap: .85rem;
+        padding: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, .2);
 
-    .traseu-selected-info__actions {
-        width: 100%;
-        justify-content: stretch;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: .45rem;
-    }
+        &__details {
+            strong {
+                font-size: .9rem;
+                margin-bottom: .15rem;
+            }
+            small, span {
+                font-size: .78rem;
+            }
+        }
 
-    .traseu-selected-info__actions .btn {
-        width: 100%;
-        min-width: 0;
-        min-height: 42px;
-        padding: .55rem .45rem;
-        white-space: normal;
-        font-size: .74rem;
-    }
+        &__actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .5rem;
+            width: 100%;
 
-    .traseu-route-meta {
-        gap: 1rem;
-    }
-
-    .trasee-actions {
-        padding-top: .85rem;
-    }
-}
-
-/* =========================================================
-   DARK THEME
-   ========================================================= */
-
-.symbiot-shell[data-theme="dark"] .trasee-page {
-    color: var(--sym-text);
-}
-
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-panel,
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-item,
-.symbiot-shell[data-theme="dark"] .trasee-page .traseu-selected-info,
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-google-import {
-    background: var(--sym-surface);
-    color: var(--sym-text);
-    border-color: var(--sym-border);
-}
-
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-panel__header h1,
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-panel__header h2,
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-panel__header h3,
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-panel__header h4,
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-panel__header h5,
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-item__content strong,
-.symbiot-shell[data-theme="dark"] .trasee-page .traseu-selected-info strong {
-    color: var(--sym-text);
-}
-
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-item__content small,
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-empty,
-.symbiot-shell[data-theme="dark"] .trasee-page .traseu-route-meta span,
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-import-divider {
-    color: var(--sym-muted);
-}
-
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-item.is-selected {
-    background: rgba(67, 136, 232, .12);
-    border-color: var(--sym-primary);
-}
-
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-item:hover {
-    border-color: var(--sym-primary);
-}
-
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-google-import__icon,
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-item__icon {
-    background: rgba(67, 136, 232, .12);
-    border-color: var(--sym-border);
-    color: var(--sym-primary);
-}
-
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-google-import p,
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-google-import small,
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-import-form label {
-    color: var(--sym-muted);
-}
-
-/* Butoane secundare în Dark Theme */
-
-.symbiot-shell[data-theme="dark"] .trasee-page .traseu-selected-info__actions .btn-secondary,
-.symbiot-shell[data-theme="dark"] .trasee-page .traseu-selected-info__actions .btn-outline-primary,
-.symbiot-shell[data-theme="dark"] .trasee-page .traseu-selected-info__actions .btn-light {
-    background: rgba(255, 255, 255, .06);
-    border-color: var(--sym-border);
-    color: var(--sym-text);
-
-    &:hover {
-        background: rgba(67, 136, 232, .16);
-        border-color: var(--sym-primary);
-        color: var(--sym-primary);
+            .btn {
+                width: 100%;
+                min-height: 42px;
+                font-size: .78rem;
+                padding: .5rem .4rem;
+                border-radius: 8px;
+            }
+        }
     }
 }
-
-.symbiot-shell[data-theme="dark"] .trasee-page .traseu-selected-info__actions .btn-danger,
-.symbiot-shell[data-theme="dark"] .trasee-page .traseu-selected-info__actions .btn-outline-danger {
-    background: rgba(220, 69, 69, .12);
-    border-color: rgba(220, 69, 69, .3);
-    color: #ff7777;
-
-    &:hover {
-        background: #dc4545;
-        border-color: #dc4545;
-        color: #fff;
-    }
-}
-
-.symbiot-shell[data-theme="dark"] .trasee-page .trasee-map-container,
-.symbiot-shell[data-theme="dark"] .trasee-page .traseu-map {
-    background: var(--sym-bg);
-}
-
-
-//
-
-.traseu-map .ol-control {
-    width: auto;
-}
-
-.traseu-map .ol-control button {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    padding: 0;
-    margin: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 32px;
-}
-
-
-/* =========================================================
-   OPENLAYERS MAP CONTROLS
-   ========================================================= */
-
-.traseu-map {
-    .ol-control {
-        padding: 0;
-        border: 1px solid var(--sym-border);
-        border-radius: 10px;
-        background: var(--sym-surface);
-        box-shadow: 0 3px 12px rgba(0, 0, 0, .12);
-        display:inline;
-    }
-
-    .ol-control button {
-        width: 34px;
-        height: 34px;
-        margin: 3px;
-        border: 0;
-        border-radius: 7px;
-        background: var(--sym-bg);
-        color: var(--sym-text);
-        font-size: 1.15rem;
-        font-weight: 700;
-        cursor: pointer;
-        transition: background-color .15s ease, color .15s ease;
-    }
-
-    .ol-control button:hover {
-        background: var(--sym-primary);
-        color: #fff;
-    }
-
-    .ol-zoom {
-        top: 1rem;
-        left: 1rem;
-    }
-
-    .ol-rotate {
-        top: 1rem;
-        right: 1rem;
-        left: auto;
+@media (max-width: 767.98px) {
+    .symbiot-content {
+        width: calc(100% - 10px) !important;
+        max-width: calc(100% - 10px) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
 }
