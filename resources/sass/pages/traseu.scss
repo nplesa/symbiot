@@ -395,7 +395,6 @@
     flex: 1 1 auto;
     overflow: hidden;
     border-radius: 16px;
-    background: var(--sym-bg, #f9fafb);
     display: flex;
     flex-direction: column;
 }
@@ -417,7 +416,6 @@
     justify-content: center;
     gap: .75rem;
     color: var(--sym-muted, #6b7280);
-    background: var(--sym-bg, #f9fafb);
     pointer-events: none;
     text-align: center;
     padding: 2rem;
@@ -603,7 +601,6 @@ body.dark {
         .trasee-item,
         .traseu-selected-info,
         .trasee-google-import {
-            background-color: var(--sym-surface, #1f2937) !important;
             color: var(--sym-text, #f9fafb) !important;
             border-color: var(--sym-border, #374151) !important;
         }
@@ -961,4 +958,97 @@ body.dark {
         padding-left: 0 !important;
         padding-right: 0 !important;
     }
+}
+
+
+/* =========================================================
+   FIX: CARDUL TRASEULUI SUB HARTA
+   ========================================================= */
+
+/* Containerul hărții */
+.trasee-map-container,
+#traseu_map_container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+}
+
+/* Harta */
+.traseu-map {
+    position: relative !important;
+    inset: auto !important;
+    width: 100%;
+    height: 500px !important;
+    min-height: 500px !important;
+    flex: 0 0 500px !important;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+/* Cardul traseului selectat */
+.traseu-selected-info {
+    position: relative !important;
+    z-index: 2;
+    inset: auto !important;
+    width: 100%;
+    margin: 0 !important;
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .12);
+}
+
+/* Detalii traseu */
+.traseu-selected-info__details {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Butoane */
+.traseu-selected-info__actions {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+}
+
+/* Responsive */
+@media (max-width: 575.98px) {
+
+    .traseu-map {
+        height: 45vh !important;
+        min-height: 360px !important;
+        flex-basis: 45vh !important;
+    }
+
+    .traseu-selected-info {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1rem;
+        gap: .85rem;
+    }
+
+    .traseu-selected-info__actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+    }
+
+    .traseu-selected-info__actions .btn {
+        width: 100%;
+        white-space: normal;
+    }
+}
+
+.symbiot-shell[data-theme=dark] .trasee-page .trasee-map-container, .symbiot-shell[data-theme=dark] .trasee-page #traseu_map_container, .symbiot-shell[data-theme=dark] .trasee-page .traseu-map, .symbiot-shell[data-theme=dark] .trasee-page .traseu-map-empty, [data-theme=dark] .trasee-page .trasee-map-container, [data-theme=dark] .trasee-page #traseu_map_container, [data-theme=dark] .trasee-page .traseu-map, [data-theme=dark] .trasee-page .traseu-map-empty, .dark .trasee-page .trasee-map-container, .dark .trasee-page #traseu_map_container, .dark .trasee-page .traseu-map, .dark .trasee-page .traseu-map-empty, body.dark .trasee-page .trasee-map-container, body.dark .trasee-page #traseu_map_container, body.dark .trasee-page .traseu-map, body.dark .trasee-page .traseu-map-empty {
+    background: unset !important;
 }
