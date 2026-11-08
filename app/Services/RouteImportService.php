@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use RuntimeException;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class RouteImportService
 {
@@ -11,7 +13,7 @@ class RouteImportService
     {
         $extension = strtolower($extension);
 
-        return match ($extension) {
+        $parsed = match ($extension) {
             'gpx' => $this->fromXmlFile($path, 'gpx'),
             'kml' => $this->fromXmlFile($path, 'kml'),
             'kmz' => $this->fromKmz($path),
@@ -21,6 +23,8 @@ class RouteImportService
             'csv' => $this->fromCsv((string) file_get_contents($path)),
             default => throw new RuntimeException('Format de traseu nesuportat.'),
         };
+
+        return $this->addMissingElevations($parsed);
     }
 
     /** @return array<string, mixed> */
@@ -345,7 +349,10 @@ class RouteImportService
                     continue;
                 }
 
+                // Google Maps KML uses a third coordinate of 0 as a placeholder,
+                // not as measured elevation.
                 $elevation = isset($parts[2]) && is_numeric($parts[2])
+                    && (float) $parts[2] !== 0.0
                     ? (float) $parts[2]
                     : null;
 
@@ -654,6 +661,105 @@ class RouteImportService
             'elevation_gain' => $hasElevation ? $gain : null,
             'elevation_loss' => $hasElevation ? $loss : null,
         ];
+    }
+
+    /** @param array<string, mixed> $parsed @return array<string, mixed> */
+    private function addMissingElevations(array $parsed): array
+    {
+        if (! config('services.geoapify.key') || empty($parsed['points'])) {
+            return $parsed;
+        }
+
+        $points = $parsed['points'];
+        $missingIndexes = [];
+        foreach ($points as $index => $point) {
+            if ($point['elevation'] === null) {
+                $missingIndexes[] = $index;
+            }
+        }
+
+        if ($missingIndexes === []) {
+            return $parsed;
+        }
+
+        try {
+            foreach (array_chunk($missingIndexes, 1000) as $indexes) {
+                $locations = array_map(
+                    fn (int $index) => [$points[$index]['longitude'], $points[$index]['latitude']],
+                    $indexes
+                );
+                $response = Http::acceptJson()
+                    ->asJson()
+                    ->timeout(20)
+                    ->post('https://api.geoapify.com/v1/geodata/elevation?apiKey=' . urlencode(config('services.geoapify.key')), [
+                        'format' => 'json',
+                        'units' => 'metric',
+                        'locations' => $locations,
+                    ]);
+
+                if (! $response->successful()) {
+                    throw new RuntimeException('Geoapify Elevation API returned HTTP ' . $response->status());
+                }
+
+                $results = $response->json('results');
+                if (! is_array($results) || count($results) !== count($indexes)) {
+                    throw new RuntimeException('Geoapify Elevation API returned an invalid result list.');
+                }
+
+                foreach ($indexes as $offset => $index) {
+                    $elevation = $results[$offset]['elevation'] ?? null;
+                    if (is_numeric($elevation)) {
+                        $points[$index]['elevation'] = (float) $elevation;
+                    }
+                }
+            }
+        } catch (\Throwable $exception) {
+            Log::warning('Geoapify elevation lookup failed for imported route.', [
+                'message' => $exception->getMessage(),
+            ]);
+
+            return $parsed;
+        }
+
+        $index = 0;
+        $gain = 0.0;
+        $loss = 0.0;
+        $coordinates = $parsed['geometry']['type'] === 'LineString'
+            ? [$parsed['geometry']['coordinates']]
+            : $parsed['geometry']['coordinates'];
+
+        foreach ($coordinates as &$segmentCoordinates) {
+            $previousElevation = null;
+            foreach ($segmentCoordinates as &$coordinate) {
+                $elevation = $points[$index]['elevation'] ?? null;
+                $coordinate = [$coordinate[0], $coordinate[1]];
+                if ($elevation !== null) {
+                    $coordinate[] = $elevation;
+                }
+                if ($previousElevation !== null && $elevation !== null) {
+                    $delta = $elevation - $previousElevation;
+                    // Ignore tiny DEM fluctuations that are below terrain-data noise.
+                    if ($delta > 2) {
+                        $gain += $delta;
+                    } elseif ($delta < -2) {
+                        $loss += abs($delta);
+                    }
+                }
+                $previousElevation = $elevation;
+                $index++;
+            }
+            unset($coordinate);
+        }
+        unset($segmentCoordinates);
+
+        $parsed['points'] = $points;
+        $parsed['geometry']['coordinates'] = $parsed['geometry']['type'] === 'LineString'
+            ? $coordinates[0]
+            : $coordinates;
+        $parsed['elevation_gain'] = $gain;
+        $parsed['elevation_loss'] = $loss;
+
+        return $parsed;
     }
 
     /**
