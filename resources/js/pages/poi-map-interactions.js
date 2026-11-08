@@ -77,7 +77,9 @@ export function buildPoiCategoryRequests(selectedTypes, {
                 lon: String(lon),
                 radius: String(radius),
             });
-            if (category === 'train') params.set('include_routes', 'false');
+            // Stop markers are loaded from local transit feeds separately. Avoid the
+            // expensive Overpass route-relation lookup during the initial bus POI request.
+            if (category === 'bus' || category === 'train') params.set('include_routes', 'false');
 
             return {
                 category,
@@ -395,6 +397,7 @@ export function bindPoiMapClick({
     tooltipElement,
     showTooltip,
     hideTooltip,
+    ignoreFeatureAtPixel,
 }) {
     const handleClick = event => {
         const viewport = map.getViewport();
@@ -409,6 +412,10 @@ export function bindPoiMapClick({
         if (tooltipElement.contains(event.target)) return;
 
         const pixel = map.getEventPixel(event);
+        if (ignoreFeatureAtPixel?.(pixel)) {
+            hideTooltip();
+            return;
+        }
         const feature = poiFeatureAtPixel(map, poiSource, pixel);
         if (feature) {
             showTooltip(feature, map.getCoordinateFromPixel(pixel));

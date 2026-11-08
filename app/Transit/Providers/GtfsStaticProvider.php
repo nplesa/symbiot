@@ -226,29 +226,92 @@ class GtfsStaticProvider implements TransitProvider
 
     private function importShapes(string $path, int $feedId): void
     {
-        $shapes = [];
-        $this->each($path, 'shapes.txt', function (array $r) use (&$shapes): void {
-            $shapes[$r['shape_id']][(int) $r['shape_pt_sequence']] = [
-                round((float) $r['shape_pt_lon'], 6),
-                round((float) $r['shape_pt_lat'], 6),
-            ];
-        });
+        $staging = 'transit_shape_points_tmp';
+        DB::statement("DROP TEMPORARY TABLE IF EXISTS {$staging}");
+        DB::statement("CREATE TEMPORARY TABLE {$staging} (
+            shape_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+            shape_pt_sequence BIGINT UNSIGNED NOT NULL,
+            lon DOUBLE NOT NULL,
+            lat DOUBLE NOT NULL,
+            PRIMARY KEY (shape_id, shape_pt_sequence)
+        ) ENGINE=InnoDB");
 
-        $rows = [];
-        foreach ($shapes as $shapeId => $points) {
-            ksort($points);
-            $rows[] = [
-                'feed_id' => $feedId,
-                'shape_id' => (string) $shapeId,
-                'points' => json_encode(array_values($points), JSON_THROW_ON_ERROR),
-            ];
-            if (count($rows) >= 50) {
-                DB::table('transit_shapes')->insert($rows);
-                $rows = [];
+        try {
+            $batch = [];
+            $this->each($path, 'shapes.txt', function (array $r) use (&$batch, $staging): void {
+                $batch[] = [
+                    'shape_id' => (string) $r['shape_id'],
+                    'shape_pt_sequence' => (int) $r['shape_pt_sequence'],
+                    'lon' => round((float) $r['shape_pt_lon'], 6),
+                    'lat' => round((float) $r['shape_pt_lat'], 6),
+                ];
+                if (count($batch) >= self::CHUNK) {
+                    DB::table($staging)->insertOrIgnore($batch);
+                    $batch = [];
+                }
+            });
+            if ($batch !== []) {
+                DB::table($staging)->insertOrIgnore($batch);
             }
-        }
-        if ($rows !== []) {
-            DB::table('transit_shapes')->insert($rows);
+
+            // Read sorted pages from the disk-backed staging table. This keeps
+            // only one shape's points and a small page in PHP memory at a time.
+            $rows = [];
+            $currentShapeId = null;
+            $points = [];
+            $lastShapeId = null;
+            $lastSequence = null;
+            do {
+                $query = DB::table($staging)
+                    ->select('shape_id', 'shape_pt_sequence', 'lon', 'lat')
+                    ->orderBy('shape_id')
+                    ->orderBy('shape_pt_sequence')
+                    ->limit(self::CHUNK);
+                if ($lastShapeId !== null) {
+                    $query->where(function ($cursor) use ($lastShapeId, $lastSequence): void {
+                        $cursor->where('shape_id', '>', $lastShapeId)
+                            ->orWhere(function ($sameShape) use ($lastShapeId, $lastSequence): void {
+                                $sameShape->where('shape_id', '=', $lastShapeId)
+                                    ->where('shape_pt_sequence', '>', $lastSequence);
+                            });
+                    });
+                }
+
+                $page = $query->get();
+                foreach ($page as $point) {
+                    $shapeId = (string) $point->shape_id;
+                    if ($currentShapeId !== null && $shapeId !== $currentShapeId) {
+                        $rows[] = [
+                            'feed_id' => $feedId,
+                            'shape_id' => $currentShapeId,
+                            'points' => json_encode($points, JSON_THROW_ON_ERROR),
+                        ];
+                        $points = [];
+                        if (count($rows) >= 50) {
+                            DB::table('transit_shapes')->insert($rows);
+                            $rows = [];
+                        }
+                    }
+
+                    $currentShapeId = $shapeId;
+                    $points[] = [(float) $point->lon, (float) $point->lat];
+                    $lastShapeId = $shapeId;
+                    $lastSequence = (int) $point->shape_pt_sequence;
+                }
+            } while ($page->count() === self::CHUNK);
+
+            if ($currentShapeId !== null) {
+                $rows[] = [
+                    'feed_id' => $feedId,
+                    'shape_id' => $currentShapeId,
+                    'points' => json_encode($points, JSON_THROW_ON_ERROR),
+                ];
+            }
+            if ($rows !== []) {
+                DB::table('transit_shapes')->insert($rows);
+            }
+        } finally {
+            DB::statement("DROP TEMPORARY TABLE IF EXISTS {$staging}");
         }
     }
 

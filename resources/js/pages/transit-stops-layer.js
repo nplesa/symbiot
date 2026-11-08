@@ -1,7 +1,7 @@
 import Feature from 'ol/Feature.js';
-import Overlay from 'ol/Overlay.js';
 import VectorLayer from 'ol/layer/Vector.js';
 import VectorSource from 'ol/source/Vector.js';
+import Cluster from 'ol/source/Cluster.js';
 import LineString from 'ol/geom/LineString.js';
 import Point from 'ol/geom/Point.js';
 import CircleStyle from 'ol/style/Circle.js';
@@ -12,16 +12,6 @@ import Text from 'ol/style/Text.js';
 import { fromLonLat } from 'ol/proj.js';
 
 const ROUTE_PALETTE = ['#e6194b', '#3cb44b', '#0d6efd', '#f58231', '#911eb4', '#008080', '#f032e6', '#9a6324', '#800000', '#808000', '#000075', '#e6a800'];
-
-const MODE_LABELS = { 0: 'Tramvai', 1: 'Metrou', 2: 'Tren', 3: 'Autobuz', 11: 'Troleibuz' };
-
-function modeLabel(type) {
-    if (MODE_LABELS[type]) {
-        return MODE_LABELS[type];
-    }
-
-    return type >= 100 && type < 200 ? 'Tren' : 'Transport';
-}
 
 function fetchJson(url) {
     return fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
@@ -34,6 +24,7 @@ function fetchJson(url) {
  */
 export function createTransitLayer(map) {
     const stopSource = new VectorSource();
+    const stopClusterSource = new Cluster({ distance: 36, minDistance: 12, source: stopSource });
     const shapeSource = new VectorSource();
 
     const shapeLayer = new VectorLayer({
@@ -44,17 +35,24 @@ export function createTransitLayer(map) {
         }),
     });
     const stopLayer = new VectorLayer({
-        source: stopSource,
+        source: stopClusterSource,
         zIndex: 41,
-        // minZoom is exclusive, so 12.5 keeps the stops visible at the default city zoom of 13.
-        minZoom: 12.5,
-        style: new Style({
-            image: new CircleStyle({
-                radius: 5,
-                fill: new Fill({ color: '#0d6efd' }),
-                stroke: new Stroke({ color: '#fff', width: 2 }),
-            }),
-        }),
+        style: (feature) => {
+            const stops = feature.get('features') || [];
+            const count = stops.length;
+            return new Style({
+                image: new CircleStyle({
+                    radius: count > 1 ? Math.min(18, 9 + Math.log2(count)) : 5,
+                    fill: new Fill({ color: count > 1 ? '#0759c7' : '#0d6efd' }),
+                    stroke: new Stroke({ color: '#fff', width: count > 1 ? 2 : 1.5 }),
+                }),
+                text: count > 1 ? new Text({
+                    text: String(count),
+                    font: 'bold 11px sans-serif',
+                    fill: new Fill({ color: '#fff' }),
+                }) : undefined,
+            });
+        },
     });
     const vehicleSource = new VectorSource();
     const vehicleLayer = new VectorLayer({
@@ -79,17 +77,6 @@ export function createTransitLayer(map) {
         map.addLayer(layer);
     });
 
-    const popupElement = document.createElement('div');
-    popupElement.className = 'card shadow-sm p-2 small';
-    popupElement.style.cssText = 'min-width:200px;max-width:280px;';
-    const popup = new Overlay({
-        element: popupElement,
-        offset: [0, -10],
-        positioning: 'bottom-center',
-        stopEvent: true,
-    });
-    map.addOverlay(popup);
-
     let selection = 0;
     // Routes currently drawn, keyed by "feed:route", each with its own colour.
     const activeRoutes = new Map();
@@ -98,10 +85,15 @@ export function createTransitLayer(map) {
         return `${feed}:${route.route_id}`;
     }
 
-    function nextColor() {
-        const used = new Set(Array.from(activeRoutes.values()).map((entry) => entry.color));
+    function routeColor(route, key) {
+        const supplied = String(route.color ?? '').replace(/^#/, '');
+        if (/^[0-9a-f]{6}$/i.test(supplied)) return `#${supplied}`;
 
-        return ROUTE_PALETTE.find((color) => !used.has(color)) ?? ROUTE_PALETTE[activeRoutes.size % ROUTE_PALETTE.length];
+        let hash = 0;
+        for (let index = 0; index < key.length; index++) {
+            hash = ((hash << 5) - hash + key.charCodeAt(index)) | 0;
+        }
+        return ROUTE_PALETTE[Math.abs(hash) % ROUTE_PALETTE.length];
     }
 
     function paintChip(button, color) {
@@ -110,25 +102,7 @@ export function createTransitLayer(map) {
             : 'background:#fff;border:2px solid #6c757d;color:#212529;';
     }
 
-    function chip(feed, stopId, route) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'd-inline-flex flex-column align-items-start me-2 mb-1';
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'btn btn-sm';
-        button.textContent = route.short_name || route.long_name || route.route_id;
-        button.title = `${modeLabel(route.route_type)}${route.long_name ? `: ${route.long_name}` : ''}`;
-        paintChip(button, activeRoutes.get(routeKey(feed, route))?.color);
-        const schedule = document.createElement('span');
-        schedule.className = 'small text-muted mt-1';
-        schedule.hidden = true;
-        button.addEventListener('click', () => toggleRoute(feed, stopId, route, button, schedule));
-        wrapper.append(button, schedule);
-
-        return wrapper;
-    }
-
-    async function toggleRoute(feed, stopId, route, button, schedule) {
+    async function toggleRoute(feed, stopId, stopName, route, button, schedule) {
         const key = routeKey(feed, route);
         const active = activeRoutes.get(key);
         if (active) {
@@ -136,14 +110,31 @@ export function createTransitLayer(map) {
             activeRoutes.delete(key);
             paintChip(button, null);
             schedule.hidden = true;
+            window.dispatchEvent(new CustomEvent('symbiot:transit-route-selected', {
+                detail: { selected: false },
+            }));
 
             return;
         }
 
-        const color = nextColor();
+        // Keep a single highlighted route at a time.
+        if (activeRoutes.size > 0) {
+            clearRoutes();
+        }
+
+        const color = routeColor(route, key);
         const entry = { color, features: [] };
         activeRoutes.set(key, entry);
         paintChip(button, color);
+        const routeDetail = {
+            selected: true,
+            feed,
+            stopId,
+            stopName,
+            route,
+            color,
+        };
+        window.dispatchEvent(new CustomEvent('symbiot:transit-route-selected', { detail: routeDetail }));
         schedule.textContent = 'Se caută următoarea plecare programată…';
         schedule.hidden = false;
         fetchJson(`/api/transit/stops/${feed}/${encodeURIComponent(stopId)}/next-departure?route_id=${encodeURIComponent(route.route_id)}`)
@@ -153,17 +144,28 @@ export function createTransitLayer(map) {
                     schedule.textContent = reason === 'schedule_unavailable'
                         ? 'Orarul nu este disponibil pentru acest traseu.'
                         : 'Nu este programată o plecare în următoarele zile.';
+                    window.dispatchEvent(new CustomEvent('symbiot:transit-route-schedule', {
+                        detail: { ...routeDetail, departure: null, reason },
+                    }));
                     return;
                 }
                 const countdown = departure.minutes_until === 0 ? 'acum' : `în ${departure.minutes_until} min`;
                 schedule.textContent = `Următoarea plecare: ${departure.time} (${countdown})${departure.headsign ? ` spre ${departure.headsign}` : ''} · orar programat`;
+                window.dispatchEvent(new CustomEvent('symbiot:transit-route-schedule', {
+                    detail: { ...routeDetail, departure },
+                }));
             })
             .catch(() => {
-                if (activeRoutes.get(key) === entry) schedule.textContent = 'Orarul nu este disponibil.';
+                if (activeRoutes.get(key) === entry) {
+                    schedule.textContent = 'Orarul nu este disponibil.';
+                    window.dispatchEvent(new CustomEvent('symbiot:transit-route-schedule', {
+                        detail: { ...routeDetail, departure: null, reason: 'schedule_unavailable' },
+                    }));
+                }
             });
 
         try {
-            const data = await fetchJson(`/api/transit/routes/${feed}/${encodeURIComponent(route.route_id)}/shape`);
+            const data = await fetchJson(`/api/transit/routes/${feed}/${encodeURIComponent(route.route_id)}/shape?stop_id=${encodeURIComponent(stopId)}`);
             if (activeRoutes.get(key) !== entry) {
                 return;
             }
@@ -173,52 +175,94 @@ export function createTransitLayer(map) {
                 entry.features.push(line);
                 shapeSource.addFeature(line);
             });
+            window.dispatchEvent(new CustomEvent('symbiot:transit-route-shape', {
+                detail: { ...routeDetail, shapes: data.shapes },
+            }));
         } catch {
             activeRoutes.delete(key);
             paintChip(button, null);
+            window.dispatchEvent(new CustomEvent('symbiot:transit-route-selected', {
+                detail: { selected: false },
+            }));
         }
     }
 
     function clearRoutes() {
         activeRoutes.clear();
         shapeSource.clear();
+        window.dispatchEvent(new CustomEvent('symbiot:transit-route-selected', {
+            detail: { selected: false },
+        }));
     }
 
-    async function showStop(feature, coordinate) {
+    const resetTransitMap = () => {
+        // Invalidate pending requests and remove features from the previous city.
+        loadRun++;
+        clearInterval(vehicleTimer);
+        vehicleTimer = null;
+        vehicleRun++;
+        stopLayer.setVisible(false);
+        vehicleLayer.setVisible(false);
+        shapeLayer.setVisible(false);
+        stopSource.clear();
+        vehicleSource.clear();
+        clearRoutes();
+    };
+    window.addEventListener('symbiot:location-changing', resetTransitMap);
+    window.addEventListener('symbiot:location-set', resetTransitMap);
+
+    window.addEventListener('symbiot:fit-transit-route', () => {
+        const extent = shapeSource.getExtent();
+        if (extent.every(Number.isFinite)) {
+            map.getView().fit(extent, {
+                padding: [48, 48, 48, 48],
+                maxZoom: 16,
+                duration: 350,
+            });
+        }
+    });
+
+    window.addEventListener('symbiot:transit-route-toggle', (event) => {
+        const { feed, stopId, stopName, route } = event.detail ?? {};
+        if (!feed || !stopId || !route) return;
+        const button = document.createElement('button');
+        const schedule = document.createElement('span');
+        toggleRoute(feed, stopId, stopName, route, button, schedule);
+    });
+
+    async function showStop(feature) {
         const current = ++selection;
-        popupElement.replaceChildren();
-        const title = document.createElement('strong');
-        title.textContent = feature.get('name');
-        const body = document.createElement('div');
-        body.className = 'mt-1 text-muted';
-        body.textContent = 'Se încarcă liniile…';
-        const header = document.createElement('div');
-        header.className = 'd-flex justify-content-between align-items-start gap-2';
-        const closeButton = document.createElement('button');
-        closeButton.type = 'button';
-        closeButton.className = 'poi-map-tooltip-close';
-        closeButton.textContent = '×';
-        closeButton.setAttribute('aria-label', 'Close');
-        closeButton.addEventListener('click', () => popup.setPosition(undefined));
-        header.append(title, closeButton);
-        popupElement.append(header, body);
-        popup.setPosition(coordinate);
+        const feed = feature.get('feedId');
+        const stopId = feature.get('stopId');
+        const stopName = feature.get('name');
+        window.dispatchEvent(new CustomEvent('symbiot:transit-stop-routes', {
+            detail: { feed, stopId, stopName, routes: [], loading: true },
+        }));
 
         try {
-            const feed = feature.get('feedId');
-            const data = await fetchJson(`/api/transit/stops/${feed}/${encodeURIComponent(feature.get('stopId'))}/routes`);
+            const data = await fetchJson(`/api/transit/stops/${feed}/${encodeURIComponent(stopId)}/routes`);
             if (current !== selection) {
                 return;
             }
-            body.className = 'mt-1';
-            body.replaceChildren();
-            if (data.routes.length === 0) {
-                body.className = 'mt-1 text-muted';
-                body.textContent = 'Nicio linie cu orar la această stație.';
-            }
-            data.routes.forEach((route) => body.append(chip(feed, feature.get('stopId'), route)));
+            window.dispatchEvent(new CustomEvent('symbiot:transit-stop-routes', {
+                detail: {
+                    feed,
+                    stopId,
+                    stopName,
+                    routes: data.routes,
+                },
+            }));
         } catch {
-            body.textContent = 'Nu am putut încărca liniile.';
+            if (current !== selection) return;
+            window.dispatchEvent(new CustomEvent('symbiot:transit-stop-routes', {
+                detail: {
+                    feed,
+                    stopId,
+                    stopName,
+                    routes: [],
+                    error: true,
+                },
+            }));
         }
     }
 
@@ -238,11 +282,11 @@ export function createTransitLayer(map) {
         });
 
         if (!feature) {
-            popup.setPosition(undefined);
+            selection++;
             return;
         }
 
-        showStop(feature, feature.getGeometry().getCoordinates());
+        showStop(feature);
     });
 
     let loadRun = 0;
@@ -271,6 +315,16 @@ export function createTransitLayer(map) {
     }
 
     return {
+        hasStopAtPixel(pixel, tolerance = 12) {
+            if (!stopLayer.getVisible()) return false;
+            return stopSource.getFeatures().some((feature) => {
+                const coordinates = feature.getGeometry()?.getCoordinates();
+                if (!Array.isArray(coordinates)) return false;
+                const point = map.getPixelFromCoordinate(coordinates);
+                return Math.hypot(point[0] - pixel[0], point[1] - pixel[1]) <= tolerance;
+            });
+        },
+
         watchVehicles(lat, lon, radius = 3000) {
             clearInterval(vehicleTimer);
             vehicleSource.clear();
@@ -278,17 +332,6 @@ export function createTransitLayer(map) {
             refreshVehicles(lat, lon, radius, run);
             vehicleTimer = setInterval(() => refreshVehicles(lat, lon, radius, run), 10000);
         },
-
-        /** Stops, lines and vehicles are drawn only while the bus category is selected. */
-        // setVisible(visible) {
-        //     stopLayer.setVisible(visible);
-        //     vehicleLayer.setVisible(visible);
-        //     shapeLayer.setVisible(visible);
-        //     if (!visible) {
-        //         popup.setPosition(undefined);
-        //         clearRoutes();
-        //     }
-        // },
 
         setVisible(visible) {
             stopLayer.setVisible(visible);
@@ -301,16 +344,16 @@ export function createTransitLayer(map) {
                 vehicleRun++;
 
                 vehicleSource.clear();
+                selection++;
 
-                popup.setPosition(undefined);
                 clearRoutes();
             }
         },
 
         async load(lat, lon, radius = 1500) {
             const run = ++loadRun;
+            selection++;
             clearRoutes();
-            popup.setPosition(undefined);
             const data = await fetchJson(`/api/transit/stops?lat=${lat}&lon=${lon}&radius=${radius}`);
             if (run !== loadRun) {
                 return false;
@@ -321,6 +364,10 @@ export function createTransitLayer(map) {
                 feature.setProperties({ name: stop.name, feedId: stop.feed_id, stopId: stop.stop_id });
 
                 return feature;
+            }));
+
+            window.dispatchEvent(new CustomEvent('symbiot:nearby-transit-stops', {
+                detail: { stops: data.stops, lat, lon },
             }));
 
             return data.stops.length > 0;

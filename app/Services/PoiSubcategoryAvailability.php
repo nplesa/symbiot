@@ -132,58 +132,44 @@ class PoiSubcategoryAvailability
         $latPad = $radius / 111320;
         $lonPad = $radius / (111320 * max(0.01, cos(deg2rad($lat))));
 
-        return DB::table('transport_points')
-            ->where('type', $type)
-            ->whereBetween('lat', [$lat - $latPad, $lat + $latPad])
-            ->whereBetween('lon', [$lon - $lonPad, $lon + $lonPad])
-            ->get(['lat', 'lon'])
-            ->contains(fn ($point): bool => $this->metersBetween(
-                $lat,
-                $lon,
-                (float) $point->lat,
-                (float) $point->lon,
-            ) <= $radius);
+        return DB::table('transport_points as p')
+            ->where('p.type', $type)
+            ->whereBetween('p.lat', [$lat - $latPad, $lat + $latPad])
+            ->whereBetween('p.lon', [$lon - $lonPad, $lon + $lonPad])
+            ->whereRaw($this->withinRadiusSql('p'), [$lat, $lat, $lon, $radius])
+            ->exists();
     }
 
     private function hasNearbyGtfsSubwayStops(float $lat, float $lon, int $radius): bool
     {
         $latPad = $radius / 111320;
         $lonPad = $radius / (111320 * max(0.01, cos(deg2rad($lat))));
-        $stops = DB::table('transit_stops as s')
-            ->join('transit_stop_times as st', fn ($join) => $join
-                ->on('st.feed_id', '=', 's.feed_id')
-                ->on('st.stop_id', '=', 's.stop_id'))
-            ->join('transit_trips as t', fn ($join) => $join
-                ->on('t.feed_id', '=', 'st.feed_id')
-                ->on('t.trip_id', '=', 'st.trip_id'))
-            ->join('transit_routes as r', fn ($join) => $join
-                ->on('r.feed_id', '=', 't.feed_id')
-                ->on('r.route_id', '=', 't.route_id'))
+        return DB::table('transit_stops as s')
             ->join('transit_feeds as f', 'f.id', '=', 's.feed_id')
             ->where('f.active', true)
             ->whereNotNull('f.static_hash')
-            ->where('r.route_type', 1)
             ->whereBetween('s.lat', [$lat - $latPad, $lat + $latPad])
             ->whereBetween('s.lon', [$lon - $lonPad, $lon + $lonPad])
-            ->distinct()
-            ->get(['s.lat', 's.lon']);
-
-        return $stops->contains(fn ($stop): bool => $this->metersBetween(
-            $lat,
-            $lon,
-            (float) $stop->lat,
-            (float) $stop->lon,
-        ) <= $radius);
+            ->whereRaw($this->withinRadiusSql('s'), [$lat, $lat, $lon, $radius])
+            ->whereExists(function ($query): void {
+                $query->selectRaw('1')
+                    ->from('transit_stop_times as st')
+                    ->join('transit_trips as t', fn ($join) => $join
+                        ->on('t.feed_id', '=', 'st.feed_id')
+                        ->on('t.trip_id', '=', 'st.trip_id'))
+                    ->join('transit_routes as r', fn ($join) => $join
+                        ->on('r.feed_id', '=', 't.feed_id')
+                        ->on('r.route_id', '=', 't.route_id'))
+                    ->whereColumn('st.feed_id', 's.feed_id')
+                    ->whereColumn('st.stop_id', 's.stop_id')
+                    ->where('r.route_type', 1);
+            })
+            ->exists();
     }
 
-    private function metersBetween(float $lat1, float $lon1, float $lat2, float $lon2): float
+    private function withinRadiusSql(string $alias): string
     {
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-        $a = sin($dLat / 2) ** 2
-            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
-
-        return 6371000 * 2 * asin(min(1, sqrt($a)));
+        return "6371000 * 2 * ASIN(SQRT(LEAST(1, POWER(SIN(RADIANS(? - {$alias}.lat) / 2), 2) + COS(RADIANS(?)) * COS(RADIANS({$alias}.lat)) * POWER(SIN(RADIANS(? - {$alias}.lon) / 2), 2)))) <= ?";
     }
 
     /**
@@ -197,7 +183,7 @@ class PoiSubcategoryAvailability
         }
 
         $responses = Http::pool(fn (Pool $pool) => collect($types)
-            ->map(fn (string $type) => $pool->as($type)->timeout(15)->acceptJson()->get('https://api.geoapify.com/v2/places', [
+            ->map(fn (string $type) => $pool->as($type)->connectTimeout(3)->timeout(8)->acceptJson()->get('https://api.geoapify.com/v2/places', [
                 'categories' => implode(',', $this->catalog->categories()[$type]['geoapify']),
                 'filter' => sprintf('circle:%F,%F,%d', $lon, $lat, $radius),
                 'limit' => 500,

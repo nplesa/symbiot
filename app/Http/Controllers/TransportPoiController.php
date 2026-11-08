@@ -419,19 +419,37 @@ class TransportPoiController extends Controller
             $queries[] = 'nwr' . $filters . '(' . $box . ');';
         }
 
-        $response = Http::withHeaders([
-            'User-Agent' => 'Symbiot/1.0 nearby POI map',
-        ])->timeout(25)
-            ->acceptJson()
-            ->get('https://overpass-api.de/api/interpreter', [
-                'data' => '[out:json][timeout:25];(' . implode('', array_unique($queries)) . ');out center tags;',
-            ]);
+        $query = '[out:json][timeout:8];(' . implode('', array_unique($queries)) . ');out center tags;';
+        $lastError = null;
+        foreach ([
+            'https://overpass-api.de/api/interpreter',
+            'https://overpass.private.coffee/api/interpreter',
+        ] as $endpoint) {
+            try {
+                $response = Http::withHeaders([
+                    'User-Agent' => 'Symbiot/1.0 nearby POI map',
+                ])->connectTimeout(3)
+                    ->timeout(10)
+                    ->acceptJson()
+                    ->get($endpoint, ['data' => $query]);
 
-        if (! $response->successful()) {
-            throw new \RuntimeException('OpenStreetMap POI service returned HTTP ' . $response->status() . '.');
+                if (! $response->successful()) {
+                    throw new \RuntimeException('OpenStreetMap POI service returned HTTP ' . $response->status() . '.');
+                }
+
+                return $response->json('elements') ?? [];
+            } catch (\Throwable $exception) {
+                $lastError = $exception;
+            }
         }
 
-        return $response->json('elements') ?? [];
+        // OSM supplements Geoapify here; an Overpass outage should not turn a
+        // usable POI response into HTTP 500 or block the selected category.
+        Log::warning('OpenStreetMap POI fallback unavailable', [
+            'message' => $lastError?->getMessage(),
+        ]);
+
+        return [];
     }
 
     /**

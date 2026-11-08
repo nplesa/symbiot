@@ -89,7 +89,7 @@
                     <div class="symbiot-sidebar-body">
 
                         <div class="symbiot-nav-label">
-                            WORKSPACE
+                            HARTĂ ȘI TRASEE
                         </div>
 
                         <nav class="symbiot-nav">
@@ -98,7 +98,7 @@
                                class="symbiot-nav-link {{ request()->routeIs('app.home') ? 'active' : '' }}">
 
                                 <i class="fa-solid fa-house"></i>
-                                <span>Dashboard</span>
+                                <span>Hartă</span>
 
                             </a>
 
@@ -106,7 +106,7 @@
                                class="symbiot-nav-link {{ request()->routeIs('app.position') ? 'active' : '' }}">
 
                                 <i class="fa-solid fa-crosshairs"></i>
-                                <span>Current Position</span>
+                                <span>Poziția mea</span>
 
                             </a>
 
@@ -114,7 +114,7 @@
                                class="symbiot-nav-link {{ request()->routeIs('app.trackings.*') ? 'active' : '' }}">
 
                                 <i class="fa-solid fa-location-dot"></i>
-                                <span>Tracking</span>
+                                <span>Sesiuni GPS</span>
 
                             </a>
 
@@ -122,7 +122,7 @@
                                class="symbiot-nav-link {{ request()->routeIs('app.trasee.*') ? 'active' : '' }}">
 
                                 <i class="fa-solid fa-route"></i>
-                                <span>Routes</span>
+                                <span>Trasee</span>
 
                             </a>
 

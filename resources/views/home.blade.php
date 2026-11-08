@@ -1,7 +1,29 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
+<div class="dashboard-map-page">
+    <header class="dashboard-topbar">
+        <form id="dashboard-search-form" class="dashboard-search-form" role="search">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input id="dashboard-search" type="search" placeholder="Caută o localitate..." autocomplete="off" aria-label="Caută o localitate pentru hartă">
+            <button type="submit">Caută</button>
+            <div class="dashboard-search-results" id="dashboard-search-results" hidden>
+                <label for="dashboard-search-select">Alege localitatea</label>
+                <select id="dashboard-search-select" class="form-select"></select>
+            </div>
+            <div class="dashboard-search-status" id="dashboard-search-status" role="status" aria-live="polite"></div>
+        </form>
+        <div class="dashboard-topbar-actions">
+            <button type="button" class="dashboard-track-button" id="dashboard-track-me" aria-pressed="false">
+                <i class="fa-solid fa-person-walking" aria-hidden="true"></i><span>Track me</span>
+            </button>
+            <button type="button" class="dashboard-location-button" id="dashboard-use-location" aria-label="Folosește locația mea">
+                <i class="fa-solid fa-location-crosshairs"></i><span>Location</span>
+            </button>
+        </div>
+    </header>
+
+<div class="container dashboard-map-content">
     <div class="row justify-content-center">
         <div class="col-md-12">
             <div class="card">
@@ -13,8 +35,6 @@
                             {{ session('status') }}
                         </div>
                     @endif
-
-                    {{ __('You are logged in!') }}
 
                     <div class="card mt-3" id="location_card">
                         <div class="card-header">
@@ -93,25 +113,28 @@
 
                             <div class="card mt-3 main-mobility-card d-none" id="mobility_card">
                                 <div class="card-header">
-                                    Mobility Features
+                                    Puncte de interes și filtre
                                 </div>
                                 <div class="card-body">
-                                    <div class="row poi-category-filters">
-                                        <div class="col-12">
-                                            <div class="fw-semibold mb-2">Select the POI categories displayed on the map</div>
-                                            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-2">
-                                                @foreach ($locations as $location)
-                                                    @if ($location === 'police' || $poiCategories[$location]['group'] !== 'Poliție')
-                                                        @include('partials.poi-category-filter', ['categoryIndex' => $loop->index])
-                                                    @endif
-                                                @endforeach
-                                            </div>
-                                        </div>
+                                    <div class="poi-filter-toolbar">
+                                        <p>Selectează categoriile pe care vrei să le vezi pe hartă.</p>
+                                        <label class="poi-filter-search">
+                                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                                            <input type="search" class="poi-category-search" placeholder="Caută o categorie..." aria-label="Caută o categorie POI">
+                                        </label>
+                                        <button type="button" class="poi-clear-selection">Șterge selecția</button>
+                                    </div>
+                                    <div class="poi-category-filters">
+                                        @foreach ($locations as $location)
+                                            @if ($location === 'police' || $poiCategories[$location]['group'] !== 'Poliție')
+                                                @include('partials.poi-category-filter', ['categoryIndex' => $loop->index])
+                                            @endif
+                                        @endforeach
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="card mt-3 main-map-card d-none" id="map_card">
+                            <div class="card main-map-card" id="map_card">
                                 <div class="card-header">
                                     Map
                                 </div>
@@ -317,6 +340,96 @@
             </div>
         </div>
     </div>
+    <aside class="dashboard-route-panel" id="dashboard-route-panel" aria-live="polite">
+        <div class="dashboard-panel-toolbar">
+            <div class="dashboard-panel-heading">
+                <span class="dashboard-panel-icon"><i class="fa-solid fa-route"></i></span>
+                <div><span class="dashboard-eyebrow">SYMBIOT · HARTĂ</span><h1>Explorează</h1></div>
+                <span class="dashboard-live-poi-count" id="dashboard-panel-poi-count">0 POI</span>
+            </div>
+            <button type="button" class="dashboard-icon-button dashboard-panel-close" id="dashboard-panel-close" aria-label="Ascunde panoul"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="dashboard-transit-progress-host" class="dashboard-transit-progress-host" aria-live="polite"></div>
+
+        <section class="dashboard-radius-control d-none" id="dashboard-radius-control" aria-labelledby="dashboard-radius-label">
+            <div class="dashboard-radius-heading">
+                <label id="dashboard-radius-label" for="dashboard-search-radius">Raza cercului</label>
+                <output id="dashboard-radius-value" for="dashboard-search-radius">5 km</output>
+            </div>
+            <label class="dashboard-citywide-choice d-none" id="dashboard-citywide-wrap" for="dashboard-citywide">
+                <input class="form-check-input" type="checkbox" id="dashboard-citywide">
+                <span>Tot orașul</span>
+            </label>
+            <input class="form-range" id="dashboard-search-radius" type="range" min="100" max="35000" step="100" value="5000" aria-label="Raza cercului">
+            <div class="dashboard-radius-scale"><span>100 m</span><span>35 km</span></div>
+            <div class="dashboard-radius-status" id="dashboard-radius-status" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="dashboard-route-empty" id="dashboard-route-empty">
+            <div class="dashboard-empty-illustration"><i class="fa-solid fa-bus-simple"></i></div>
+            <h2 id="dashboard-empty-title">Explorează zona</h2>
+            <p id="dashboard-empty-copy">Alege o localitate, apoi selectează categoriile POI pe care vrei să le vezi pe hartă.</p>
+            <button type="button" class="btn dashboard-primary-button" id="dashboard-search-location"><i class="fa-solid fa-magnifying-glass-location"></i> Caută o localitate</button>
+            <a href="{{ route('app.trasee.index') }}" class="dashboard-routes-link"><i class="fa-solid fa-map-location-dot"></i> Traseele mele</a>
+        </section>
+
+        <div class="accordion dashboard-poi-disclosure d-none" id="dashboard-poi-disclosure">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="dashboard-poi-heading">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#dashboard-poi-collapse" aria-expanded="true" aria-controls="dashboard-poi-collapse">
+                        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                        <span>Alege categoriile POI</span>
+                        <span class="dashboard-poi-count" id="dashboard-poi-count">0 găsite</span>
+                    </button>
+                </h2>
+                <div id="dashboard-poi-collapse" class="accordion-collapse collapse show" aria-labelledby="dashboard-poi-heading" data-bs-parent="#dashboard-poi-disclosure">
+                    <div class="accordion-body" id="dashboard-poi-filters"></div>
+                </div>
+            </div>
+        </div>
+
+        <section class="dashboard-stop-routes" id="dashboard-stop-routes" hidden aria-labelledby="dashboard-stop-routes-title">
+            <div class="dashboard-stop-routes-heading">
+                <div><span class="dashboard-eyebrow">STAȚIE SELECTATĂ</span><h2 id="dashboard-stop-routes-title">Linii în stație</h2></div>
+                <span class="dashboard-stop-routes-count" id="dashboard-stop-routes-count">0 linii</span>
+            </div>
+            <p class="dashboard-stop-routes-stop" id="dashboard-stop-routes-stop"></p>
+            <div class="dashboard-stop-routes-list" id="dashboard-stop-routes-list"></div>
+        </section>
+
+        <section class="dashboard-route-details" id="dashboard-route-details" hidden>
+            <div class="dashboard-route-title-row">
+                <span class="dashboard-route-badge" id="dashboard-route-badge">—</span>
+                <div><span class="dashboard-eyebrow" id="dashboard-route-mode">Transport public</span><h2 id="dashboard-route-title">Traseu</h2><p id="dashboard-route-subtitle"></p></div>
+            </div>
+            <div class="dashboard-route-metrics">
+                <div><i class="fa-solid fa-route"></i><span>Distanță</span><strong id="dashboard-route-distance">—</strong></div>
+                <div><i class="fa-regular fa-clock"></i><span>Plecare</span><strong id="dashboard-route-departure">Se caută…</strong></div>
+            </div>
+            <section class="dashboard-next-trip">
+                <h3><i class="fa-solid fa-clock"></i> Următoarea plecare</h3>
+                <strong class="dashboard-countdown" id="dashboard-route-countdown">Se caută orarul…</strong>
+                <p id="dashboard-route-stop"></p>
+                <small id="dashboard-route-headsign"></small>
+            </section>
+            <section class="dashboard-route-map-info">
+                <div class="dashboard-section-title"><h3>Traseul pe hartă</h3><button type="button" id="dashboard-fit-route" aria-label="Arată tot traseul"><i class="fa-solid fa-expand"></i></button></div>
+                <p id="dashboard-route-shape-status">Linia selectată este evidențiată pe hartă.</p>
+            </section>
+            <a href="{{ route('app.trasee.index') }}" class="dashboard-routes-link"><i class="fa-solid fa-list"></i> Deschide traseele mele</a>
+        </section>
+
+        <section class="dashboard-nearby-section" aria-labelledby="dashboard-nearby-title">
+            <div class="dashboard-section-title">
+                <h3 id="dashboard-nearby-title">Puncte în apropiere</h3>
+                <span class="dashboard-nearby-count" id="dashboard-nearby-count">0</span>
+            </div>
+            <p class="dashboard-nearby-status" id="dashboard-nearby-status">Selectează una sau mai multe categorii POI pentru a încărca punctele din apropiere.</p>
+            <ul class="dashboard-nearby-list" id="dashboard-nearby-list"></ul>
+        </section>
+
+    </aside>
+</div>
 </div>
 <input type="hidden" name="radius" id="radius" value="{{config('app.distance_number')}}" data-unit="{{config('app.distance_unit')}}">
 @include('modals.acquire')

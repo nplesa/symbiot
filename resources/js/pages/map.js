@@ -19,6 +19,7 @@ import Point from 'ol/geom/Point.js';
 import LineString from 'ol/geom/LineString.js';
 
 import { fromLonLat } from 'ol/proj.js';
+import { containsExtent } from 'ol/extent.js';
 
 import Style from 'ol/style/Style.js';
 import Icon from 'ol/style/Icon.js';
@@ -31,6 +32,7 @@ import Circle from 'ol/geom/Circle.js';
 
 import Polygon from 'ol/geom/Polygon.js';
 import { circular } from 'ol/geom/Polygon.js';
+import GeoJSON from 'ol/format/GeoJSON.js';
 import MultiLineString from 'ol/geom/MultiLineString.js';
 import {
     assignTransitRouteColors,
@@ -78,9 +80,191 @@ if(app_unit === 'km') {
 const deviceRadiusMeters = app_radius;
 let cityRadiusMeters = 5000;
 let fixedCityLocation = null;
+let cityBoundaryFeature = null;
+let cityBoundaryRadiusMeters = null;
+let citywideSearch = false;
 let pendingCityResults = [];
 
 let radiusFeature = null;
+
+const dashboardRadiusInput = document.getElementById('dashboard-search-radius');
+const dashboardRadiusControl = document.getElementById('dashboard-radius-control');
+const dashboardRadiusOutput = document.getElementById('dashboard-radius-value');
+const dashboardCitywide = document.getElementById('dashboard-citywide');
+const dashboardCitywideWrap = document.getElementById('dashboard-citywide-wrap');
+
+function formatSearchRadius(meters) {
+    return meters >= 1000
+        ? `${(meters / 1000).toLocaleString('ro-RO', { maximumFractionDigits: 1 })} km`
+        : `${meters.toLocaleString('ro-RO')} m`;
+}
+
+function syncDashboardRadius(meters, visible = true) {
+    if (dashboardRadiusInput) {
+        dashboardRadiusInput.value = String(meters);
+        dashboardRadiusInput.disabled = citywideSearch;
+    }
+    if (dashboardRadiusOutput) dashboardRadiusOutput.value = citywideSearch ? 'Tot orașul' : formatSearchRadius(meters);
+    const legacyRadiusInput = document.getElementById('city-location-radius');
+    if (legacyRadiusInput) {
+        legacyRadiusInput.value = String(meters);
+        legacyRadiusInput.disabled = citywideSearch;
+    }
+    dashboardRadiusControl?.classList.toggle('d-none', !visible);
+    dashboardCitywideWrap?.classList.toggle('d-none', !fixedCityLocation);
+}
+
+window.addEventListener('symbiot:location-changing', () => {
+    citywideSearch = false;
+    cityBoundaryFeature = null;
+    cityBoundaryRadiusMeters = null;
+    dashboardCitywide && (dashboardCitywide.checked = false);
+    if (dashboardRadiusInput) dashboardRadiusInput.disabled = false;
+    cityBoundarySource?.clear();
+    syncDashboardRadius(app_radius, false);
+});
+
+dashboardRadiusInput?.addEventListener('input', () => {
+    const radiusMeters = Number(dashboardRadiusInput.value);
+    if (!Number.isFinite(radiusMeters)) return;
+    app_radius = radiusMeters;
+    if (fixedCityLocation) cityRadiusMeters = radiusMeters;
+    if (radiusFeature) {
+        const center = fixedCityLocation ?? currentUserLocation;
+        if (center && Number.isFinite(Number(center.lat)) && Number.isFinite(Number(center.lon))) {
+            radiusFeature.setGeometry(
+                circular([Number(center.lon), Number(center.lat)], radiusMeters, 64)
+                    .transform('EPSG:4326', 'EPSG:3857')
+            );
+        }
+    }
+    if (dashboardRadiusOutput) dashboardRadiusOutput.value = citywideSearch ? 'Tot orașul' : formatSearchRadius(radiusMeters);
+    const legacyRadiusInput = document.getElementById('city-location-radius');
+    if (legacyRadiusInput) legacyRadiusInput.value = String(radiusMeters);
+});
+
+async function refreshLocationData(center) {
+    const radiusMeters = Number(app_radius);
+    const status = document.getElementById('city-location-status');
+    const transitRadius = Math.min(radiusMeters || 1500, 35000);
+    const selectedFilters = selectedPoiFilterTokens(document.getElementById('mobility_card'));
+    watchTransitCoverage(center.lat, center.lon, status, async () => {
+        if (selectedFilters.includes('bus')) {
+            try {
+                await transitStops.load(center.lat, center.lon, transitRadius);
+                transitStops.watchVehicles(center.lat, center.lon);
+            } catch (error) {
+                console.error('Transit stops reload failed:', error);
+            }
+        }
+        if (selectedFilters.length > 0) await loadNearby(center);
+    }, transitRadius);
+}
+
+dashboardRadiusInput?.addEventListener('change', () => {
+    const radiusMeters = Number(dashboardRadiusInput.value);
+    const center = fixedCityLocation ?? currentUserLocation;
+    if (!center || !Number.isInteger(radiusMeters) || radiusMeters < 100 || radiusMeters > 35000) return;
+    cityRadiusMeters = radiusMeters;
+    refreshLocationData(center);
+});
+
+dashboardCitywide?.addEventListener('change', async () => {
+    if (!fixedCityLocation) return;
+    const center = fixedCityLocation;
+    const radiusStatus = document.getElementById('dashboard-radius-status');
+    if (radiusStatus) radiusStatus.textContent = '';
+    if (!dashboardCitywide.checked) {
+        citywideSearch = false;
+        cityBoundaryFeature = null;
+        cityBoundaryRadiusMeters = null;
+        cityBoundarySource.clear();
+        app_radius = cityRadiusMeters;
+        radiusFeature?.setGeometry(circular([center.lon, center.lat], app_radius, 64).transform('EPSG:4326', 'EPSG:3857'));
+        syncDashboardRadius(app_radius, true);
+        const radiusExtent = radiusFeature?.getGeometry()?.getExtent();
+        const mapSize = map.getSize();
+        if (radiusExtent && mapSize) {
+            map.getView().fit(radiusExtent, {
+                size: mapSize,
+                padding: [36, 36, 36, 36],
+                maxZoom: 16,
+                duration: 350,
+            });
+        }
+        refreshLocationData(center);
+        return;
+    }
+
+    dashboardCitywide.disabled = true;
+    try {
+        const params = new URLSearchParams({ lat: String(center.lat), lon: String(center.lon) });
+        if (center.placeId) params.set('id', center.placeId);
+        const response = await fetch(`/api/location/city-boundary?${params}`, { headers: { Accept: 'application/json' } });
+        const payload = await response.json();
+        if (!response.ok || !payload.feature?.geometry) throw new Error(payload.error || 'Nu am putut încărca limita orașului.');
+
+        cityBoundaryFeature = payload.feature;
+        cityBoundaryRadiusMeters = 0;
+        const visitCoordinates = (coordinates) => {
+            if (!Array.isArray(coordinates)) return;
+            if (typeof coordinates[0] === 'number' && typeof coordinates[1] === 'number') {
+                cityBoundaryRadiusMeters = Math.max(cityBoundaryRadiusMeters, getDistanceMeters(center.lat, center.lon, coordinates[1], coordinates[0]));
+                return;
+            }
+            coordinates.forEach(visitCoordinates);
+        };
+        visitCoordinates(cityBoundaryFeature.geometry.coordinates);
+        app_radius = Math.max(100, Math.ceil(cityBoundaryRadiusMeters / 100) * 100);
+        const boundaryMapFeature = new GeoJSON().readFeature(cityBoundaryFeature, { featureProjection: 'EPSG:3857' });
+        const mapSize = map.getSize();
+        const currentViewport = mapSize ? map.getView().calculateExtent(mapSize) : null;
+        if (currentViewport && containsExtent(currentViewport, boundaryMapFeature.getGeometry().getExtent())) {
+            dashboardCitywide.checked = false;
+            citywideSearch = false;
+            cityBoundaryFeature = null;
+            cityBoundaryRadiusMeters = null;
+            app_radius = cityRadiusMeters;
+            syncDashboardRadius(app_radius, true);
+            if (radiusStatus) radiusStatus.textContent = '';
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'info',
+                title: 'Tot orașul este deja cuprins în viewport.',
+                showConfirmButton: false,
+                timer: 2800,
+                timerProgressBar: true,
+            });
+            return;
+        }
+        citywideSearch = true;
+        cityBoundarySource.clear();
+        cityBoundarySource.addFeature(boundaryMapFeature);
+        radiusFeature?.setGeometry(null);
+        syncDashboardRadius(app_radius, true);
+        if (radiusStatus) radiusStatus.textContent = '';
+        const isMobileViewport = window.matchMedia('(max-width: 767.98px)').matches;
+        map.getView().fit(boundaryMapFeature.getGeometry().getExtent(), {
+            size: mapSize,
+            padding: isMobileViewport ? [24, 24, 24, 24] : [36, 36, 36, 36],
+            maxZoom: 14,
+            duration: 350,
+        });
+        refreshLocationData(center);
+    } catch (error) {
+        dashboardCitywide.checked = false;
+        citywideSearch = false;
+        if (radiusStatus) radiusStatus.textContent = error.message || 'Nu am putut încărca limita orașului.';
+        const status = document.getElementById('city-location-status');
+        if (status) {
+            status.textContent = error.message;
+            status.className = 'col-12 small text-danger';
+        }
+    } finally {
+        dashboardCitywide.disabled = false;
+    }
+});
 
 
 const state = {
@@ -94,6 +278,7 @@ const users = new globalThis.Map();
 const activePoiFilters = new Set();
 
 let poiRequestId = 0;
+let busStopLookupRun = 0;
 let poiLoadingTimer = null;
 let poiLoadingStartedAt = null;
 let poiLoadingModalEventsBound = false;
@@ -140,6 +325,8 @@ function resetPOIs() {
             checkbox.checked = false;
             checkbox.indeterminate = false;
         });
+
+        syncPoiFilterSelection(container);
     }
 
     // Golește filtrele active și rezultatele POI.
@@ -252,15 +439,27 @@ function getTextColorForBackground(hexColor) {
     return luminance > 186 ? '#000000' : '#ffffff';
 }
 
+function getPoiCoordinates(item) {
+    const rawLat = item?.coordinates?.lat ?? item?.lat;
+    const rawLon = item?.coordinates?.lon ?? item?.lon;
+    if ((typeof rawLat !== 'number' && typeof rawLat !== 'string')
+        || (typeof rawLon !== 'number' && typeof rawLon !== 'string')
+        || String(rawLat).trim() === '' || String(rawLon).trim() === '') return null;
+    const poiLat = Number(rawLat);
+    const poiLon = Number(rawLon);
+    if (!Number.isFinite(poiLat) || !Number.isFinite(poiLon) || Math.abs(poiLat) > 90 || Math.abs(poiLon) > 180) return null;
+    return { lat: poiLat, lon: poiLon };
+}
+
 function filterByRadius(data, lat, lon, radiusMeters) {
 
     return data.filter(item => {
+        const coordinates = getPoiCoordinates(item);
+        if (!coordinates) return false;
+        const { lat: itemLat, lon: itemLon } = coordinates;
 
-        const itemLat = item.coordinates?.lat;
-        const itemLon = item.coordinates?.lon;
-
-        if (typeof itemLat !== 'number' || typeof itemLon !== 'number') {
-            return false;
+        if (citywideSearch && cityBoundaryFeature) {
+            return pointInCityBoundary(itemLon, itemLat, cityBoundaryFeature.geometry);
         }
 
         const d = getDistanceMeters(lat, lon, itemLat, itemLon);
@@ -269,11 +468,32 @@ function filterByRadius(data, lat, lon, radiusMeters) {
     });
 }
 
+function pointInRing(lon, lat, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i];
+        const [xj, yj] = ring[j];
+        const intersects = ((yi > lat) !== (yj > lat))
+            && (lon < ((xj - xi) * (lat - yi)) / ((yj - yi) || Number.EPSILON) + xi);
+        if (intersects) inside = !inside;
+    }
+    return inside;
+}
+
+function pointInCityBoundary(lon, lat, geometry) {
+    const polygons = geometry?.type === 'Polygon'
+        ? [geometry.coordinates]
+        : geometry?.type === 'MultiPolygon' ? geometry.coordinates : [];
+    return polygons.some((rings) => pointInRing(lon, lat, rings[0])
+        && !rings.slice(1).some((hole) => pointInRing(lon, lat, hole)));
+}
+
 
 
 
 
 const vectorSource = new VectorSource();
+const cityBoundarySource = new VectorSource();
 
 const userSource = new VectorSource();
 
@@ -284,6 +504,7 @@ const visibleTransitRoutes = new Set();
 const activeTransitRoutes = new globalThis.Map();
 const transitRouteColors = new globalThis.Map();
 const manuallySelectedTransitRouteColors = new Set();
+let transitRouteGeometryRun = 0;
 
 const clusterSource = new Cluster({
     distance: 40,
@@ -449,6 +670,14 @@ const vectorLayer = new VectorLayer({
     source: vectorSource
 });
 
+const cityBoundaryLayer = new VectorLayer({
+    source: cityBoundarySource,
+    style: new Style({
+        fill: new Fill({ color: 'rgba(13, 110, 253, 0.12)' }),
+        stroke: new Stroke({ color: '#0d6efd', width: 3 }),
+    }),
+});
+
 
 
 
@@ -460,6 +689,7 @@ const map = new Map({
 
     layers: [
         baseLayer,
+        cityBoundaryLayer,
         clusterLayer,
         poiLayer,
         vectorLayer,
@@ -473,6 +703,16 @@ const map = new Map({
 });
 
 const transitStops = createTransitLayer(map);
+
+window.addEventListener('symbiot:focus-map-point', event => {
+    const { lat, lon } = event.detail ?? {};
+    if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return;
+    map.getView().animate({
+        center: fromLonLat([Number(lon), Number(lat)]),
+        zoom: Math.max(map.getView().getZoom() || 13, 15),
+        duration: 350,
+    });
+});
 
 const mapTileSource = baseLayer.getSource();
 const mapTileProgress = document.getElementById('map-tile-progress');
@@ -606,9 +846,95 @@ const poiTypeLabels = {
     transport: 'Punct de interes',
 };
 
+async function loadBusStopRoutes(feature) {
+    const coordinates = feature.get('coordinates') ?? {};
+    const lat = Number(coordinates.lat);
+    const lon = Number(coordinates.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        throw new Error('Coordonatele stației nu sunt disponibile.');
+    }
+
+    // Prefer the locally imported transit feed. OSM relation lookups can be
+    // slow or unavailable in cities where Overpass is under load (for example Budapest).
+    try {
+        const nearbyResponse = await fetch(`/api/transit/stops?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&radius=1000`, {
+            headers: { Accept: 'application/json' },
+        });
+        if (nearbyResponse.ok) {
+            const nearbyPayload = await nearbyResponse.json();
+            const candidates = (Array.isArray(nearbyPayload?.stops) ? nearbyPayload.stops : [])
+                .map((stop) => ({
+                    stop,
+                    distance: getDistanceMeters(lat, lon, Number(stop.lat), Number(stop.lon)),
+                }))
+                .filter(({ stop, distance }) => Number.isFinite(distance)
+                    && distance <= 120
+                    && Number(stop.feed_id) > 0
+                    && stop.stop_id != null)
+                .sort((a, b) => a.distance - b.distance);
+
+            for (const { stop } of candidates) {
+                try {
+                    const routesResponse = await fetch(`/api/transit/stops/${encodeURIComponent(stop.feed_id)}/${encodeURIComponent(stop.stop_id)}/routes`, {
+                        headers: { Accept: 'application/json' },
+                    });
+                    if (!routesResponse.ok) continue;
+                    const routesPayload = await routesResponse.json();
+                    if (Array.isArray(routesPayload?.routes) && routesPayload.routes.length > 0) {
+                        return {
+                            source: 'gtfs',
+                            feed: Number(stop.feed_id),
+                            stopId: String(stop.stop_id),
+                            stopName: stop.name || feature.get('name') || 'Stație de autobuz',
+                            routes: routesPayload.routes,
+                        };
+                    }
+                } catch {
+                    // A bad nearby match should not prevent trying the next stop or OSM.
+                }
+            }
+        }
+    } catch {
+        // Keep the existing OSM lookup as a fallback if the local feed is unavailable.
+    }
+
+    const params = new URLSearchParams({
+        lat: String(lat),
+        lon: String(lon),
+        radius: '100',
+        types: 'bus',
+        include_routes: 'true',
+    });
+    const response = await fetch(`/api/transport/bus?${params}`, {
+        headers: { Accept: 'application/json' },
+    });
+    const payload = await response.json();
+    if (!response.ok || !Array.isArray(payload)) {
+        throw new Error(payload?.error || `Cererea pentru liniile stației a eșuat (HTTP ${response.status}).`);
+    }
+
+    const stopId = String(feature.get('id') ?? '');
+    let stop = payload.find((item) => String(item.id ?? '') === stopId);
+    if (!stop) {
+        stop = payload
+            .map((item) => ({
+                item,
+                distance: getDistanceMeters(lat, lon, Number(item.coordinates?.lat), Number(item.coordinates?.lon)),
+            }))
+            .filter((candidate) => Number.isFinite(candidate.distance) && candidate.distance <= 100)
+            .sort((a, b) => a.distance - b.distance)[0]?.item;
+    }
+
+    return {
+        routes: Array.isArray(stop?.routes) ? stop.routes : [],
+        routesAvailable: stop?.routes_available !== false,
+    };
+}
+
 function showPoiTooltip(feature, coordinate) {
     const transitTypes = new Set(['bus', 'subway', 'train', 'airport']);
     const featureType = feature.get('type');
+    window.dispatchEvent(new CustomEvent('symbiot:poi-selected', { detail: { type: featureType } }));
     if (featureType === 'lodging') {
         showLodgingDetails(feature);
         return;
@@ -626,77 +952,59 @@ function showPoiTooltip(feature, coordinate) {
         : groupedRoutes;
 
     if (featureType === 'bus') {
-        const busRouteGroups = groupedRoutes;
         hidePoiTooltip();
-        poiTooltipName.textContent = feature.get('name') || 'Stație de autobuz';
-        poiTooltipType.hidden = true;
-        poiTooltipRoutes.replaceChildren();
-        poiTooltipRoutes.classList.add('poi-bus-route-list');
-        poiTooltipElement.classList.add('poi-bus-tooltip');
-        activeTransitRoutes.clear();
-        assignTransitRouteColors(busRouteGroups, transitRouteColors, manuallySelectedTransitRouteColors);
-        const routeButtons = document.createElement('div');
-        routeButtons.className = 'poi-bus-route-buttons';
-        poiTooltipRoutes.appendChild(routeButtons);
-        const schedule = document.createElement('small');
-        schedule.className = 'poi-transit-arrival-status poi-route-info';
-        schedule.setAttribute('role', 'status');
-        schedule.setAttribute('aria-live', 'polite');
-        schedule.hidden = true;
+        const lookupRun = ++busStopLookupRun;
+        const stopName = feature.get('name') || 'Stație de autobuz';
+        const showStopRoutes = (routes, routesAvailable) => {
+            const busRouteGroups = groupTransitRoutes(routes);
+            assignTransitRouteColors(busRouteGroups, transitRouteColors, manuallySelectedTransitRouteColors);
+            window.dispatchEvent(new CustomEvent('symbiot:osm-stop-routes', {
+                detail: { stopName, routes: busRouteGroups, feature, routesAvailable, loading: false },
+            }));
+        };
 
-        if (busRouteGroups.length === 0) {
-            const empty = document.createElement('div');
-            empty.className = 'poi-route-info';
-            empty.textContent = feature.get('routes_available') === false
-                ? 'Liniile nu au putut fi încărcate. Încearcă din nou mai târziu.'
-                : 'Nu există linii asociate acestei stații în OpenStreetMap.';
-            poiTooltipRoutes.appendChild(empty);
+        window.dispatchEvent(new CustomEvent('symbiot:osm-stop-routes', {
+            detail: { stopName, routes: [], feature, routesAvailable: true, loading: true },
+        }));
+        if (groupedRoutes.length > 0) {
+            showStopRoutes(featureRoutes, feature.get('routes_available') !== false);
+        } else {
+            loadBusStopRoutes(feature)
+                .then((result) => {
+                    if (lookupRun !== busStopLookupRun) return;
+                    if (result.source === 'gtfs') {
+                        window.dispatchEvent(new CustomEvent('symbiot:transit-stop-routes', {
+                            detail: {
+                                feed: result.feed,
+                                stopId: result.stopId,
+                                stopName: result.stopName,
+                                routes: result.routes,
+                            },
+                        }));
+                        return;
+                    }
+                    showStopRoutes(result.routes, result.routesAvailable);
+                })
+                .catch((error) => {
+                    if (lookupRun !== busStopLookupRun) return;
+                    console.warn('Bus stop route lookup failed:', error);
+                    showStopRoutes([], false);
+                });
         }
+        return;
+    }
 
-        busRouteGroups.forEach(group => {
-            activeTransitRoutes.set(group.key, group);
-            const routeEntry = document.createElement('div');
-            routeEntry.className = 'poi-transit-route-entry';
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'poi-route-checkbox poi-route-chip-checkbox';
-            checkbox.dataset.routeKey = group.key;
-            checkbox.checked = visibleTransitRoutes.has(group.key);
-            checkbox.disabled = !group.routes.some(route => /^relation\/\d+$/.test(route.id));
-
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'poi-transit-route-chip';
-            button.style.setProperty('--transit-route-color', getTransitRouteColor(group.key, transitRouteColors));
-            button.textContent = group.label.replace(/^(Autobuz|Troleibuz)\s+/i, '');
-            button.setAttribute('aria-pressed', String(checkbox.checked));
-            button.title = 'Afișează traseul pe hartă și caută următoarea plecare';
-            button.addEventListener('click', () => {
-                if (!checkbox.disabled) {
-                    checkbox.checked = !checkbox.checked;
-                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-                const selected = !button.classList.contains('is-selected');
-                button.classList.toggle('is-selected', selected);
-                button.setAttribute('aria-pressed', String(selected));
-                if (selected) {
-                    loadBusArrival(feature, group, schedule);
-                } else if (schedule.dataset.routeKey === group.key) {
-                    schedule.hidden = true;
-                    schedule.dataset.routeKey = '';
-                }
-            });
-            checkbox._routeButton = button;
-            routeEntry.append(checkbox, button);
-            routeButtons.appendChild(routeEntry);
-        });
-
-        poiTooltipRoutes.appendChild(schedule);
-
-        poiTooltipAddress.hidden = true;
-        poiTooltipRoutes.hidden = false;
-        poiTooltipElement.hidden = false;
-        poiTooltip.setPosition(coordinate);
+    if (featureType === 'train' || featureType === 'subway') {
+        hidePoiTooltip();
+        window.dispatchEvent(new CustomEvent('symbiot:osm-stop-routes', {
+            detail: {
+                stopName: feature.get('name') || poiTypeLabels[featureType],
+                routes: routeGroups,
+                feature,
+                routesAvailable: feature.get('routes_available') !== false,
+                loading: false,
+            },
+        }));
         return;
     }
 
@@ -1472,6 +1780,7 @@ document.addEventListener('change', async event => {
 
     if (checkbox.checked) {
         if (!routeFeature) {
+            const geometryRun = ++transitRouteGeometryRun;
             checkbox.disabled = true;
             try {
                 const routeGeometries = await Promise.all(
@@ -1506,6 +1815,8 @@ document.addEventListener('change', async event => {
                 const lineCoordinates = routeGeometries.flat()
                     .filter(coordinates => coordinates.length >= 2);
 
+                if (geometryRun !== transitRouteGeometryRun || !checkbox.checked) return;
+
                 if (lineCoordinates.length === 0) {
                     throw new Error('OpenStreetMap nu a returnat geometria traseului.');
                 }
@@ -1519,10 +1830,19 @@ document.addEventListener('change', async event => {
                 transitRouteSource.addFeature(routeFeature);
                 visibleTransitRoutes.add(routeKey);
             } catch (error) {
+                if (geometryRun !== transitRouteGeometryRun || !checkbox.checked) return;
                 checkbox.checked = false;
                 if (checkbox._routeButton) {
                     checkbox.dataset.geometryUnavailable = 'true';
                     checkbox._routeButton.title = 'Orarul se poate consulta; geometria traseului nu este disponibilă în OpenStreetMap.';
+                    checkbox._dashboardRouteButton?.classList.remove('is-selected');
+                    if (checkbox._dashboardRouteButton) {
+                        const status = checkbox._dashboardRouteButton.parentElement?.querySelector('.dashboard-stop-route-status');
+                        if (status) {
+                            status.textContent = 'Geometria traseului nu este disponibilă în OpenStreetMap.';
+                            status.hidden = false;
+                        }
+                    }
                 } else {
                     console.error('Transit route geometry could not be loaded:', error);
                     Swal.fire({
@@ -1545,6 +1865,38 @@ document.addEventListener('change', async event => {
     }
 });
 
+window.addEventListener('symbiot:osm-route-toggle', (event) => {
+    const { group, feature, checkbox, button, status } = event.detail ?? {};
+    if (!group || !feature || !checkbox || !button) return;
+
+    if (checkbox.checked || visibleTransitRoutes.has(group.key)) {
+        checkbox.checked = false;
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        button.classList.remove('is-selected');
+        status.hidden = true;
+        window.dispatchEvent(new CustomEvent('symbiot:osm-route-state', {
+            detail: { routeKey: group.key, selected: false },
+        }));
+        return;
+    }
+
+    clearVisibleTransitRoutes();
+    activeTransitRoutes.set(group.key, group);
+    assignTransitRouteColors([group], transitRouteColors, manuallySelectedTransitRouteColors);
+    checkbox._routeButton = button;
+    button.classList.add('is-selected');
+    button.querySelector('.dashboard-stop-route-badge')?.style.setProperty('--transit-route-color', getTransitRouteColor(group.key, transitRouteColors));
+    button.querySelector('.dashboard-stop-route-badge')?.style.setProperty('background-color', getTransitRouteColor(group.key, transitRouteColors));
+    checkbox.checked = true;
+    status.textContent = 'Se încarcă traseul…';
+    status.hidden = false;
+    window.dispatchEvent(new CustomEvent('symbiot:osm-route-state', {
+        detail: { routeKey: group.key, selected: true, color: getTransitRouteColor(group.key, transitRouteColors) },
+    }));
+    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+    loadBusArrival(feature, group, status);
+});
+
 function updateMetroArrivalEstimate() {
     const estimateElement = document.getElementById('metroArrivalEstimate');
     if (!estimateElement) return;
@@ -1565,9 +1917,11 @@ function hidePoiTooltip() {
 }
 
 function clearVisibleTransitRoutes() {
+    transitRouteGeometryRun++;
     visibleTransitRoutes.clear();
     activeTransitRoutes.clear();
     transitRouteSource.clear();
+    window.dispatchEvent(new CustomEvent('symbiot:osm-route-state', { detail: { clear: true } }));
 }
 
 map.on('pointermove', event => {
@@ -1582,6 +1936,7 @@ bindPoiMapClick({
     tooltipElement: poiTooltipElement,
     showTooltip: showPoiTooltip,
     hideTooltip: hidePoiTooltip,
+    ignoreFeatureAtPixel: pixel => transitStops.hasStopAtPixel(pixel),
 });
 
 map.getViewport().addEventListener('pointerleave', () => {
@@ -1685,13 +2040,9 @@ function renderPOI(data = [], userLat, userLon) {
     const features = [];
 
     for (const item of data) {
-
-        if (!item?.coordinates) continue;
-
-        const lat = item.coordinates.lat;
-        const lon = item.coordinates.lon;
-
-        if (typeof lat !== 'number' || typeof lon !== 'number') continue;
+        const coordinates = getPoiCoordinates(item);
+        if (!coordinates) continue;
+        const { lat, lon } = coordinates;
 
         const distance = getDistanceMeters(userLat, userLon, lat, lon);
 
@@ -1709,7 +2060,7 @@ function renderPOI(data = [], userLat, userLon) {
             type: normalizePoiType(item.type),
             address: item.address,
             details: item.details ?? {},
-            coordinates: item.coordinates,
+            coordinates,
             routes: item.routes ?? [],
             routes_available: item.routes_available,
             train_services: item.train_services ?? [],
@@ -1963,6 +2314,9 @@ function createInputLocationElement(create) {
 document.getElementById('city-location-mode')?.addEventListener('change', async event => {
     if (!event.target.checked) return;
 
+    window.dispatchEvent(new CustomEvent('symbiot:location-changing', { detail: { mode: 'city' } }));
+    resetPOIs();
+
     if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId);
         watchId = null;
@@ -2032,6 +2386,8 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
         result = pendingCityResults[selectedIndex];
     }
 
+    window.dispatchEvent(new CustomEvent('symbiot:location-changing', { detail: { mode: 'city' } }));
+    resetPOIs();
     button.disabled = true;
     status.textContent = result ? 'Setting location...' : 'Searching for the city...';
     status.className = 'col-12 small text-muted';
@@ -2067,6 +2423,12 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
                 resultsContainer.classList.remove('d-none');
                 status.textContent = `Found ${candidates.length} results. Select the city and country, then set the location.`;
                 status.className = 'col-12 small text-primary';
+                window.dispatchEvent(new CustomEvent('symbiot:location-candidates', {
+                    detail: { candidates: candidates.map((candidate, index) => ({
+                        label: candidate.label || candidate.name || city,
+                        index,
+                    })) },
+                }));
                 return;
             }
 
@@ -2087,10 +2449,14 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
         currentLocation.dataset.lon = result.lon;
         cityRadiusMeters = radiusMeters;
         app_radius = cityRadiusMeters;
-        fixedCityLocation = { lat: result.lat, lon: result.lon };
+        citywideSearch = false;
+        cityBoundaryFeature = null;
+        cityBoundaryRadiusMeters = null;
+        dashboardCitywide && (dashboardCitywide.checked = false);
+        cityBoundarySource.clear();
+        fixedCityLocation = { lat: result.lat, lon: result.lon, placeId: result.place_id || null };
         currentUserLocation = { lat: result.lat, lon: result.lon };
         hasCentered = true;
-        updateSubcategoryAvailability(result.lat, result.lon);
         initLocalFeatures();
 
         const center = fromLonLat([result.lon, result.lat]);
@@ -2106,55 +2472,47 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
 
         status.textContent = `Location has been set to ${result.label || result.name}, with a radius of ${cityRadiusMeters.toLocaleString('ro-RO')} m.`;
         status.className = 'col-12 small text-success';
+        window.dispatchEvent(new CustomEvent('symbiot:location-set', {
+            detail: {
+                label: result.label || result.name || city,
+                deferPoiCategories: true,
+            },
+        }));
+        syncDashboardRadius(app_radius, true);
         setTimeout(() => map.updateSize(), 100);
 
-        watchTransitCoverage(result.lat, result.lon, status, () => {
+        mbc?.classList.add('d-none');
+        watchTransitCoverage(result.lat, result.lon, status, async () => {
             const selectedFilters = selectedPoiFilterTokens(
                 document.getElementById('mobility_card')
             );
 
-            if(mbc?.classList.contains('d-none')) {
-                mbc?.classList.remove('d-none');
+            syncDashboardRadius(app_radius, true);
+            if (selectedFilters.includes('bus')) {
+                try {
+                    await transitStops.load(
+                        result.lat,
+                        result.lon,
+                        Math.min(Number(app_radius) || 1500, 35000)
+                    );
+                    transitStops.watchVehicles(result.lat, result.lon);
+                } catch (error) {
+                    console.error('Transit stops load failed:', error);
+                }
             }
 
-
-            if (!selectedFilters.includes('bus')) {
-                return;
+            mbc?.classList.remove('d-none');
+            document.getElementById('dashboard-poi-disclosure')?.classList.remove('d-none');
+            if (selectedFilters.length > 0) {
+                await loadNearby({ lat: result.lat, lon: result.lon });
             }
-
-            transitStops.load(
-                result.lat,
-                result.lon,
-                Math.min(Number(app_radius) || 1500, 15000)
-            ).catch(error => {
-                console.error('Transit stops load failed:', error);
-            });
-
-            transitStops.watchVehicles(result.lat, result.lon);
-
-            loadNearby({
-                lat: result.lat,
-                lon: result.lon
-            });
-        }, Math.min(Number(app_radius) || 1500, 15000));
-
-        if (
-            selectedPoiFilterTokens(
-                document.getElementById('mobility_card')
-            ).length > 0
-        ) {
-            loadNearby({
-                lat: result.lat,
-                lon: result.lon
-            });
-        }
-
-        if (selectedPoiFilterTokens(document.getElementById('mobility_card')).length > 0) {
-            loadNearby({ lat: result.lat, lon: result.lon });
-        }
+        }, Math.min(Number(app_radius) || 1500, 35000));
     } catch (error) {
         status.textContent = error.message;
         status.className = 'col-12 small text-danger';
+        window.dispatchEvent(new CustomEvent('symbiot:location-error', {
+            detail: { message: error.message },
+        }));
     } finally {
         button.disabled = false;
     }
@@ -2188,6 +2546,7 @@ document.getElementById('city-location-radius')?.addEventListener('change', even
 
     cityRadiusMeters = radiusMeters;
     app_radius = cityRadiusMeters;
+    syncDashboardRadius(radiusMeters, true);
     if (fixedCityLocation && radiusFeature) {
         radiusFeature.setGeometry(
             circular(
@@ -2485,6 +2844,11 @@ document
             return;
         }
 
+        window.dispatchEvent(new CustomEvent('symbiot:location-changing', { detail: { mode: 'gps' } }));
+
+        // Switching from a city to GPS starts with a clean set of map filters and POIs.
+        resetPOIs();
+
         // Oprește orice urmărire GPS precedentă.
         if (watchId !== null) {
             navigator.geolocation.clearWatch(watchId);
@@ -2566,7 +2930,6 @@ document
 
             // Inițializează markerul și geometria locală.
             initLocalFeatures();
-            updateSubcategoryAvailability(lat, lon);
 
             const center = fromLonLat([lon, lat]);
 
@@ -2587,6 +2950,10 @@ document
 
             mapCard?.classList.remove('d-none');
             mobilityCard?.classList.remove('d-none');
+            window.dispatchEvent(new CustomEvent('symbiot:location-set', {
+                detail: { label: 'locația GPS' },
+            }));
+            syncDashboardRadius(app_radius, true);
 
             setTimeout(() => map.updateSize(), 100);
 
@@ -2617,7 +2984,7 @@ document
                             await transitStops.load(
                                 lat,
                                 lon,
-                                Math.min(radiusMeters, 15000)
+                                Math.min(radiusMeters, 35000)
                             );
 
                             transitStops.watchVehicles(lat, lon);
@@ -2628,8 +2995,11 @@ document
                             );
                         }
                     }
+
+                    document.getElementById('dashboard-poi-disclosure')?.classList.remove('d-none');
+                    syncDashboardRadius(app_radius, true);
                 },
-                Math.min(radiusMeters, 15000)
+                Math.min(radiusMeters, 35000)
             );
 
             // Încarcă POI-urile pentru toate filtrele selectate.
@@ -2875,6 +3245,9 @@ async function loadNearby(locationOverride = null) {
         if (requestId !== poiRequestId) return;
 
         let selectedTypes = poiContainer ? selectedPoiFilterTokens(poiContainer) : [];
+        if (selectedTypes.length > 0) {
+            window.dispatchEvent(new CustomEvent('symbiot:nearby-loading'));
+        }
         transitStops.setVisible(selectedTypes.includes('bus'));
         // Bus stops and lines come from the stored transit feeds (blue stops) wherever they exist;
         // the OpenStreetMap bus POI layer stays only as a fallback for uncovered areas.
@@ -2884,7 +3257,7 @@ async function loadNearby(locationOverride = null) {
                 hasStoredStops = await transitStops.load(
                     lat,
                     lon,
-                    Math.min(Number(app_radius) || 1500, 15000)
+                    Math.min(Number(app_radius) || 1500, 35000)
                 );
             } catch (error) {
                 console.error('Stored transit stops could not be loaded; trying OpenStreetMap POIs.', error);
@@ -2900,6 +3273,7 @@ async function loadNearby(locationOverride = null) {
             clearVisibleTransitRoutes();
             hidePoiTooltip();
             hidePOIModal();
+            window.dispatchEvent(new CustomEvent('symbiot:nearby-cleared'));
 
             return;
         }
@@ -3009,6 +3383,9 @@ async function loadNearby(locationOverride = null) {
         if (requestId !== poiRequestId) return;
         
         console.error(error.message);
+        window.dispatchEvent(new CustomEvent('symbiot:nearby-error', {
+            detail: { message: 'Nu am putut încărca punctele. Verifică conexiunea și filtrele selectate.' },
+        }));
         notification = {
             title: 'Eroare la încărcarea categoriilor',
             text: error.message,
@@ -3143,16 +3520,13 @@ async function updateSubcategoryAvailability(lat, lon) {
             const visible = allowed.has(input.dataset.filter);
             input.disabled = !visible;
             if (!visible) input.checked = false;
-            const row = input.closest('.form-check');
+            const row = input.closest('.poi-subcategory-choice');
             if (row) row.hidden = !visible;
         });
 
         const parent = group.querySelector('.location-category');
-        if (parent) {
-            parent.disabled = allowed.size === 0;
-            if (allowed.size === 0) parent.checked = false;
-        }
-        group.classList.toggle('opacity-50', allowed.size === 0);
+        if (parent) parent.disabled = false;
+        group.classList.remove('opacity-50');
     });
 
     const container = document.getElementById('mobility_card');
@@ -3241,6 +3615,19 @@ function showResultData(data, lat, lon) {
     allPois = enriched;
 
     renderPOI(enriched, lat, lon);
+    window.dispatchEvent(new CustomEvent('symbiot:nearby-pois', {
+        detail: {
+            pois: enriched.map(poi => ({
+                id: poi.id ?? null,
+                name: poi.name || poi.label || 'Punct fără nume',
+                type: poi.type || 'other',
+                distance: poi.distance?.meters ?? null,
+                distanceLabel: poi.distance?.formatted || '',
+                lat: poi.coordinates?.lat ?? poi.lat ?? null,
+                lon: poi.coordinates?.lon ?? poi.lon ?? null,
+            })),
+        },
+    }));
 }
 
 function addUserEvents () {
@@ -3276,6 +3663,7 @@ function addUserEvents () {
             clearVisibleTransitRoutes();
             hidePoiTooltip();
             hidePOIModal();
+            window.dispatchEvent(new CustomEvent('symbiot:nearby-cleared'));
             return;
         }
 
@@ -3285,6 +3673,30 @@ function addUserEvents () {
             clearVisibleTransitRoutes();
             loadNearby();
         }
+    });
+
+    container.addEventListener('input', event => {
+        const search = event.target.closest('.poi-category-search');
+        if (!search || !container.contains(search)) return;
+
+        const query = search.value.trim().toLocaleLowerCase();
+        container.querySelectorAll('.poi-category-group').forEach(group => {
+            const label = group.querySelector('.poi-filter-name')?.textContent?.trim().toLocaleLowerCase() ?? '';
+            group.classList.toggle('poi-category-hidden', Boolean(query) && !label.includes(query));
+        });
+    });
+
+    container.addEventListener('click', event => {
+        if (!event.target.closest('.poi-clear-selection')) return;
+        container.querySelector('.poi-category-search').value = '';
+        container.querySelectorAll('.poi-category-group').forEach(group => {
+            group.classList.remove('poi-category-hidden');
+            group.querySelectorAll('.location-category, .location-subcategory').forEach(input => {
+                input.checked = false;
+            });
+        });
+        const firstCheckbox = container.querySelector('.location-category, .location-subcategory');
+        if (firstCheckbox) firstCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
     });
 }
 
@@ -3303,8 +3715,9 @@ function removeUnselectedPoiFeatures() {
 
 function enrichPOIWithDistance(poiList, userLat, userLon) {
     return poiList.map((item) => {
-        const lat = item.coordinates?.lat ?? item.lat;
-        const lon = item.coordinates?.lon ?? item.lon;
+        const coordinates = getPoiCoordinates(item);
+        const lat = coordinates?.lat;
+        const lon = coordinates?.lon;
 
         let distanceMeters = null;
 
@@ -3319,6 +3732,7 @@ function enrichPOIWithDistance(poiList, userLat, userLon) {
 
         return {
             ...item,
+            ...(coordinates ? { coordinates } : {}),
             distance: {
                 meters: distanceMeters,
                 km: distanceMeters ? distanceMeters / 1000 : null,

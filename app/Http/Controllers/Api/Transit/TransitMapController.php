@@ -19,7 +19,7 @@ class TransitMapController extends Controller
         $v = $request->validate([
             'lat' => 'required|numeric|between:-90,90',
             'lon' => 'required|numeric|between:-180,180',
-            'radius' => 'nullable|integer|min:100|max:15000',
+            'radius' => 'nullable|integer|min:100|max:35000',
         ]);
         $lat = (float) $v['lat'];
         $lon = (float) $v['lon'];
@@ -31,12 +31,25 @@ class TransitMapController extends Controller
         $dLat = $radius / 111320;
         $dLon = $radius / (111320 * max(0.1, cos(deg2rad($lat))));
 
-        $stops = DB::table('transit_stops')
-            ->whereIn('feed_id', $feedIds)
-            ->whereBetween('lat', [$lat - $dLat, $lat + $dLat])
-            ->whereBetween('lon', [$lon - $dLon, $lon + $dLon])
-            ->where(fn ($q) => $q->whereNull('location_type')->orWhereIn('location_type', [0, 1]))
-            ->get(['feed_id', 'stop_id', 'name', 'lat', 'lon'])
+        $stops = DB::table('transit_stops as s')
+            ->whereIn('s.feed_id', $feedIds)
+            ->whereBetween('s.lat', [$lat - $dLat, $lat + $dLat])
+            ->whereBetween('s.lon', [$lon - $dLon, $lon + $dLon])
+            ->where(function ($query): void {
+                $query->whereNull('s.location_type')
+                    ->orWhere('s.location_type', 0)
+                    ->orWhere(function ($station): void {
+                        $station->where('s.location_type', 1)
+                            ->whereNotExists(function ($platform): void {
+                                $platform->selectRaw('1')
+                                    ->from('transit_stops as child')
+                                    ->whereColumn('child.feed_id', 's.feed_id')
+                                    ->whereColumn('child.parent_station', 's.stop_id')
+                                    ->where('child.location_type', 0);
+                            });
+                    });
+            })
+            ->get(['s.feed_id', 's.stop_id', 's.name', 's.lat', 's.lon'])
             ->filter(fn ($s): bool => $this->metersBetween($lat, $lon, (float) $s->lat, (float) $s->lon) <= $radius)
             ->sortBy(fn ($s): float => (($s->lat - $lat) ** 2) + (($s->lon - $lon) ** 2))
             ->take(self::MAX_STOPS)
@@ -314,14 +327,40 @@ class TransitMapController extends Controller
         ]);
     }
 
-    public function routeShape(int $feed, string $route): JsonResponse
+    public function routeShape(Request $request, int $feed, string $route): JsonResponse
     {
-        $shapeIds = DB::table('transit_trips')
-            ->where('feed_id', $feed)
-            ->where('route_id', $route)
-            ->whereNotNull('shape_id')
-            ->select('direction_id', 'shape_id', DB::raw('count(*) as trips'))
-            ->groupBy('direction_id', 'shape_id')
+        $tripShapes = DB::table('transit_trips as t')
+            ->where('t.feed_id', $feed)
+            ->where('t.route_id', $route)
+            ->whereNotNull('t.shape_id');
+
+        $selectedStop = $request->query('stop_id');
+        if (is_string($selectedStop) && $selectedStop !== '') {
+            $stopIds = [$selectedStop];
+            $stop = DB::table('transit_stops')
+                ->where('feed_id', $feed)
+                ->where('stop_id', $selectedStop)
+                ->first(['location_type']);
+
+            if ($stop && (int) $stop->location_type === 1) {
+                $platformIds = DB::table('transit_stops')
+                    ->where('feed_id', $feed)
+                    ->where('parent_station', $selectedStop)
+                    ->where('location_type', 0)
+                    ->pluck('stop_id')
+                    ->all();
+                if ($platformIds !== []) $stopIds = $platformIds;
+            }
+
+            $tripShapes->join('transit_stop_times as st', fn ($join) => $join
+                ->on('st.feed_id', '=', 't.feed_id')
+                ->on('st.trip_id', '=', 't.trip_id'))
+                ->whereIn('st.stop_id', $stopIds);
+        }
+
+        $shapeIds = $tripShapes
+            ->select('t.direction_id', 't.shape_id', DB::raw('count(*) as trips'))
+            ->groupBy('t.direction_id', 't.shape_id')
             ->orderByDesc('trips')
             ->get()
             ->groupBy(fn ($row) => (string) $row->direction_id)

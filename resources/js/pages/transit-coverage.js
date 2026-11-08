@@ -11,21 +11,43 @@ const STAGES = {
 const POLL_MS = 2000;
 let activeRun = 0;
 
+window.addEventListener('symbiot:location-changing', () => {
+    activeRun++;
+    document.getElementById('transit-progress')?.remove();
+});
+
 function panel(anchor) {
     let el = document.getElementById('transit-progress');
+    const host = document.getElementById('dashboard-transit-progress-host')
+        || document.getElementById('dashboard-search-status')
+        || anchor;
     if (!el) {
         el = document.createElement('div');
         el.id = 'transit-progress';
-        el.className = 'col-12 small';
-        anchor.insertAdjacentElement('afterend', el);
+        el.className = 'transit-progress-panel small w-100';
     }
+    if (el.parentElement !== host) host.append(el);
+    el.hidden = false;
 
     return el;
 }
 
-function render(el, feeds) {
+function render(el, feeds, preparing = false) {
     el.replaceChildren();
-    feeds.filter((feed) => feed.progress).forEach((feed) => {
+    const visibleFeeds = feeds.filter((feed) => feed.progress);
+    if (visibleFeeds.length === 0 && preparing) {
+        const text = document.createElement('div');
+        text.textContent = 'Se verifică și se pregătesc datele GTFS…';
+        const bar = document.createElement('div');
+        bar.className = 'progress';
+        bar.style.height = '6px';
+        const fill = document.createElement('div');
+        fill.className = 'progress-bar progress-bar-striped progress-bar-animated';
+        fill.style.width = '100%';
+        bar.append(fill);
+        el.append(text, bar);
+    }
+    visibleFeeds.forEach((feed) => {
         const { stage, percent, detail } = feed.progress;
         const label = STAGES[stage] || stage;
         const wrap = document.createElement('div');
@@ -51,6 +73,7 @@ function render(el, feeds) {
 export async function watchTransitCoverage(lat, lon, anchor, onReady = () => {}, radius = 1500) {
     const run = ++activeRun;
     const el = panel(anchor);
+    render(el, [], true);
 
     while (run === activeRun) {
         let data;
@@ -60,26 +83,38 @@ export async function watchTransitCoverage(lat, lon, anchor, onReady = () => {},
                 credentials: 'same-origin',
             });
             if (!response.ok) {
-                break;
+                if (run !== activeRun) return;
+                el.textContent = 'Nu am putut verifica descărcarea GTFS. Categoriile POI sunt disponibile.';
+                onReady([]);
+                return;
             }
             data = await response.json();
         } catch {
-            break;
+            if (run !== activeRun) return;
+            el.textContent = 'Nu am putut verifica descărcarea GTFS. Categoriile POI sunt disponibile.';
+            onReady([]);
+            return;
         }
 
         if (run !== activeRun) {
             return;
         }
-        render(el, data.feeds);
+        render(el, data.feeds, data.preparing);
         if (!data.preparing) {
-            if (data.feeds.some((feed) => feed.progress && ['done', 'failed'].includes(feed.progress.stage))) {
-                await new Promise((resolve) => setTimeout(resolve, 1500));
+            if (data.feeds.length === 0) {
+                el.textContent = 'Nu a fost găsit un feed GTFS disponibil pentru această zonă.';
             }
             if (run !== activeRun) {
                 return;
             }
-            el.replaceChildren();
             onReady(data.feeds);
+            const allFeedsReady = data.feeds.length > 0
+                && data.feeds.every((feed) => feed.progress?.stage === 'done');
+            if (allFeedsReady) {
+                window.setTimeout(() => {
+                    if (run === activeRun) el.remove();
+                }, 2500);
+            }
             return;
         }
         await new Promise((resolve) => setTimeout(resolve, POLL_MS));

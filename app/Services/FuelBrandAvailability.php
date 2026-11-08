@@ -4,7 +4,6 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 
 /** Tells which fuel brand subcategories actually have stations around a location. */
 class FuelBrandAvailability
@@ -20,10 +19,12 @@ class FuelBrandAvailability
             $tagSets = $this->localTags($lat, $lon, $radius);
 
             if ($tagSets === []) {
-                $tagSets = $this->overpassTags($lat, $lon, $radius);
+                // Do not block the POI filter UI on an external Overpass lookup.
+                // An empty local result means brand availability is unknown, not empty.
+                return null;
             }
 
-            return $tagSets === null ? null : $this->matchBrands($tagSets);
+            return $this->matchBrands($tagSets);
         });
     }
 
@@ -73,22 +74,6 @@ class FuelBrandAvailability
             ->map(fn ($row): array => json_decode((string) $row->tags, true) ?: [])
             ->values()
             ->all();
-    }
-
-    /** @return ?list<array<string, string>> */
-    private function overpassTags(float $lat, float $lon, int $radius): ?array
-    {
-        $response = Http::withHeaders(['User-Agent' => 'Symbiot/1.0 fuel brands'])
-            ->timeout(25)
-            ->get('https://overpass-api.de/api/interpreter', [
-                'data' => sprintf('[out:json][timeout:25];nwr["amenity"="fuel"](around:%d,%F,%F);out tags;', $radius, $lat, $lon),
-            ]);
-
-        if (! $response->successful()) {
-            return null;
-        }
-
-        return collect($response->json('elements') ?? [])->map(fn (array $e): array => $e['tags'] ?? [])->all();
     }
 
     private function meters(float $lat1, float $lon1, float $lat2, float $lon2): float

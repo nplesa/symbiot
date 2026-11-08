@@ -8,6 +8,7 @@ use App\Http\Controllers\BusPoiController;
 use App\Http\Controllers\CafePoiController;
 use App\Http\Controllers\ChargingStationPoiController;
 use App\Http\Controllers\CityLocationController;
+use App\Http\Controllers\CityBoundaryController;
 use App\Http\Controllers\ControlPoiController;
 use App\Http\Controllers\FirePoiController;
 use App\Http\Controllers\FuelBestPriceController;
@@ -62,6 +63,7 @@ Route::name('app.')->middleware(['auth', 'approved'])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
     Route::post('/location/update', [LocationController::class, 'update']);
     Route::get('/api/location/city', CityLocationController::class)->middleware('throttle:30,1');
+    Route::get('/api/location/city-boundary', CityBoundaryController::class)->middleware('throttle:10,1');
     Route::get('/api/transport/bus', BusPoiController::class)->name('api.transport.bus');
     Route::get('/api/transport/train', TrainPoiController::class)->name('api.transport.train');
     Route::get('/api/transport/subway', SubwayPoiController::class)->name('api.transport.subway');

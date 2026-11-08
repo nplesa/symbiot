@@ -73,6 +73,7 @@ class CityLocationController extends Controller
                         'label' => implode(', ', $parts),
                         'country' => $item['country'] ?? null,
                         'country_code' => $item['country_code'] ?? null,
+                        'place_id' => $item['place_id'] ?? null,
                         'lat' => (float) $item['lat'],
                         'lon' => (float) $item['lon'],
                     ];

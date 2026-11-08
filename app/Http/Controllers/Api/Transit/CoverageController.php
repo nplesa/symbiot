@@ -16,7 +16,7 @@ class CoverageController extends Controller
         $validated = $request->validate([
             'lat' => 'required|numeric|between:-90,90',
             'lon' => 'required|numeric|between:-180,180',
-            'radius' => 'nullable|integer|min:100|max:15000',
+            'radius' => 'nullable|integer|min:100|max:35000',
         ]);
 
         $feeds = $discovery->ensureImported(
