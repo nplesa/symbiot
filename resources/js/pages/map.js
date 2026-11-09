@@ -1000,11 +1000,79 @@ function showPoiTooltip(feature, coordinate) {
             detail: {
                 stopName: feature.get('name') || poiTypeLabels[featureType],
                 routes: routeGroups,
+                trainServices: feature.get('train_services') || [],
+                trainServicesAvailable: feature.get('train_services_available') !== false,
+                timetableSource: feature.get('train_timetable_source') || 'data.gov.ro',
+                timetableValidUntil: feature.get('train_timetable_valid_until') || null,
+                isTrainStation: featureType === 'train',
                 feature,
                 routesAvailable: feature.get('routes_available') !== false,
                 loading: false,
             },
         }));
+        return;
+    }
+
+    if (featureType === 'airport') {
+        hidePoiTooltip();
+        const airportName = feature.get('name') || 'Aeroport selectat';
+        const details = feature.get('details') || {};
+        const airportCode = String(details.icao || details.iata || '').trim().toUpperCase();
+        const baseEvent = {
+            stopName: airportName,
+            routes: [],
+            isAirport: true,
+            loading: true,
+            airportFlights: null,
+        };
+        window.dispatchEvent(new CustomEvent('symbiot:osm-stop-routes', { detail: baseEvent }));
+
+        if (!airportCode) {
+            window.dispatchEvent(new CustomEvent('symbiot:osm-stop-routes', {
+                detail: {
+                    ...baseEvent,
+                    loading: false,
+                    airportFlights: {
+                        available: false,
+                        reason: 'missing_airport_code',
+                        message: 'Aeroportul nu are un cod IATA/ICAO asociat în datele hărții.',
+                        arrivals: [],
+                        departures: [],
+                    },
+                },
+            }));
+            return;
+        }
+
+        fetch(`/api/transport/airport/${encodeURIComponent(airportCode)}/flights`, {
+            headers: { Accept: 'application/json' },
+        })
+            .then(async (response) => {
+                const payload = await response.json();
+                if (!response.ok) throw new Error(payload.message || `HTTP ${response.status}`);
+                return payload;
+            })
+            .then((airportFlights) => {
+                window.dispatchEvent(new CustomEvent('symbiot:osm-stop-routes', {
+                    detail: { ...baseEvent, loading: false, airportFlights },
+                }));
+            })
+            .catch((error) => {
+                console.warn('Airport flights could not be loaded:', error);
+                window.dispatchEvent(new CustomEvent('symbiot:osm-stop-routes', {
+                    detail: {
+                        ...baseEvent,
+                        loading: false,
+                        airportFlights: {
+                            available: false,
+                            reason: 'request_failed',
+                            message: 'Nu am putut încărca zborurile acestui aeroport.',
+                            arrivals: [],
+                            departures: [],
+                        },
+                    },
+                }));
+            });
         return;
     }
 

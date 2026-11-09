@@ -18,7 +18,7 @@
                 <i class="fa-solid fa-person-walking" aria-hidden="true"></i><span>Track me</span>
             </button>
             <button type="button" class="dashboard-location-button" id="dashboard-use-location" aria-label="Folosește locația mea">
-                <i class="fa-solid fa-location-crosshairs"></i><span>Location</span>
+                <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i><span>Location</span>
             </button>
         </div>
     </header>

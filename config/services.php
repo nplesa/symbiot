@@ -28,6 +28,10 @@ return [
     'geoapify' => [
         'key' => env('GEOAPIFY_KEY'),
     ],
+    'flightaware' => [
+        'key' => env('FLIGHTAWARE_API_KEY'),
+        'base_url' => env('FLIGHTAWARE_BASE_URL', 'https://aeroapi.flightaware.com/aeroapi'),
+    ],
     'waze' => [
         'url' => env('WAZE_API_URL', 'https://api.openwebninja.com/waze'),
         'key' => env('WAZE_API_KEY', env('WAZE_API')),

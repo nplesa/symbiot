@@ -446,6 +446,21 @@ document.addEventListener('DOMContentLoaded', () => {
         window.innerWidth >= 768 &&
         window.innerWidth < 1200;
 
+    /* =====================================================
+       TRANSPORT ICONS
+       ===================================================== */
+
+
+        const getTransportIcon = (type) => {
+            switch (type) {
+                case 'airport': return '<i class="fas fa-plane text-primary"></i>';
+                case 'train': return '<i class="fas fa-train text-success"></i>';
+                case 'subway': return '<i class="fas fa-subway text-danger"></i>';
+                case 'bus': return '<i class="fas fa-bus text-warning"></i>';
+                default: return '<i class="fas fa-map-marker-alt text-secondary"></i>';
+            }
+        };
+
 
     /* =====================================================
        MOBILE MENU
@@ -980,26 +995,137 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('symbiot:osm-stop-routes', (event) => {
-        const { stopName, routes = [], feature, routesAvailable = true, loading = false } = event.detail ?? {};
+        const {
+            stopName,
+            routes = [],
+            trainServices = [],
+            trainServicesAvailable = true,
+            isTrainStation = false,
+            timetableSource = 'data.gov.ro',
+            timetableValidUntil = null,
+            feature,
+            routesAvailable = true,
+            loading = false,
+            isAirport = false,
+            airportFlights = null,
+        } = event.detail ?? {};
         closePoiAccordion();
         routeDetails.hidden = true;
         routeEmpty.hidden = true;
         stopRoutesPanel.hidden = false;
         routePanel.classList.add('has-stop-selection', 'is-open');
-        setText('dashboard-stop-routes-title', 'Linii în stație');
-        setText('dashboard-stop-routes-stop', stopName || 'Stația selectată pe hartă');
-        setText('dashboard-stop-routes-count', loading ? '… linii' : `${routes.length} ${routes.length === 1 ? 'linie' : 'linii'}`);
+        setText('dashboard-stop-routes-title', isAirport ? 'Zboruri în aeroport' : 'Linii în stație');
+        setText('dashboard-stop-routes-stop', stopName || (isAirport ? 'Aeroportul selectat pe hartă' : 'Stația selectată pe hartă'));
+        const flightCount = (airportFlights?.arrivals?.length ?? 0) + (airportFlights?.departures?.length ?? 0);
+        setText('dashboard-stop-routes-count', loading
+            ? 'Se încarcă…'
+            : isAirport
+                ? `${flightCount} ${flightCount === 1 ? 'zbor' : 'zboruri'}`
+                : `${routes.length} ${routes.length === 1 ? 'linie' : 'linii'}${trainServices.length ? ` · ${trainServices.length} trenuri` : ''}`);
         stopRoutesList.replaceChildren();
 
         if (loading) {
             const pending = document.createElement('p');
             pending.className = 'dashboard-stop-routes-empty';
-            pending.textContent = 'Se caută liniile stației…';
+            pending.textContent = isAirport ? 'Se încarcă sosirile și plecările…' : 'Se caută liniile stației…';
             stopRoutesList.append(pending);
             return;
         }
 
-        if (routes.length === 0) {
+        if (isAirport) {
+            if (!airportFlights?.available) {
+                const unavailable = document.createElement('p');
+                unavailable.className = 'dashboard-stop-routes-empty';
+                unavailable.textContent = airportFlights?.message
+                    || 'Datele despre zboruri nu sunt disponibile pentru acest aeroport.';
+                stopRoutesList.append(unavailable);
+            } else {
+                const formatFlightTime = (value, timeZone = undefined) => {
+                    if (!value) return '—';
+                    const date = new Date(value);
+                    if (Number.isNaN(date.getTime())) return '—';
+                    try {
+                        return new Intl.DateTimeFormat(undefined, {
+                            hour: '2-digit', minute: '2-digit',
+                            hour12: false, // <-- Forțează formatul de 24 de ore
+                            ...(timeZone ? { timeZone } : {}),
+                        }).format(date);
+                    } catch {
+                        return new Intl.DateTimeFormat(undefined, { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: false // <-- Și aici pentru siguranță
+                        }).format(date);
+                    }
+                };
+                const renderFlightGroup = (title, flights, direction) => {
+                    const heading = document.createElement('p');
+                    heading.className = 'dashboard-stop-routes-stop dashboard-train-services-heading';
+                    heading.textContent = title;
+                    stopRoutesList.append(heading);
+                    const upcomingFlights = (Array.isArray(flights) ? flights : [])
+                        .filter((flight) => {
+                            const timestamp = Date.parse(flight.estimated_time || flight.scheduled_time || flight.actual_time || '');
+                            return Number.isFinite(timestamp) && timestamp >= Date.now();
+                        })
+                        .sort((a, b) => Date.parse(a.estimated_time || a.scheduled_time || a.actual_time)
+                            - Date.parse(b.estimated_time || b.scheduled_time || b.actual_time));
+                    if (upcomingFlights.length === 0) {
+                        const empty = document.createElement('p');
+                        empty.className = 'dashboard-stop-routes-empty';
+                        empty.textContent = 'Nu sunt zboruri programate după ora curentă în următoarele 24 de ore.';
+                        stopRoutesList.append(empty);
+                        return;
+                    }
+                    upcomingFlights.forEach((flight) => {
+                        const item = document.createElement('div');
+                        item.className = 'dashboard-stop-route-option dashboard-train-service';
+                        
+                        const badge = document.createElement('span');
+                        badge.className = 'dashboard-stop-route-badge';
+                        badge.textContent = formatFlightTime(
+                            flight.estimated_time || flight.scheduled_time || flight.actual_time,
+                            flight.airport_timezone || undefined,
+                        );
+                        const copy = document.createElement('span');
+                        copy.className = 'dashboard-stop-route-copy';
+                        const name = document.createElement('strong');
+                        name.textContent = flight.number || 'Zbor';
+                        const endpoint = direction === 'arrival'
+                            ? (flight.origin_name || flight.origin || 'Origine indisponibilă')
+                            : (flight.destination_name || flight.destination || 'Destinație indisponibilă');
+                        const details = [
+                            endpoint,
+                            flight.operator,
+                            flight.terminal ? `Terminal ${flight.terminal}` : null,
+                            flight.gate ? `Poarta ${flight.gate}` : null,
+                            direction === 'arrival' && flight.baggage_claim ? `Bandă ${flight.baggage_claim}` : null,
+                        ].filter(Boolean);
+                        const description = document.createElement('small');
+                        description.textContent = details.join(' · ');
+                        copy.append(name, description);
+                        item.append(badge, copy);
+                        const statusText = flight.cancelled ? 'Anulat'
+                            : flight.diverted ? 'Redirecționat'
+                                : flight.status || (flight.estimated_time ? 'Estimat' : 'Programat');
+                        const status = document.createElement('small');
+                        status.className = 'dashboard-train-services-source';
+                        status.textContent = statusText;
+                        item.append(status);
+                        stopRoutesList.append(item);
+                    });
+                };
+                renderFlightGroup('Sosiri începând de acum', airportFlights.arrivals || [], 'arrival');
+                renderFlightGroup('Plecări începând de acum', airportFlights.departures || [], 'departure');
+                const source = document.createElement('small');
+                source.className = 'dashboard-train-services-source';
+                source.textContent = `Sursă: ${airportFlights.source || 'Flight data'} · actualizat ${airportFlights.updated_at ? formatFlightTime(airportFlights.updated_at) : 'recent'}`;
+                stopRoutesList.append(source);
+            }
+            return;
+        }
+
+        if (routes.length === 0 && trainServices.length === 0 && !isTrainStation) {
             const empty = document.createElement('p');
             empty.className = 'dashboard-stop-routes-empty';
             empty.textContent = routesAvailable
@@ -1007,6 +1133,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 : 'Liniile stației nu au putut fi încărcate.';
             stopRoutesList.append(empty);
             return;
+        }
+
+        if (isTrainStation && trainServices.length === 0) {
+            const upcoming = document.createElement('p');
+            upcoming.className = 'dashboard-stop-routes-empty';
+            upcoming.textContent = 'Nu mai sunt plecări programate azi după ora curentă în mersul anual.';
+            stopRoutesList.append(upcoming);
         }
 
         routes.forEach((group) => {
@@ -1024,7 +1157,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const name = document.createElement('strong');
             name.textContent = group.directionLabel ? `${group.label} — ${group.directionLabel}` : group.label;
             const mode = document.createElement('small');
-            mode.textContent = 'OpenStreetMap · selectează pentru a desena';
+            const directions = [...new Set(group.routes.map((route) => route.direction).filter(Boolean))];
+            mode.textContent = directions.length > 0
+                ? `${directions.join(' · ')} · OpenStreetMap`
+                : 'OpenStreetMap · selectează pentru a desena';
             copy.append(name, mode);
             const arrow = document.createElement('i');
             arrow.className = 'fa-solid fa-chevron-right';
@@ -1045,11 +1181,58 @@ document.addEventListener('DOMContentLoaded', () => {
             item.append(button, checkbox, status);
             stopRoutesList.append(item);
         });
+
+        if (trainServices.length > 0) {
+            const heading = document.createElement('p');
+            heading.className = 'dashboard-stop-routes-stop dashboard-train-services-heading';
+            heading.textContent = 'Plecări rămase azi';
+            stopRoutesList.append(heading);
+
+            trainServices.forEach((service) => {
+                const item = document.createElement('div');
+                item.className = 'dashboard-stop-route-option dashboard-train-service';
+                const badge = document.createElement('span');
+                badge.className = 'dashboard-stop-route-badge';
+                badge.textContent = service.category || 'Tren';
+                const copy = document.createElement('span');
+                copy.className = 'dashboard-stop-route-copy';
+                const name = document.createElement('strong');
+                name.textContent = `Linia ${service.category || 'Tren'} ${service.number || ''}`.trim();
+                const details = [
+                    service.origin ? `din ${service.origin}` : null,
+                    service.destination ? `spre ${service.destination}` : service.direction ? `spre ${service.direction}` : null,
+                    service.arrival ? `sosire ${service.arrival}` : null,
+                    service.departure ? `plecare ${service.departure}` : null,
+                    service.operator || null,
+                    service.service_days || null,
+                ].filter(Boolean);
+                const description = document.createElement('small');
+                description.textContent = details.join(' · ') || 'Serviciu feroviar programat';
+                copy.append(name, description);
+                item.append(badge, copy);
+                if (service.ticket_url) {
+                    const ticketLink = document.createElement('a');
+                    ticketLink.className = 'dashboard-train-ticket-link';
+                    ticketLink.href = service.ticket_url;
+                    ticketLink.target = '_blank';
+                    ticketLink.rel = 'noopener noreferrer';
+                    ticketLink.textContent = 'Cumpără bilet';
+                    ticketLink.setAttribute('aria-label', `Cumpără bilet pentru trenul ${service.category || ''} ${service.number || ''}`.trim());
+                    item.append(ticketLink);
+                }
+                stopRoutesList.append(item);
+            });
+
+            const source = document.createElement('small');
+            source.className = 'dashboard-train-services-source';
+            source.textContent = `Sursă: ${timetableSource} · mers anual${timetableValidUntil ? `, valabil până la ${timetableValidUntil}` : ''}${trainServicesAvailable ? '' : ' · unele orare nu au putut fi încărcate'}`;
+            stopRoutesList.append(source);
+        }
     });
 
     window.addEventListener('symbiot:poi-selected', (event) => {
         closePoiAccordion();
-        if (['bus', 'train', 'subway'].includes(event.detail?.type)) return;
+        if (['bus', 'train', 'subway', 'airport'].includes(event.detail?.type)) return;
         stopRoutesPanel.hidden = true;
         routeDetails.hidden = true;
         routePanel.classList.remove('has-stop-selection');

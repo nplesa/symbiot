@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AirportPoiController;
+use App\Http\Controllers\AirportFlightsController;
 use App\Http\Controllers\Api\Transit\CoverageController;
 use App\Http\Controllers\Api\Transit\TransitMapController;
 use App\Http\Controllers\Api\Transit\VehicleController;
@@ -68,6 +69,9 @@ Route::name('app.')->middleware(['auth', 'approved'])->group(function () {
     Route::get('/api/transport/train', TrainPoiController::class)->name('api.transport.train');
     Route::get('/api/transport/subway', SubwayPoiController::class)->name('api.transport.subway');
     Route::get('/api/transport/airport', AirportPoiController::class)->name('api.transport.airport');
+    Route::get('/api/transport/airport/{airport}/flights', AirportFlightsController::class)
+        ->where('airport', '[A-Za-z0-9]{3,4}')
+        ->middleware('throttle:30,1')->name('api.transport.airport.flights');
     Route::get('/api/poi/fuel', FuelPoiController::class)->name('api.poi.fuel');
     Route::get('/api/poi/subcategories', PoiSubcategoryController::class)->middleware('throttle:60,1')->name('api.poi.subcategories');
     Route::get('/api/fuel/best', FuelBestPriceController::class)->middleware('throttle:30,1')->name('api.fuel.best');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\PoiCatalog;
+use App\Services\RailTimetableProvider;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -84,7 +85,7 @@ class TransportPoiController extends Controller
             ->values()
             ->all();
         $cacheKey = sprintf(
-            'transport_poi:v15:%s:%s:%s:%s:%s',
+            'transport_poi:v16:%s:%s:%s:%s:%s',
             round($lat, 4),
             round($lon, 4),
             $radius,
@@ -125,12 +126,13 @@ class TransportPoiController extends Controller
                         $transitFallbackSelectors
                     );
                 }
-                $transitRouteData = $transitTypes !== [] && $includeTransitRoutes
+                $routeLookupTypes = array_values(array_diff($transitTypes, ['airport']));
+                $transitRouteData = $routeLookupTypes !== [] && $includeTransitRoutes
                     ? $this->fetchTransitRouteData(
                         $lat,
                         $lon,
                         $radius,
-                        $transitTypes,
+                        $routeLookupTypes,
                         $features,
                         $transitFallbackElements
                     )
@@ -168,6 +170,10 @@ class TransportPoiController extends Controller
                     $data['transit_routes_available'] ?? false
                 ),
             );
+
+            if (in_array('train', $poiTypes, true)) {
+                $result = app(RailTimetableProvider::class)->addScheduledServices($result);
+            }
 
             return response()->json($result);
 
@@ -309,19 +315,26 @@ class TransportPoiController extends Controller
     /** @return list<array<string, mixed>> */
     private function fetchFromGeoapify(float $lat, float $lon, int $radius, string $categories): array
     {
-        $points = $this->buildGridPoints($lat, $lon, $radius);
-        $timeoutSeconds = trim($categories) === 'public_transport.train' ? 5 : 10;
+        $categoryList = array_filter(explode(',', $categories));
+        $airportSearch = collect($categoryList)->contains(
+            fn (string $category): bool => $category === 'airport' || str_starts_with($category, 'airport.')
+        );
+        // Airports are sparse; a single circle query is enough and avoids a
+        // series of redundant Geoapify grid requests on large search radii.
+        $points = $airportSearch ? [[$lat, $lon]] : $this->buildGridPoints($lat, $lon, $radius);
+        $timeoutSeconds = $airportSearch ? 8 : (trim($categories) === 'public_transport.train' ? 5 : 10);
         $all = [];
 
-        foreach (array_chunk(array_filter(explode(',', $categories)), 100) as $categoryChunk) {
+        foreach (array_chunk($categoryList, 100) as $categoryChunk) {
             $categoryList = implode(',', $categoryChunk);
 
             foreach ($points as [$pLat, $pLon]) {
                 try {
-                    $response = Http::timeout($timeoutSeconds)
-                        ->retry(1, 200)
-                        ->acceptJson()
-                        ->get('https://api.geoapify.com/v2/places', [
+                    $request = Http::connectTimeout(3)->timeout($timeoutSeconds)->acceptJson();
+                    if (! $airportSearch) {
+                        $request->retry(1, 200);
+                    }
+                    $response = $request->get('https://api.geoapify.com/v2/places', [
                             'categories' => $categoryList,
                             'filter' => "circle:$pLon,$pLat,$radius",
                             'limit' => 500,
@@ -924,7 +937,9 @@ class TransportPoiController extends Controller
                     'city' => $tags['addr:city'] ?? null,
                     'country' => $tags['addr:country'] ?? null,
                 ],
-                'details' => $type === 'lodging' ? $this->extractLodgingDetails($tags) : [],
+                'details' => $type === 'lodging'
+                    ? $this->extractLodgingDetails($tags)
+                    : ($type === 'airport' ? $this->extractAirportDetails($tags) : []),
             ];
         }
 
@@ -998,9 +1013,17 @@ class TransportPoiController extends Controller
                     'city' => $props['city'] ?? null,
                     'country' => $props['country'] ?? null,
                 ],
-                'details' => $this->detectType($props['categories'] ?? []) === 'lodging'
-                    ? $this->extractLodgingDetails($props)
-                    : [],
+                'details' => match ($this->detectType($props['categories'] ?? [])) {
+                    'lodging' => $this->extractLodgingDetails($props),
+                    'airport' => $this->extractAirportDetails(is_array($props['datasource']['raw'] ?? null)
+                        ? array_merge(
+                            $props['datasource']['raw'],
+                            is_array($props['datasource']['raw']['tags'] ?? null) ? $props['datasource']['raw']['tags'] : [],
+                            $props,
+                        )
+                        : $props),
+                    default => [],
+                },
             ];
         }
 
@@ -1008,6 +1031,26 @@ class TransportPoiController extends Controller
         );
 
         return $out;
+    }
+
+    /**
+     * Extract stable public airport identifiers from Geoapify or OSM tags.
+     * We intentionally do not treat a generic OSM `ref` as an IATA/ICAO code.
+     *
+     * @param  array<string, mixed>  $properties
+     * @return array<string, string>
+     */
+    private function extractAirportDetails(array $properties): array
+    {
+        $iata = strtoupper(trim((string) ($properties['iata'] ?? $properties['iata_code'] ?? $properties['airport_iata'] ?? '')));
+        $icao = strtoupper(trim((string) ($properties['icao'] ?? $properties['icao_code'] ?? $properties['airport_icao'] ?? '')));
+
+        return array_filter([
+            'iata' => preg_match('/^[A-Z]{3}$/', $iata) ? $iata : null,
+            'icao' => preg_match('/^[A-Z]{4}$/', $icao) ? $icao : null,
+            'operator' => isset($properties['operator']) ? (string) $properties['operator'] : null,
+            'website' => isset($properties['website']) ? (string) $properties['website'] : null,
+        ], static fn ($value): bool => is_string($value) && $value !== '');
     }
 
     /**
