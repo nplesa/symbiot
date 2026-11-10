@@ -1,8 +1,8 @@
 <section class="trasee-panel trasee-route-list-panel h-100">
     <div class="trasee-panel__header">
         <div>
-            <h2 class="h5 mb-1">Traseele mele</h2>
-            <p class="text-muted small mb-0">Alege traseul pe care vrei să îl urmezi.</p>
+            <h2 class="h5 mb-1">{{ __('My routes') }}</h2>
+            <p class="text-muted small mb-0">{{ __('Choose the route you want to follow.') }}</p>
         </div>
         <span class="badge text-bg-light">{{ $routes->count() }}</span>
     </div>
@@ -16,36 +16,36 @@
                 tabindex="0"
                 data-route-id="{{ $route->id }}"
                 data-route-geometry='{{ json_encode($route->geometry, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}'
-                aria-label="Selectează traseul {{ $route->name ?: 'fără nume' }}"
+                aria-label="{{ __('Select route') }} {{ $route->name ?: __('unnamed') }}"
             >
                 <span class="trasee-item__icon"><x-trasee-icon name="turn" /></span>
                 <span class="trasee-item__content">
-                    <strong>{{ $route->name ?: 'Traseu fără nume' }}</strong>
+                    <strong>{{ $route->name ?: __('Unnamed route') }}</strong>
                     <small>
                         {{ strtoupper($route->format ?: 'geojson') }}
                         · {{ number_format($route->distance / 1000, 2, ',', '.') }} km
-                        · {{ $route->points_count }} puncte
+                        · {{ $route->points_count }} {{ __('points') }}
                     </small>
                 </span>
                 <span class="trasee-item__actions">
                     <a
                         href="{{ route('app.trasee.export-kml', $route) }}"
                         class="trasee-item__export"
-                        title="Export Google Maps (KML)"
-                        aria-label="Export Google Maps pentru {{ $route->name ?: 'fără nume' }}"
+                        title="{{ __('Google Maps Export (KML)') }}"
+                        aria-label="{{ __('Google Maps export for') }} {{ $route->name ?: __('unnamed') }}"
                         wire:click.stop
                     ><x-trasee-icon name="download" /></a>
                     @if ($selectedRouteId === $route->id)
-                        <span class="trasee-item__selected" title="Traseu selectat"><x-trasee-icon name="check" /></span>
+                        <span class="trasee-item__selected" title="{{ __('Selected route') }}"><x-trasee-icon name="check" /></span>
                     @endif
                     <button
                         type="button"
                         class="trasee-item__delete btn btn-sm btn-outline-danger"
-                        x-on:click.stop="Swal.fire({ title: 'Ștergi traseul?', text: 'Această acțiune nu poate fi anulată.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Șterge', cancelButtonText: 'Anulează', confirmButtonColor: '#dc3545', reverseButtons: true }).then((result) => { if (result.isConfirmed) { $wire.deleteRoute({{ $route->id }}) } })"
+                        x-on:click.stop="Swal.fire({ title: '{{ __('Delete route?') }}', text: '{{ __('This action cannot be undone.') }}', icon: 'warning', showCancelButton: true, confirmButtonText: '{{ __('Delete') }}', cancelButtonText: '{{ __('Cancel') }}', confirmButtonColor: '#dc3545', reverseButtons: true }).then((result) => { if (result.isConfirmed) { $wire.deleteRoute({{ $route->id }}) } })"
                         wire:loading.attr="disabled"
                         wire:target="deleteRoute({{ $route->id }})"
-                        title="Șterge traseul"
-                        aria-label="Șterge traseul {{ $route->name ?: 'fără nume' }}"
+                        title="{{ __('Delete route') }}"
+                        aria-label="{{ __('Delete route') }} {{ $route->name ?: __('unnamed') }}"
                     >
                         <span wire:loading.remove wire:target="deleteRoute({{ $route->id }})"><x-trasee-icon name="trash" /></span>
                         <span wire:loading wire:target="deleteRoute({{ $route->id }})" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
@@ -55,8 +55,8 @@
         @empty
             <div class="trasee-empty">
                 <x-trasee-icon name="map" />
-                <p class="mb-1">Nu ai încă trasee.</p>
-                <small class="text-muted">Importă un GPX, KML sau KMZ pentru a începe.</small>
+                <p class="mb-1">{{ __('You have no routes yet.') }}</p>
+                <small class="text-muted">{{ __('Import a GPX, KML or KMZ to get started.') }}</small>
             </div>
         @endforelse
     </div>

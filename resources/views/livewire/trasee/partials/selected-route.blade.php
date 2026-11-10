@@ -1,8 +1,8 @@
 <section class="trasee-panel mt-4">
 <div class="trasee-panel__header">
     <div>
-        <h2 class="h5 mb-1">Traseu selectat</h2>
-        <p class="text-muted small mb-0">Traseul selectat va fi folosit ca traseu planificat pentru următoarea etapă de tracking.</p>
+        <h2 class="h5 mb-1">{{ __('Selected route') }}</h2>
+        <p class="text-muted small mb-0">{{ __('The selected route will be used as the planned route for the next tracking stage.') }}</p>
     </div>
 </div>
 
@@ -18,26 +18,26 @@
         <div class="traseu-selected-info">
             <div class="traseu-selected-info__details">
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    <span class="badge text-bg-success">Traseu selectat</span>
-                    <strong>{{ $selectedRoute->name ?: 'Traseu fără nume' }}</strong>
+                    <span class="badge text-bg-success">{{ __('Selected route') }}</span>
+                    <strong>{{ $selectedRoute->name ?: __('Unnamed route') }}</strong>
                     <span class="text-muted">{{ number_format($selectedRoute->distance / 1000, 2, ',', '.') }} km</span>
                 </div>
                 <div class="traseu-route-meta">
     @if ($selectedRoute->duration)
         <div>
-            <span>Durată</span>
+            <span>{{ __('Duration') }}</span>
             <strong>{{ gmdate('H:i', $selectedRoute->duration) }}</strong>
         </div>
     @endif
     @if ($selectedRoute->elevation_gain !== null)
         <div>
-            <span>Urcare</span>
+            <span>{{ __('Elevation gain') }}</span>
             <strong>{{ number_format($selectedRoute->elevation_gain, 0, ',', '.') }} m</strong>
         </div>
     @endif
     @if ($selectedRoute->elevation_loss !== null)
         <div>
-            <span>Coborâre</span>
+            <span>{{ __('Elevation loss') }}</span>
             <strong>{{ number_format($selectedRoute->elevation_loss, 0, ',', '.') }} m</strong>
         </div>
     @endif
@@ -52,27 +52,27 @@
                     wire:target="startRoute"
                 >
                     <span wire:loading.remove wire:target="startRoute">
-                        <x-trasee-icon name="play" class="me-1" /> Începe traseul
+                        <x-trasee-icon name="play" class="me-1" /> {{ __('Start route') }}
                     </span>
                     <span wire:loading wire:target="startRoute">
                         <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                        Se pornește...
+                        {{ __('Starting...') }}
                     </span>
                 </button>
 
                 <a
                     href="{{ route('app.trasee.export-kml', $selectedRoute) }}"
                     class="btn btn-primary btn-sm"
-                    title="Exportă traseul pentru Google Maps / My Maps"
+                    title="{{ __('Export route for Google Maps / My Maps') }}"
                 >
-                    <x-trasee-icon name="download" class="me-1" /> Export Google Maps
+                    <x-trasee-icon name="download" class="me-1" /> {{ __('Export Google Maps') }}
                 </a>
             </div>
         </div>
     @else
         <div class="traseu-map-empty">
-<x-trasee-icon name="map" />
-<span>Selectează un traseu din listă pentru a vedea preview-ul.</span>
+            <x-trasee-icon name="map" />
+            <span>{{ __('Select a route from the list to see the preview.') }}</span>
         </div>
     @endif
 </div>

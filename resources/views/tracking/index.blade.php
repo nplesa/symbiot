@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('content')
@@ -8,21 +7,21 @@
     {{-- PAGE HEADER --}}
     <div class="tracking-heading">
         <div>
-            <div class="tracking-eyebrow">GPS MONITORING</div>
-            <h2>Track History</h2>
-            <p>Review your recorded routes and replay your movements.</p>
+            <div class="tracking-eyebrow">{{ __('GPS MONITORING') }}</div>
+            <h2>{{ __('Track History') }}</h2>
+            <p>{{ __('Review your recorded routes and replay your movements.') }}</p>
         </div>
 
         <div class="tracking-map-indicator">
             <span></span>
-            GPS TRACKING
+            {{ __('GPS TRACKING') }}
         </div>
     </div>
 
     {{-- STATUS --}}
     <div class="tracking-status" id="trackStatus">
         <i class="fa-solid fa-circle-info"></i>
-        <span>Select a date to view your available tracks.</span>
+        <span>{{ __('Select a date to view your available tracks.') }}</span>
     </div>
 
     {{-- FILTERS AND PLAYER --}}
@@ -30,8 +29,8 @@
 
         <div class="tracking-card-header">
             <div>
-                <h5>Track selection</h5>
-                <small>Choose a date and a recorded session</small>
+                <h5>{{ __('Track selection') }}</h5>
+                <small>{{ __('Choose a date and a recorded session') }}</small>
             </div>
             <i class="fa-solid fa-route tracking-card-icon"></i>
         </div>
@@ -39,7 +38,7 @@
         <div class="tracking-filters">
 
             <div class="tracking-field">
-                <label for="trackDay">Date</label>
+                <label for="trackDay">{{ __('Date') }}</label>
                 <div class="tracking-input-wrap">
                     <input
                         type="date"
@@ -49,14 +48,14 @@
             </div>
 
             <div class="tracking-field tracking-session-field">
-                <label for="trackDate">Available tracks</label>
+                <label for="trackDate">{{ __('Available tracks') }}</label>
                 <div class="tracking-input-wrap">
                     <i class="fa-solid fa-route"></i>
                     <select
                         id="trackDate"
                         class="form-select"
                         disabled>
-                        <option value="">Select a date first</option>
+                        <option value="">{{ __('Select a date first') }}</option>
                     </select>
                 </div>
             </div>
@@ -66,28 +65,28 @@
         <div class="tracking-player">
 
             <div class="tracking-player-label">
-                <span>Track playback</span>
-                <small>Replay your recorded route</small>
+                <span>{{ __('Track playback') }}</span>
+                <small>{{ __('Replay your recorded route') }}</small>
             </div>
 
             <div class="tracking-player-actions">
-                <button type="button" id="trackPlay" class="tracking-player-button primary" title="Play" disabled>
+                <button type="button" id="trackPlay" class="tracking-player-button primary" title="{{ __('Play') }}" disabled>
                     <i class="fa-solid fa-play"></i>
-                    <span>Play</span>
+                    <span>{{ __('Play') }}</span>
                 </button>
 
-                <button type="button" id="trackPause" class="tracking-player-button" title="Pause" disabled>
+                <button type="button" id="trackPause" class="tracking-player-button" title="{{ __('Pause') }}" disabled>
                     <i class="fa-solid fa-pause"></i>
-                    <span>Pause</span>
+                    <span>{{ __('Pause') }}</span>
                 </button>
 
-                <button type="button" id="trackReset" class="tracking-player-button" title="Reset" disabled>
+                <button type="button" id="trackReset" class="tracking-player-button" title="{{ __('Reset') }}" disabled>
                     <i class="fa-solid fa-rotate-left"></i>
-                    <span>Reset</span>
+                    <span>{{ __('Reset') }}</span>
                 </button>
 
                 <div class="tracking-speed-control">
-                    <label for="trackSpeed">Speed</label>
+                    <label for="trackSpeed">{{ __('Speed') }}</label>
                     <select id="trackSpeed" class="form-select" disabled>
                         <option value="1">1x</option>
                         <option value="2">2x</option>
@@ -108,7 +107,7 @@
                 <i class="fa-solid fa-route"></i>
             </div>
             <div>
-                <span>Distance</span>
+                <span>{{ __('Distance') }}</span>
                 <strong id="trackDistance">--</strong>
             </div>
         </div>
@@ -118,7 +117,7 @@
                 <i class="fa-solid fa-location-dot"></i>
             </div>
             <div>
-                <span>GPS points</span>
+                <span>{{ __('GPS points') }}</span>
                 <strong id="trackPointCount">--</strong>
             </div>
         </div>
@@ -128,7 +127,7 @@
                 <i class="fa-regular fa-clock"></i>
             </div>
             <div>
-                <span>Duration</span>
+                <span>{{ __('Duration') }}</span>
                 <strong id="trackDuration">--</strong>
             </div>
         </div>
@@ -140,14 +139,14 @@
 
         <div class="tracking-card-header">
             <div>
-                <h5>Route map</h5>
-                <small>Recorded GPS route and playback position</small>
+                <h5>{{ __('Route map') }}</h5>
+                <small>{{ __('Recorded GPS route and playback position') }}</small>
             </div>
 
             <span class="tracking-map-legend">
-                <span class="legend-start"></span> Start
-                <span class="legend-end"></span> Finish
-                <span class="legend-current"></span> Playback
+                <span class="legend-start"></span> {{ __('Start') }}
+                <span class="legend-end"></span> {{ __('Finish') }}
+                <span class="legend-current"></span> {{ __('Playback') }}
             </span>
         </div>
 
@@ -158,14 +157,14 @@
                 <div class="tracking-empty-icon">
                     <i class="fa-solid fa-map-location-dot"></i>
                 </div>
-                <strong>No route selected</strong>
-                <span>Select a date and track to display the route.</span>
+                <strong>{{ __('No route selected') }}</strong>
+                <span>{{ __('Select a date and track to display the route.') }}</span>
             </div>
         </div>
 
         <div class="tracking-map-footer">
             <i class="fa-solid fa-map"></i>
-            Map data © OpenStreetMap contributors
+            {{ __('Map data © OpenStreetMap contributors') }}
         </div>
 
     </section>

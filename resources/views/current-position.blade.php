@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('content')
@@ -9,22 +8,22 @@
     <div class="current-position-heading">
         <div>
             <div class="current-position-eyebrow">
-                GPS MONITORING
+                {{ __('GPS MONITORING') }}
             </div>
-            <h2>Current Position</h2>
-            <p>Monitor your current location and GPS information.</p>
+            <h2>{{ __('Current Position') }}</h2>
+            <p>{{ __('Monitor your current location and GPS information.') }}</p>
         </div>
 
         <button type="button" id="locateMe" class="btn btn-primary">
             <i class="fa-solid fa-location-crosshairs"></i>
-            Locate me
+            {{ __('Locate me') }}
         </button>
     </div>
 
     {{-- STATUS --}}
     <div class="current-position-status" id="locationStatus">
         <i class="fa-solid fa-circle-info"></i>
-        <span>Press "Locate me" to get your current position.</span>
+        <span>{{ __('Press "Locate me" to get your current position.') }}</span>
     </div>
 
     {{-- MAP + INFORMATION --}}
@@ -33,11 +32,11 @@
         <section class="current-position-map-card">
             <div class="current-position-card-header">
                 <div>
-                    <h5>Live Location</h5>
-                    <small>Your current GPS position</small>
+                    <h5>{{ __('Live Location') }}</h5>
+                    <small>{{ __('Your current GPS position') }}</small>
                 </div>
                 <span class="position-map-indicator">
-                    <span></span> GPS
+                    <span></span> {{ __('GPS') }}
                 </span>
             </div>
 
@@ -47,7 +46,7 @@
 
             <div class="current-position-map-footer">
                 <i class="fa-solid fa-map"></i>
-                Map data © OpenStreetMap contributors
+                {{ __('Map data © OpenStreetMap contributors') }}
             </div>
         </section>
 
@@ -57,50 +56,50 @@
             <section class="current-position-card">
                 <div class="current-position-card-header">
                     <div>
-                        <h5>Location Address</h5>
-                        <small>Geographical information</small>
+                        <h5>{{ __('Location Address') }}</h5>
+                        <small>{{ __('Geographical information') }}</small>
                     </div>
                     <i class="fa-solid fa-map-location-dot position-card-icon"></i>
                 </div>
 
                 <div class="position-address-main" id="positionFullAddress">
-                    Address not available
+                    {{ __('Address not available') }}
                 </div>
 
                 <div class="position-address-details">
 
                     <div class="position-detail">
-                        <span>Street</span>
+                        <span>{{ __('Street') }}</span>
                         <strong id="positionStreet">--</strong>
                     </div>
 
                     <div class="position-detail">
-                        <span>House number</span>
+                        <span>{{ __('House number') }}</span>
                         <strong id="positionHouseNumber">--</strong>
                     </div>
 
                     <div class="position-detail">
-                        <span>District / Area</span>
+                        <span>{{ __('District / Area') }}</span>
                         <strong id="positionDistrict">--</strong>
                     </div>
 
                     <div class="position-detail">
-                        <span>City / Locality</span>
+                        <span>{{ __('City / Locality') }}</span>
                         <strong id="positionCity">--</strong>
                     </div>
 
                     <div class="position-detail">
-                        <span>County</span>
+                        <span>{{ __('County') }}</span>
                         <strong id="positionCounty">--</strong>
                     </div>
 
                     <div class="position-detail">
-                        <span>Postal code</span>
+                        <span>{{ __('Postal code') }}</span>
                         <strong id="positionPostcode">--</strong>
                     </div>
 
                     <div class="position-detail">
-                        <span>Country</span>
+                        <span>{{ __('Country') }}</span>
                         <strong id="positionCountry">--</strong>
                     </div>
 
@@ -111,8 +110,8 @@
             <section class="current-position-card">
                 <div class="current-position-card-header">
                     <div>
-                        <h5>GPS Information</h5>
-                        <small>Technical position data</small>
+                        <h5>{{ __('GPS Information') }}</h5>
+                        <small>{{ __('Technical position data') }}</small>
                     </div>
                     <i class="fa-solid fa-satellite-dish position-card-icon"></i>
                 </div>
@@ -120,37 +119,37 @@
                 <div class="position-gps-details">
 
                     <div class="position-detail">
-                        <span>Latitude</span>
+                        <span>{{ __('Latitude') }}</span>
                         <strong id="positionLatitude">--</strong>
                     </div>
 
                     <div class="position-detail">
-                        <span>Longitude</span>
+                        <span>{{ __('Longitude') }}</span>
                         <strong id="positionLongitude">--</strong>
                     </div>
 
                     <div class="position-detail">
-                        <span>Accuracy</span>
+                        <span>{{ __('Accuracy') }}</span>
                         <strong id="positionAccuracy">--</strong>
                     </div>
 
                     <div class="position-detail">
-                        <span>Altitude</span>
+                        <span>{{ __('Altitude') }}</span>
                         <strong id="positionAltitude">--</strong>
                     </div>
 
                     <div class="position-detail">
-                        <span>Speed</span>
+                        <span>{{ __('Speed') }}</span>
                         <strong id="positionSpeed">--</strong>
                     </div>
 
                     <div class="position-detail">
-                        <span>Heading</span>
+                        <span>{{ __('Heading') }}</span>
                         <strong id="positionHeading">--</strong>
                     </div>
 
                     <div class="position-detail position-detail-full">
-                        <span>Last update</span>
+                        <span>{{ __('Last update') }}</span>
                         <strong id="positionUpdated">--</strong>
                     </div>
 
