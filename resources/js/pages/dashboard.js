@@ -825,6 +825,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!deviceMode) return;
         deviceMode.checked = true;
         deviceMode.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        if(searchStatus.parentNode.classList.contains('d-none')) {
+            searchStatus.parentNode.classList.remove('d-none');
+        }
     });
 
     document.getElementById('dashboard-search-location')?.addEventListener('click', () => {
@@ -842,6 +846,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (!cityInput || !cityForm) return;
 
+        if(searchStatus.parentNode.classList.contains('d-none')) {
+            searchStatus.parentNode.classList.remove('d-none');
+        }
+
         searchStatus.textContent = 'Se caută localitatea…';
         searchResults.hidden = true;
         cityMode.checked = true;
@@ -856,6 +864,11 @@ document.addEventListener('DOMContentLoaded', () => {
         searchSelect.replaceChildren(new Option('Selectează localitatea', ''));
         candidates.forEach((candidate) => searchSelect.add(new Option(candidate.label, String(candidate.index))));
         searchResults.hidden = false;
+
+        if(searchStatus.parentNode.classList.contains('d-none')) {
+            searchStatus.parentNode.classList.remove('d-none');
+        }
+
         searchStatus.textContent = 'Am găsit mai multe rezultate. Alege localitatea.';
     });
 
@@ -876,11 +889,20 @@ document.addEventListener('DOMContentLoaded', () => {
         resetDashboardLocationState(true);
         if (searchInput) searchInput.value = '';
         searchSelect?.replaceChildren(new Option('Selectează localitatea', ''));
+
+        if(searchStatus.parentNode.classList.contains('d-none')) {
+            searchStatus.parentNode.classList.remove('d-none');
+        }
+
         searchStatus.textContent = event.detail?.mode === 'gps'
             ? 'Se determină locația GPS…'
             : 'Se schimbă localitatea…';
     });
     window.addEventListener('symbiot:location-error', (event) => {
+        if(searchStatus.parentNode.classList.contains('d-none')) {
+            searchStatus.parentNode.classList.remove('d-none');
+        }
+
         searchStatus.textContent = event.detail?.message ?? 'Nu am putut găsi localitatea.';
     });
     window.addEventListener('symbiot:nearby-pois', (event) => {

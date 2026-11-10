@@ -11,9 +11,11 @@
                 <label for="dashboard-search-select">Alege localitatea</label>
                 <select id="dashboard-search-select" class="form-select"></select>
             </div>
-            <div class="dashboard-search-status" id="dashboard-search-status" role="status" aria-live="polite"></div>
         </form>
         <div class="dashboard-topbar-actions">
+            <button type="button" class="dashboard-translate-button" id="dashboard-translate-me" aria-pressed="false">
+                <i class="fa-solid fa-language" aria-hidden="true"></i><span>Translate</span>
+            </button>
             <button type="button" class="dashboard-track-button" id="dashboard-track-me" aria-pressed="false">
                 <i class="fa-solid fa-person-walking" aria-hidden="true"></i><span>Track me</span>
             </button>
@@ -343,11 +345,18 @@
     <aside class="dashboard-route-panel" id="dashboard-route-panel" aria-live="polite">
         <div class="dashboard-panel-toolbar">
             <div class="dashboard-panel-heading">
-                <span class="dashboard-panel-icon"><i class="fa-solid fa-route"></i></span>
-                <div><span class="dashboard-eyebrow">SYMBIOT · HARTĂ</span><h1>Explorează</h1></div>
-                <span class="dashboard-live-poi-count" id="dashboard-panel-poi-count">0 POI</span>
+                <div class="dashboard-panel-heading-top">
+                    <span class="dashboard-panel-icon"><i class="fa-solid fa-route"></i></span>
+                    <div class="middle-heading">
+                        <span class="dashboard-eyebrow mx-auto">SYMBIOT · HARTĂ</span>
+                        <h1 class="mx-auto">Explorează</h1>
+                    </div>
+                    <span class="dashboard-live-poi-count" id="dashboard-panel-poi-count">0 POI</span>
+                </div>
+                <div class="dashboard-panel-heading-bottom mt-2 d-none">
+                     <div class="dashboard-search-status text-center" id="dashboard-search-status" role="status" aria-live="polite"></div>   
+                </div>
             </div>
-            <button type="button" class="dashboard-icon-button dashboard-panel-close" id="dashboard-panel-close" aria-label="Ascunde panoul"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div id="dashboard-transit-progress-host" class="dashboard-transit-progress-host" aria-live="polite"></div>
 
