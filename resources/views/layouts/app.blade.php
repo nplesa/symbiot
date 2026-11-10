@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -34,7 +33,7 @@
                     <button type="button"
                             class="symbiot-menu-toggle"
                             id="sidebarMobileToggle"
-                            aria-label="Open menu"
+                            aria-label="{{ __('Open menu') }}"
                             aria-expanded="false"
                             aria-controls="symbiotSidebar">
 
@@ -69,7 +68,7 @@
                         <button type="button"
                                 class="symbiot-sidebar-toggle"
                                 id="sidebarCollapse"
-                                aria-label="Collapse sidebar">
+                                aria-label="{{ __('Collapse sidebar') }}">
 
                             <i class="fa-solid fa-angles-left"></i>
 
@@ -78,7 +77,7 @@
                         <button type="button"
                                 class="symbiot-mobile-close"
                                 id="sidebarMobileClose"
-                                aria-label="Close menu">
+                                aria-label="{{ __('Close menu') }}">
 
                             <i class="fa-solid fa-xmark"></i>
 
@@ -89,7 +88,7 @@
                     <div class="symbiot-sidebar-body">
 
                         <div class="symbiot-nav-label">
-                            HARTĂ ȘI TRASEE
+                            {{ __('MAP AND ROUTES') }}
                         </div>
 
                         <nav class="symbiot-nav">
@@ -98,7 +97,7 @@
                                class="symbiot-nav-link {{ request()->routeIs('app.home') ? 'active' : '' }}">
 
                                 <i class="fa-solid fa-house"></i>
-                                <span>Hartă</span>
+                                <span>{{ __('Map') }}</span>
 
                             </a>
 
@@ -106,7 +105,7 @@
                                class="symbiot-nav-link {{ request()->routeIs('app.position') ? 'active' : '' }}">
 
                                 <i class="fa-solid fa-crosshairs"></i>
-                                <span>Poziția mea</span>
+                                <span>{{ __('My position') }}</span>
 
                             </a>
 
@@ -114,7 +113,7 @@
                                class="symbiot-nav-link {{ request()->routeIs('app.trackings.*') ? 'active' : '' }}">
 
                                 <i class="fa-solid fa-location-dot"></i>
-                                <span>Sesiuni GPS</span>
+                                <span>{{ __('GPS sessions') }}</span>
 
                             </a>
 
@@ -122,14 +121,14 @@
                                class="symbiot-nav-link {{ request()->routeIs('app.trasee.*') ? 'active' : '' }}">
 
                                 <i class="fa-solid fa-route"></i>
-                                <span>Trasee</span>
+                                <span>{{ __('Routes') }}</span>
 
                             </a>
 
                         </nav>
 
                         <div class="symbiot-nav-label">
-                            ACCOUNT
+                            {{ __('ACCOUNT') }}
                         </div>
 
                         <nav class="symbiot-nav">
@@ -140,7 +139,7 @@
                                    class="symbiot-nav-link">
 
                                     <i class="fa-solid fa-users"></i>
-                                    <span>Users</span>
+                                    <span>{{ __('Users') }}</span>
 
                                 </a>
 
@@ -149,7 +148,7 @@
                             <a href="{{ route('app.profile.edit') }}"
                                class="symbiot-nav-link {{ request()->routeIs('app.profile.*') ? 'active' : '' }}">
                                 <i class="fa-solid fa-user"></i>
-                                <span>Profile</span>
+                                <span>{{ __('Profile') }}</span>
                             </a>
 
                             <button type="button"
@@ -159,7 +158,7 @@
                                 <i class="fa-solid fa-moon"
                                    id="themeIcon"></i>
 
-                                <span>Dark / Light mode</span>
+                                <span>{{ __('Dark / Light mode') }}</span>
 
                             </button>
 
@@ -169,6 +168,41 @@
 
                     {{-- SIDEBAR FOOTER --}}
                     <div class="symbiot-sidebar-footer">
+
+                        <!-- Subsolul sidebar-ului: Selector de limbă centrat + Utilizator curent -->
+                        <div class="dashboard-sidebar-footer p-3 border-top mt-auto">
+                            <div class="mb-2 text-center">
+                                <span class="small text-muted d-block mb-1" style="font-size: 0.75rem;">{{ __('Language') }}</span>
+                                <div class="d-flex justify-content-center align-items-center gap-2">
+                                    <!-- Steag Anglia (EN) -->
+                                    <a href="{{ route('lang.switch', 'en') }}" class="btn btn-sm p-1 @if(app()->getLocale() == 'en') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="English">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="22" height="13" style="border-radius: 2px;">
+                                            <rect width="600" height="300" fill="#012169"/>
+                                            <path d="M0,0 L600,300 M600,0 L0,300" stroke="#fff" stroke-width="60"/>
+                                            <path d="M0,0 L600,300 M600,0 L0,300" stroke="#C8102E" stroke-width="40"/>
+                                            <path d="M300,0 V300 M0,150 H600" stroke="#fff" stroke-width="100"/>
+                                            <path d="M300,0 V300 M0,150 H600" stroke="#C8102E" stroke-width="60"/>
+                                        </svg>
+                                    </a>
+                                    <!-- Steag România (RO) -->
+                                    <a href="{{ route('lang.switch', 'ro') }}" class="btn btn-sm p-1 @if(app()->getLocale() == 'ro') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="Română">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="22" height="13" style="border-radius: 2px;">
+                                            <rect width="3" height="2" fill="#002B7F"/>
+                                            <rect width="2" height="2" fill="#FCD116"/>
+                                            <rect width="1" height="2" fill="#CE1126"/>
+                                        </svg>
+                                    </a>
+                                    <!-- Steag Italia (IT) -->
+                                    <a href="{{ route('lang.switch', 'it') }}" class="btn btn-sm p-1 @if(app()->getLocale() == 'it') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="Italiano">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="22" height="13" style="border-radius: 2px;">
+                                            <rect width="3" height="2" fill="#CE1126"/>
+                                            <rect width="2" height="2" fill="#FFFFFF"/>
+                                            <rect width="1" height="2" fill="#009246"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="symbiot-user">
 
@@ -183,7 +217,7 @@
                                 </strong>
 
                                 <small>
-                                    {{ Auth::user()->is_admin ? 'Administrator' : 'Account' }}
+                                    {{ Auth::user()->is_admin ? __('Administrator') : __('Account') }}
                                 </small>
 
                             </div>
@@ -197,7 +231,7 @@
                                     class="symbiot-nav-link symbiot-logout">
 
                                 <i class="fa-solid fa-right-from-bracket"></i>
-                                <span>Logout</span>
+                                <span>{{ __('Logout') }}</span>
 
                             </button>
 
@@ -223,16 +257,16 @@
                                     justify-content-between gap-2">
 
                             <span>
-                                Esti conectat ca
+                                {{ __('Connected as') }}
                                 <strong>{{ Auth::user()->name }}</strong>
-                                (mod GHOST).
+                                ({{ __('GHOST mode') }}).
                             </span>
 
                             <form method="POST" action="{{ route('ghost.leave') }}">
                                 @csrf
 
                                 <button type="submit" class="btn btn-sm btn-dark">
-                                    Revino la contul tau
+                                    {{ __('Return to your account') }}
                                 </button>
 
                             </form>
@@ -275,7 +309,7 @@
 
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('app.home') }}">
-                                    Dashboard
+                                    {{ __('Dashboard') }}
                                 </a>
                             </li>
 
@@ -285,7 +319,7 @@
                                    href="{{ route('logout') }}"
                                    onclick="event.preventDefault(); this.nextElementSibling.submit();">
 
-                                    Logout
+                                    {{ __('Logout') }}
 
                                 </a>
 
@@ -325,13 +359,13 @@
 
                     @if (Route::has('login'))
                         <a class="nav-link" href="{{ route('login') }}">
-                            Login
+                            {{ __('Login') }}
                         </a>
                     @endif
 
                     @if (Route::has('register'))
                         <a class="nav-link" href="{{ route('register') }}">
-                            Register
+                            {{ __('Register') }}
                         </a>
                     @endif
 
