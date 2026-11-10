@@ -54,13 +54,12 @@ Auth::routes();
 Route::get('lang/{locale}', function ($locale) {
     if (in_array($locale, ['en', 'ro', 'it'])) {
         session(['locale' => $locale]);
-        App::setLocale($locale);
+        app()->setLocale($locale);
     }
     return redirect()->back();
 })->name('lang.switch');
 
-
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'approved'])->group(function () {
     Route::view('/pending-approval', 'auth.pending')->name('pending');
     Route::post('/ghost/leave', [GhostController::class, 'leave'])->name('ghost.leave');
 });

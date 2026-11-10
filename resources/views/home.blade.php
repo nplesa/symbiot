@@ -5,10 +5,10 @@
     <header class="dashboard-topbar">
         <form id="dashboard-search-form" class="dashboard-search-form" role="search">
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <input id="dashboard-search" type="search" placeholder="{{ __('Caută o localitate...') }}" autocomplete="off" aria-label="{{ __('Caută o localitate pentru hartă') }}">
-            <button type="submit">{{ __('Caută') }}</button>
+            <input id="dashboard-search" type="search" placeholder="{{ __('Search city...') }}" autocomplete="off" aria-label="{{ __('Search city for map') }}">
+            <button type="submit">{{ __('Search') }}</button>
             <div class="dashboard-search-results" id="dashboard-search-results" hidden>
-                <label for="dashboard-search-select">{{ __('Alege localitatea') }}</label>
+                <label for="dashboard-search-select">{{ __('Choose locality') }}</label>
                 <select id="dashboard-search-select" class="form-select"></select>
             </div>
         </form>
@@ -19,7 +19,7 @@
             <button type="button" class="dashboard-track-button" id="dashboard-track-me" aria-pressed="false">
                 <i class="fa-solid fa-person-walking" aria-hidden="true"></i><span>{{ __('Track me') }}</span>
             </button>
-            <button type="button" class="dashboard-location-button" id="dashboard-use-location" aria-label="{{ __('Folosește locația mea') }}">
+            <button type="button" class="dashboard-location-button" id="dashboard-use-location" aria-label="{{ __('Use my location') }}">
                 <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i><span>{{ __('Location') }}</span>
             </button>
         </div>
@@ -32,6 +32,11 @@
                 <div class="card-header">{{ __('Dashboard') }}</div>
 
                 <div class="card-body">
+                    {{-- Indicator vizual de limbă și sesiune (poți să îl ștergi ulterior) --}}
+                    <div class="alert alert-info py-2 px-3 small mb-3">
+                        Current lang: <strong>{{ app()->getLocale() }}</strong> | Session locale: <strong>{{ session('locale') }}</strong>
+                    </div>
+
                     @if (session('status'))
                         <div class="alert alert-success" role="alert">
                             {{ session('status') }}
@@ -47,15 +52,14 @@
                                 <div class="col-4">
                                 </div>
                                 <div class="col-4 dashboard-element">
-                                    <div class="btn locate-user dashboard-button" title="{{ __('Locație') }}">
+                                    <div class="btn locate-user dashboard-button" title="{{ __('Location') }}">
                                         <i class="fa-solid fa-2x fa-location-dot" id="i_location"></i>
                                     </div>    
-                                    <div class="btn track-user dashboard-button" title="{{ __('Urmărire') }}">
+                                    <div class="btn track-user dashboard-button" title="{{ __('Tracking') }}">
                                         <i class="fa-solid fa-2x fa-street-view" id="i_tracking"></i>
                                     </div>    
                                 </div>
                             </div>
-                            
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -106,19 +110,18 @@
                                 <div class="col-12 small" id="city-location-status" aria-live="polite"></div>
                             </form>
 
-
                             <div class="card mt-3 main-mobility-card d-none" id="mobility_card">
                                 <div class="card-header">
-                                    {{ __('Puncte de interes și filtre') }}
+                                    {{ __('Points of interest and filters') }}
                                 </div>
                                 <div class="card-body">
                                     <div class="poi-filter-toolbar">
-                                        <p>{{ __('Selectează categoriile pe care vrei să le vezi pe hartă.') }}</p>
+                                        <p>{{ __('Select the categories you want to see on the map.') }}</p>
                                         <label class="poi-filter-search">
                                             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                                            <input type="search" class="poi-category-search" placeholder="{{ __('Caută o categorie...') }}" aria-label="{{ __('Caută o categorie POI') }}">
+                                            <input type="search" class="poi-category-search" placeholder="{{ __('Search category...') }}" aria-label="{{ __('Search POI category') }}">
                                         </label>
-                                        <button type="button" class="poi-clear-selection">{{ __('Șterge selecția') }}</button>
+                                        <button type="button" class="poi-clear-selection">{{ __('Clear selection') }}</button>
                                     </div>
                                     <div class="poi-category-filters">
                                         @foreach ($locations as $location)
@@ -140,13 +143,13 @@
                                             <div id="map" style="height: 600px;">
                                                 <div class="map-tile-progress d-none" id="map-tile-progress" role="status" aria-live="polite">
                                                     <div class="d-flex justify-content-between gap-3 small mb-1">
-                                                        <span id="map-tile-progress-label">{{ __('Se încarcă harta...') }}</span>
+                                                        <span id="map-tile-progress-label">{{ __('Loading map...') }}</span>
                                                         <span id="map-tile-progress-count">0 / 0 (0%)</span>
                                                     </div>
                                                     <div
                                                         class="progress"
                                                         role="progressbar"
-                                                        aria-label="{{ __('Progresul încărcării hărții') }}"
+                                                        aria-label="{{ __('Map loading progress') }}"
                                                         aria-valuemin="0"
                                                         aria-valuemax="100"
                                                         aria-valuenow="0"
@@ -163,7 +166,7 @@
                         </div>
                     </div>
 
-                    {{-- Cardurile adiționale (Phone, Wifi, Camera, Drone) traduse --}}
+                    {{-- Carduri dispozitive --}}
                     <div class="card mt-3 d-none" id="phone_card">
                       <div class="card-header">{{ __('Phone') }}</div>
                       <div class="card-body">
@@ -255,8 +258,8 @@
                 <div class="dashboard-panel-heading-top">
                     <span class="dashboard-panel-icon"><i class="fa-solid fa-route"></i></span>
                     <div class="middle-heading">
-                        <span class="dashboard-eyebrow mx-auto">{{ __('SYMBIOT · HARTĂ') }}</span>
-                        <h1 class="mx-auto">{{ __('Explorează') }}</h1>
+                        <span class="dashboard-eyebrow mx-auto">{{ __('SYMBIOT · MAP') }}</span>
+                        <h1 class="mx-auto">{{ __('Explore') }}</h1>
                     </div>
                     <span class="dashboard-live-poi-count" id="dashboard-panel-poi-count">0 POI</span>
                 </div>
@@ -265,18 +268,18 @@
 
         <section class="dashboard-route-empty" id="dashboard-route-empty">
             <div class="dashboard-empty-illustration"><i class="fa-solid fa-bus-simple"></i></div>
-            <h2 id="dashboard-empty-title">{{ __('Explorează zona') }}</h2>
-            <p id="dashboard-empty-copy">{{ __('Alege o localitate, apoi selectează categoriile POI pe care vrei să le vezi pe hartă.') }}</p>
-            <button type="button" class="btn dashboard-primary-button" id="dashboard-search-location"><i class="fa-solid fa-magnifying-glass-location"></i> {{ __('Caută o localitate') }}</button>
-            <a href="{{ route('app.trasee.index') }}" class="dashboard-routes-link"><i class="fa-solid fa-map-location-dot"></i> {{ __('Traseele mele') }}</a>
+            <h2 id="dashboard-empty-title">{{ __('Explore the area') }}</h2>
+            <p id="dashboard-empty-copy">{{ __('Choose a locality, then select the POI categories you want to see on the map.') }}</p>
+            <button type="button" class="btn dashboard-primary-button" id="dashboard-search-location"><i class="fa-solid fa-magnifying-glass-location"></i> {{ __('Search location') }}</button>
+            <a href="{{ route('app.trasee.index') }}" class="dashboard-routes-link"><i class="fa-solid fa-map-location-dot"></i> {{ __('My routes') }}</a>
         </section>
 
         <section class="dashboard-nearby-section" aria-labelledby="dashboard-nearby-title">
             <div class="dashboard-section-title">
-                <h3 id="dashboard-nearby-title">{{ __('Puncte în apropiere') }}</h3>
+                <h3 id="dashboard-nearby-title">{{ __('Nearby points') }}</h3>
                 <span class="dashboard-nearby-count" id="dashboard-nearby-count">0</span>
             </div>
-            <p class="dashboard-nearby-status" id="dashboard-nearby-status">{{ __('Selectează una sau mai multe categorii POI pentru a încărca punctele din apropiere.') }}</p>
+            <p class="dashboard-nearby-status" id="dashboard-nearby-status">{{ __('Select one or more POI categories to load nearby points.') }}</p>
             <ul class="dashboard-nearby-list" id="dashboard-nearby-list"></ul>
         </section>
     </aside>
