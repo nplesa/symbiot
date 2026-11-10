@@ -5,23 +5,21 @@
     <header class="dashboard-topbar">
         <form id="dashboard-search-form" class="dashboard-search-form" role="search">
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <input id="dashboard-search" type="search" placeholder="{{ __('Search city...') }}" autocomplete="off" aria-label="{{ __('Search city...') }}">
-            <button type="submit">{{ __('Search') }}</button>
+            <input id="dashboard-search" type="search" placeholder="{{ __('Caută o localitate...') }}" autocomplete="off" aria-label="{{ __('Caută o localitate pentru hartă') }}">
+            <button type="submit">{{ __('Caută') }}</button>
             <div class="dashboard-search-results" id="dashboard-search-results" hidden>
-                <label for="dashboard-search-select">{{ __('Choose locality') }}</label>
+                <label for="dashboard-search-select">{{ __('Alege localitatea') }}</label>
                 <select id="dashboard-search-select" class="form-select"></select>
             </div>
-            <div class="dashboard-search-status" id="dashboard-search-status" role="status" aria-live="polite"></div>
         </form>
         <div class="dashboard-topbar-actions">
-            <!-- Butonul Translate adăugat înapoi -->
-            <button type="button" class="dashboard-translate-button" id="dashboard-translate" aria-label="{{ __('Translate') }}">
+            <button type="button" class="dashboard-translate-button" id="dashboard-translate-me" aria-pressed="false">
                 <i class="fa-solid fa-language" aria-hidden="true"></i><span>{{ __('Translate') }}</span>
             </button>
             <button type="button" class="dashboard-track-button" id="dashboard-track-me" aria-pressed="false">
                 <i class="fa-solid fa-person-walking" aria-hidden="true"></i><span>{{ __('Track me') }}</span>
             </button>
-            <button type="button" class="dashboard-location-button" id="dashboard-use-location" aria-label="{{ __('Location') }}">
+            <button type="button" class="dashboard-location-button" id="dashboard-use-location" aria-label="{{ __('Folosește locația mea') }}">
                 <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i><span>{{ __('Location') }}</span>
             </button>
         </div>
@@ -43,17 +41,21 @@
                     <div class="card mt-3" id="location_card">
                         <div class="card-header">
                             <div class="row">
-                                <div class="col-4 dashboard-element-title">{{ __('Location') }}</div>
-                                <div class="col-4"></div>
+                                <div class="col-4 dashboard-element-title">
+                                    {{ __('Location') }}
+                                </div>
+                                <div class="col-4">
+                                </div>
                                 <div class="col-4 dashboard-element">
-                                    <div class="btn locate-user dashboard-button" title="{{ __('Location') }}">
+                                    <div class="btn locate-user dashboard-button" title="{{ __('Locație') }}">
                                         <i class="fa-solid fa-2x fa-location-dot" id="i_location"></i>
                                     </div>    
-                                    <div class="btn track-user dashboard-button" title="{{ __('Track me') }}">
+                                    <div class="btn track-user dashboard-button" title="{{ __('Urmărire') }}">
                                         <i class="fa-solid fa-2x fa-street-view" id="i_tracking"></i>
                                     </div>    
                                 </div>
                             </div>
+                            
                         </div>
                         <div class="card-body">
                             <div class="row">
@@ -72,9 +74,13 @@
                                         <input class="form-check-input" type="checkbox" role="switch" id="trackingmyself">
                                         <label class="form-check-label" for="trackingmyself">{{ __('Tracking Me') }}</label>
                                     </div>
-                                    <div>
-                                        <button id="shareLocation" class="btn btn-sm btn-warning d-none">{{ __('Share Location') }}</button>
-                                        <button id="turismLocations" class="btn btn-sm btn-warning d-none btn-hidden">{{ __('Visit') }}</button>
+                                    <div class="">
+                                        <button id="shareLocation" class="btn btn-sm btn-warning d-none">
+                                            {{ __('Share Location') }}
+                                        </button>
+                                        <button id="turismLocations" class="btn btn-sm btn-warning d-none btn-hidden">
+                                            {{ __('Visit') }}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -82,7 +88,7 @@
                             <form class="row g-2 align-items-end mt-2 d-none" id="city-location-form">
                                 <div class="col-12 col-md-6">
                                     <label class="form-label" for="city-location-input">{{ __('Search city') }}</label>
-                                    <input class="form-control" id="city-location-input" type="text" autocomplete="address-level2" placeholder="{{ __('Search city...') }}" minlength="2" maxlength="100" required>
+                                    <input class="form-control" id="city-location-input" type="text" autocomplete="address-level2" placeholder="Ex.: Quebec, Canada" minlength="2" maxlength="100" required>
                                 </div>
                                 <div class="col-12 col-sm-6 col-md-3">
                                     <label class="form-label" for="city-location-radius">{{ __('Search radius (meters)') }}</label>
@@ -100,16 +106,19 @@
                                 <div class="col-12 small" id="city-location-status" aria-live="polite"></div>
                             </form>
 
+
                             <div class="card mt-3 main-mobility-card d-none" id="mobility_card">
-                                <div class="card-header">{{ __('Points of interest and filters') }}</div>
+                                <div class="card-header">
+                                    {{ __('Puncte de interes și filtre') }}
+                                </div>
                                 <div class="card-body">
                                     <div class="poi-filter-toolbar">
-                                        <p>{{ __('Select the categories you want to see on the map.') }}</p>
+                                        <p>{{ __('Selectează categoriile pe care vrei să le vezi pe hartă.') }}</p>
                                         <label class="poi-filter-search">
                                             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                                            <input type="search" class="poi-category-search" placeholder="{{ __('Search category...') }}" aria-label="{{ __('Search category...') }}">
+                                            <input type="search" class="poi-category-search" placeholder="{{ __('Caută o categorie...') }}" aria-label="{{ __('Caută o categorie POI') }}">
                                         </label>
-                                        <button type="button" class="poi-clear-selection">{{ __('Clear selection') }}</button>
+                                        <button type="button" class="poi-clear-selection">{{ __('Șterge selecția') }}</button>
                                     </div>
                                     <div class="poi-category-filters">
                                         @foreach ($locations as $location)
@@ -122,17 +131,26 @@
                             </div>
 
                             <div class="card main-map-card" id="map_card">
-                                <div class="card-header">{{ __('Map') }}</div>
+                                <div class="card-header">
+                                    {{ __('Map') }}
+                                </div>
                                 <div class="card-body p-0">
                                     <div class="row">
                                         <div class="col-12">
                                             <div id="map" style="height: 600px;">
                                                 <div class="map-tile-progress d-none" id="map-tile-progress" role="status" aria-live="polite">
                                                     <div class="d-flex justify-content-between gap-3 small mb-1">
-                                                        <span id="map-tile-progress-label">{{ __('Loading map...') }}</span>
+                                                        <span id="map-tile-progress-label">{{ __('Se încarcă harta...') }}</span>
                                                         <span id="map-tile-progress-count">0 / 0 (0%)</span>
                                                     </div>
-                                                    <div class="progress" role="progressbar" aria-label="{{ __('Map loading progress') }}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                                                    <div
+                                                        class="progress"
+                                                        role="progressbar"
+                                                        aria-label="{{ __('Progresul încărcării hărții') }}"
+                                                        aria-valuemin="0"
+                                                        aria-valuemax="100"
+                                                        aria-valuenow="0"
+                                                    >
                                                         <div class="progress-bar progress-bar-striped progress-bar-animated" id="map-tile-progress-bar" style="width: 0%"></div>
                                                     </div>
                                                 </div>
@@ -144,99 +162,126 @@
 
                         </div>
                     </div>
+
+                    {{-- Cardurile adiționale (Phone, Wifi, Camera, Drone) traduse --}}
+                    <div class="card mt-3 d-none" id="phone_card">
+                      <div class="card-header">{{ __('Phone') }}</div>
+                      <div class="card-body">
+                            <div class="row">
+                                <div class="col-12 d-flex flex-row flex-wrap align-items-center justify-content-between">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="toggleEnableDevice">
+                                        <label class="form-check-label" for="toggleEnableDevice">{{ __('Activate target') }}</label>
+                                    </div>
+                                    <div class="mt-md-1 mt-3">
+                                        <button id="configureDevice" class="btn btn-sm btn-primary">{{ __('Configure') }}</button>
+                                        <button id="approachDevice" class="btn btn-sm btn-danger">{{ __('Approach') }}</button>
+                                        <button id="listenDevice" class="btn btn-sm btn-success">{{ __('Listen') }}</button>
+                                        <button id="recordCall" class="btn btn-sm btn-warning">{{ __('Record') }}</button>
+                                    </div>
+                                </div>
+                            </div>
+                      </div>
+                    </div>
+
+                    <div class="card mt-3 d-none" id="wifi_card">
+                        <div class="card-header">{{ __('Wifi') }}</div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-12 d-flex flex-row flex-wrap align-items-center justify-content-between">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="toggleWifi">
+                                        <label class="form-check-label" for="toggleEnableDevice">{{ __('Activate Wifi') }}</label>
+                                    </div>
+                                    <div class="mt-md-1 mt-3">
+                                        <button id="wifiConnect" class="btn btn-sm btn-primary">{{ __('Connect') }}</button>
+                                        <button id="wifiDisconnect" class="btn btn-sm btn-danger">{{ __('Disconnect') }}</button>
+                                        <button id="checkWifiData" class="btn btn-sm btn-success">{{ __('Check') }}</button>
+                                        <button id="recordWifiData" class="btn btn-sm btn-warning">{{ __('Record') }}</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3 d-none" id="camera_card">
+                      <div class="card-header">{{ __('Camera') }}</div>
+                      <div class="card-body">
+                            <div class="row">
+                                <div class="col-12 d-flex flex-row flex-wrap align-items-center justify-content-between">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="toggleCameras">
+                                        <label class="form-check-label" for="toggleCameras">{{ __('Detect Cameras') }}</label>
+                                    </div>
+                                    <div class="mt-md-1 mt-3">
+                                        <button id="acquireCameras" class="btn btn-sm btn-primary">{{ __('Acquire') }}</button>
+                                        <button id="searchObject" class="btn btn-sm btn-danger">{{ __('Search') }}</button>
+                                        <button id="checkCameraData" class="btn btn-sm btn-success">{{ __('Check') }}</button>
+                                        <button id="removeCameras" class="btn btn-sm btn-warning">{{ __('Remove') }}</button>
+                                    </div>
+                                </div>
+                            </div>
+                      </div>
+                    </div>
+
+                    <div class="card mt-3 d-none" id="drone_card">
+                      <div class="card-header">{{ __('iDrone System') }}</div>
+                      <div class="card-body">
+                            <div class="row">
+                                <div class="col-12 d-flex flex-row flex-wrap align-items-center justify-content-between">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="toggleCameras">
+                                        <label class="form-check-label" for="toggleCameras">{{ __('Activate') }}</label>
+                                    </div>
+                                    <div class="mt-md-1 mt-3">
+                                        <button id="fixTarget" class="btn btn-sm btn-primary">{{ __('Set Target') }}</button>
+                                        <button id="controlDrone" class="btn btn-sm btn-primary">{{ __('Control') }}</button>
+                                        <button id="destroyDrone" class="btn btn-sm btn-danger">{{ __('Destroy') }}</button>
+                                        <button id="downloadData" class="btn btn-sm btn-success">{{ __('Download Data')}}</button>
+                                    </div>
+                                </div>
+                            </div>
+                      </div>
+                    </div>
+
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Panoul lateral din dreapta (Retractabil) -->
-    <aside class="dashboard-route-panel d-flex flex-column justify-content-between" id="dashboard-route-panel" aria-live="polite">
-        <div>
-            <div class="dashboard-panel-toolbar">
-                <div class="dashboard-panel-heading">
+    <aside class="dashboard-route-panel" id="dashboard-route-panel" aria-live="polite">
+        <div class="dashboard-panel-toolbar">
+            <div class="dashboard-panel-heading">
+                <div class="dashboard-panel-heading-top">
                     <span class="dashboard-panel-icon"><i class="fa-solid fa-route"></i></span>
-                    <div><span class="dashboard-eyebrow">{{ __('SYMBIOT · MAP') }}</span><h1>{{ __('Explore') }}</h1></div>
+                    <div class="middle-heading">
+                        <span class="dashboard-eyebrow mx-auto">{{ __('SYMBIOT · HARTĂ') }}</span>
+                        <h1 class="mx-auto">{{ __('Explorează') }}</h1>
+                    </div>
                     <span class="dashboard-live-poi-count" id="dashboard-panel-poi-count">0 POI</span>
                 </div>
-                <button type="button" class="dashboard-icon-button dashboard-panel-close" id="dashboard-panel-close" aria-label="{{ __('Clear selection') }}">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div id="dashboard-transit-progress-host" class="dashboard-transit-progress-host" aria-live="polite"></div>
-
-            <section class="dashboard-route-empty" id="dashboard-route-empty">
-                <div class="dashboard-empty-illustration"><i class="fa-solid fa-bus-simple"></i></div>
-                <h2 id="dashboard-empty-title">{{ __('Explore the area') }}</h2>
-                <p id="dashboard-empty-copy">{{ __('Choose a locality, then select the POI categories you want to see on the map.') }}</p>
-                <button type="button" class="btn dashboard-primary-button" id="dashboard-search-location"><i class="fa-solid fa-magnifying-glass-location"></i> {{ __('Search city...') }}</button>
-                <a href="{{ route('app.trasee.index') }}" class="dashboard-routes-link"><i class="fa-solid fa-map-location-dot"></i> {{ __('My routes') }}</a>
-            </section>
-
-            <section class="dashboard-nearby-section" aria-labelledby="dashboard-nearby-title">
-                <div class="dashboard-section-title">
-                    <h3 id="dashboard-nearby-title">{{ __('Nearby points') }}</h3>
-                    <span class="dashboard-nearby-count" id="dashboard-nearby-count">0</span>
-                </div>
-                <p class="dashboard-nearby-status" id="dashboard-nearby-status">{{ __('Select one or more POI categories to load nearby points.') }}</p>
-                <ul class="dashboard-nearby-list" id="dashboard-nearby-list"></ul>
-            </section>
-        </div>
-
-        <!-- Subsolul sidebar-ului: Selector de limbă centrat + Utilizator curent -->
-        <div class="dashboard-sidebar-footer p-3 border-top mt-auto">
-            <div class="mb-2 text-center">
-                <span class="small text-muted d-block mb-1" style="font-size: 0.75rem;">{{ __('Language') }}</span>
-                <div class="d-flex justify-content-center align-items-center gap-2">
-                    <!-- Steag Anglia (EN) -->
-                    <a href="{{ route('lang.switch', 'en') }}" class="btn btn-sm p-1 @if(app()->getLocale() == 'en') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="English">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="22" height="13" style="border-radius: 2px;">
-                            <rect width="600" height="300" fill="#012169"/>
-                            <path d="M0,0 L600,300 M600,0 L0,300" stroke="#fff" stroke-width="60"/>
-                            <path d="M0,0 L600,300 M600,0 L0,300" stroke="#C8102E" stroke-width="40"/>
-                            <path d="M300,0 V300 M0,150 H600" stroke="#fff" stroke-width="100"/>
-                            <path d="M300,0 V300 M0,150 H600" stroke="#C8102E" stroke-width="60"/>
-                        </svg>
-                    </a>
-                    <!-- Steag România (RO) -->
-                    <a href="{{ route('lang.switch', 'ro') }}" class="btn btn-sm p-1 @if(app()->getLocale() == 'ro') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="Română">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="22" height="13" style="border-radius: 2px;">
-                            <rect width="3" height="2" fill="#002B7F"/>
-                            <rect width="2" height="2" fill="#FCD116"/>
-                            <rect width="1" height="2" fill="#CE1126"/>
-                        </svg>
-                    </a>
-                    <!-- Steag Italia (IT) -->
-                    <a href="{{ route('lang.switch', 'it') }}" class="btn btn-sm p-1 @if(app()->getLocale() == 'it') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="Italiano">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="22" height="13" style="border-radius: 2px;">
-                            <rect width="3" height="2" fill="#CE1126"/>
-                            <rect width="2" height="2" fill="#FFFFFF"/>
-                            <rect width="1" height="2" fill="#009246"/>
-                        </svg>
-                    </a>
-                </div>
-            </div>
-            
-            <!-- Elementul Utilizator curent -->
-            <div class="dashboard-current-user d-flex align-items-center gap-2 pt-2 border-top">
-                <i class="fa-solid fa-circle-user fs-5 text-secondary"></i>
-                <div class="d-flex flex-column overflow-hidden">
-                    <small class="text-muted" style="font-size: 0.75rem;">{{ __('Current user') }}</small>
-                    <strong class="text-truncate" style="font-size: 0.85rem;">{{ Auth::user()->name ?? 'Guest' }}</strong>
-                </div>
             </div>
         </div>
+
+        <section class="dashboard-route-empty" id="dashboard-route-empty">
+            <div class="dashboard-empty-illustration"><i class="fa-solid fa-bus-simple"></i></div>
+            <h2 id="dashboard-empty-title">{{ __('Explorează zona') }}</h2>
+            <p id="dashboard-empty-copy">{{ __('Alege o localitate, apoi selectează categoriile POI pe care vrei să le vezi pe hartă.') }}</p>
+            <button type="button" class="btn dashboard-primary-button" id="dashboard-search-location"><i class="fa-solid fa-magnifying-glass-location"></i> {{ __('Caută o localitate') }}</button>
+            <a href="{{ route('app.trasee.index') }}" class="dashboard-routes-link"><i class="fa-solid fa-map-location-dot"></i> {{ __('Traseele mele') }}</a>
+        </section>
+
+        <section class="dashboard-nearby-section" aria-labelledby="dashboard-nearby-title">
+            <div class="dashboard-section-title">
+                <h3 id="dashboard-nearby-title">{{ __('Puncte în apropiere') }}</h3>
+                <span class="dashboard-nearby-count" id="dashboard-nearby-count">0</span>
+            </div>
+            <p class="dashboard-nearby-status" id="dashboard-nearby-status">{{ __('Selectează una sau mai multe categorii POI pentru a încărca punctele din apropiere.') }}</p>
+            <ul class="dashboard-nearby-list" id="dashboard-nearby-list"></ul>
+        </section>
     </aside>
-
-    <!-- Buton fix pe marginea dreaptă pentru redeschiderea sidebar-ului -->
-    <button type="button" 
-            class="dashboard-sidebar-trigger d-none" 
-            id="dashboard-sidebar-trigger"
-            title="{{ __('Explore') }}">
-        <i class="fa-solid fa-chevron-left"></i>
-    </button>
 </div>
 </div>
-
 <input type="hidden" name="radius" id="radius" value="{{config('app.distance_number')}}" data-unit="{{config('app.distance_unit')}}">
 @include('modals.acquire')
 @include('modals.train-status')
@@ -244,11 +289,10 @@
 @include('modals.fuel-prices')
 @include('modals.fuel-best')
 @endsection
-
 @push('js')
     @vite([
         'resources/sass/pages/dashboard.scss',
         'resources/js/pages/dashboard.js',
         'resources/js/pages/map.js'
-    ])
+        ])
 @endpush
