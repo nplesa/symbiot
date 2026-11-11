@@ -9,6 +9,8 @@ use App\Models\Tracking;
 use App\Models\TrackingSession;
 use App\Services\TrackingSessionService;
 use App\Traits\ApiResponse;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -82,7 +84,9 @@ class TrackingController extends Controller
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
 
+        // The route itself is available per session via /tracking/{session}/route.
         $sessions = TrackingSession::query()
+            ->select(TrackingSession::LIST_COLUMNS)
             ->where('user_id', $request->user()->id)
             ->latest('started_at')
             ->latest('id')
@@ -152,16 +156,28 @@ class TrackingController extends Controller
 
     private function device(Request $request, string $uuid): Device
     {
-        return Device::firstOrCreate(
-            [
-                'uuid' => $uuid,
-                'user_id' => $request->user()->id,
-            ],
-            [
-                'name' => 'Android Device',
-                'platform' => 'android',
-            ]
-        );
+        $userId = (int) $request->user()->id;
+
+        try {
+            $device = Device::firstOrCreate(
+                ['uuid' => $uuid],
+                [
+                    'user_id' => $userId,
+                    'device_name' => 'Android Device',
+                    'platform' => 'android',
+                ]
+            );
+        } catch (UniqueConstraintViolationException) {
+            $device = Device::where('uuid', $uuid)->first();
+        }
+
+        if (! $device || (int) $device->user_id !== $userId) {
+            throw new HttpResponseException(
+                $this->error('This device is already registered to another user.', status: 409)
+            );
+        }
+
+        return $device;
     }
 
     private function session(Request $request, int $sessionId): TrackingSession

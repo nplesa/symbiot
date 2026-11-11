@@ -53,17 +53,17 @@ class PoiSubcategoryAvailabilityTest extends TestCase
         $this->assertEqualsCanonicalizing(['subcategory:fuel:petrom', 'subcategory:fuel:omv', 'subcategory:fuel:lpg', 'subcategory:fuel:all'], $brands);
     }
 
-    public function test_falls_back_to_openstreetmap_outside_the_local_data(): void
+    public function test_fuel_brands_are_unknown_outside_the_local_data_without_calling_overpass(): void
     {
         Cache::flush();
         Http::fake(['overpass-api.de/*' => Http::response(['elements' => [['tags' => ['amenity' => 'fuel', 'brand' => 'Shell']]]])]);
 
-        $brands = $this->actingAs(User::factory()->create())
+        $this->actingAs(User::factory()->create())
             ->getJson('/api/poi/subcategories?lat=48.85&lon=2.35&radius=3000')
             ->assertOk()
-            ->json('subcategories.fuel');
+            ->assertJsonMissingPath('subcategories.fuel');
 
-        $this->assertEqualsCanonicalizing(['subcategory:fuel:shell', 'subcategory:fuel:all'], $brands);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'overpass-api.de'));
     }
 
     public function test_geoapify_subcategories_are_limited_to_the_ones_found_nearby(): void

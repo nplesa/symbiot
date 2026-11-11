@@ -181,6 +181,20 @@
                     </div>
 
                     <div class="profile-field">
+                        <label for="profile_current_password">Current password</label>
+                        <input
+                            id="profile_current_password"
+                            name="current_password"
+                            type="password"
+                            autocomplete="current-password"
+                            aria-describedby="profile_current_password_hint"
+                        >
+                        <small id="profile_current_password_hint" class="profile-help mt-1">
+                            Necesară doar dacă schimbi adresa de email.
+                        </small>
+                    </div>
+
+                    <div class="profile-field">
                         <label for="phone">Phone number</label>
                         <input
                             id="phone"
@@ -356,7 +370,6 @@
 
 @push('js')
     @vite([
-        'resources/sass/pages/dashboard.scss',
         'resources/sass/pages/profile.scss',
         'resources/js/pages/profile.js',
         ])

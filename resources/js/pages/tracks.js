@@ -150,7 +150,8 @@ class TrackMap {
             layers: [
                 new TileLayer({
                     source: new XYZ({
-                        url: "/map/tiles/{z}/{x}/{y}"
+                        url: "/map/tiles/{z}/{x}/{y}",
+                        maxZoom: 20
                     })
                 }),
 

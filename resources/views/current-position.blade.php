@@ -164,10 +164,7 @@
 @endsection
 
 @push('css')
-    @vite([
-    'resources/sass/pages/dashboard.scss',
-    'resources/sass/pages/current-position.scss'
-    ])
+    @vite('resources/sass/pages/current-position.scss')
 @endpush
 
 @push('js')

@@ -22,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\SetLocale::class,
         ]);
+        // Logs out other browser sessions (and remember-me cookies) after a password change or reset.
+        $middleware->authenticateSessions();
 
     })
     ->withExceptions(function (Exceptions $exceptions): void {

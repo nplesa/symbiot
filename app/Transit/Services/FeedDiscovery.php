@@ -7,6 +7,7 @@ use App\Transit\Models\TransitFeed;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Throwable;
 
 /**
@@ -71,11 +72,21 @@ class FeedDiscovery
             ->values();
     }
 
+    /** True when the last ensureImported() call skipped a first-time import because of a quota. */
+    private bool $importLimited = false;
+
+    public function importLimited(): bool
+    {
+        return $this->importLimited;
+    }
+
     /**
+     * @param  ?int  $userId  user whose request triggers imports; null (CLI/jobs) skips the per-user quota
      * @return Collection<int, TransitFeed>
      */
-    public function ensureImported(float $lat, float $lon, ?int $radiusMeters = null): Collection
+    public function ensureImported(float $lat, float $lon, ?int $radiusMeters = null, ?int $userId = null): Collection
     {
+        $this->importLimited = false;
         $feeds = $radiusMeters === null
             ? $this->coverageFor($lat, $lon)
             : $this->coverageWithinRadius($lat, $lon, $radiusMeters);
@@ -111,7 +122,22 @@ class FeedDiscovery
             if (! in_array($feed->import_status, ['queued', 'importing'], true)) {
                 $feed->forceFill(['requested_at' => now()])->saveQuietly();
             }
-            if ($this->needsImport($feed) && $this->claim($feed)) {
+            if (! $this->needsImport($feed)) {
+                continue;
+            }
+
+            // Feeds that never had data widen what the app imports; cap how fast anyone can do that.
+            $isFirstImport = $feed->static_hash === null;
+            if ($isFirstImport && ! $this->newImportAllowed($userId)) {
+                $this->importLimited = true;
+
+                continue;
+            }
+
+            if ($this->claim($feed)) {
+                if ($isFirstImport) {
+                    $this->recordNewImport($userId);
+                }
                 ImportTransitFeedJob::dispatch($feed->id)->onQueue(config('transit.queue'));
             }
         }
@@ -161,6 +187,24 @@ class FeedDiscovery
             ),
             default => false,
         };
+    }
+
+    private function newImportAllowed(?int $userId): bool
+    {
+        if (RateLimiter::tooManyAttempts('transit-new-import:global', (int) config('transit.max_new_imports_per_hour'))) {
+            return false;
+        }
+
+        return $userId === null
+            || ! RateLimiter::tooManyAttempts("transit-new-import:user:{$userId}", (int) config('transit.max_new_imports_per_user_per_day'));
+    }
+
+    private function recordNewImport(?int $userId): void
+    {
+        RateLimiter::hit('transit-new-import:global', 3600);
+        if ($userId !== null) {
+            RateLimiter::hit("transit-new-import:user:{$userId}", 86400);
+        }
     }
 
     /** Atomically moves the feed to "queued" so concurrent requests dispatch a single job. */

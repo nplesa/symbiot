@@ -18,6 +18,17 @@ return [
 
     'bbox_margin_degrees' => (float) env('TRANSIT_BBOX_MARGIN', 0.02),
     'max_feeds_per_request' => (int) env('TRANSIT_MAX_FEEDS_PER_REQUEST', 5),
+    // Nearest stops returned to the map; the response is flagged "truncated" beyond this.
+    'max_map_stops' => (int) env('TRANSIT_MAX_MAP_STOPS', 15000),
+
+    // First-time imports (feeds without data yet) a single user may trigger per day,
+    // and that all users together may trigger per hour. Refreshes of known feeds are not counted.
+    'max_new_imports_per_user_per_day' => (int) env('TRANSIT_MAX_NEW_IMPORTS_PER_USER_PER_DAY', 10),
+    'max_new_imports_per_hour' => (int) env('TRANSIT_MAX_NEW_IMPORTS_PER_HOUR', 30),
+
+    // Catalog URLs come from a third party: cap what one feed may cost.
+    'max_download_mb' => (int) env('TRANSIT_MAX_DOWNLOAD_MB', 300),
+    'max_uncompressed_mb' => (int) env('TRANSIT_MAX_UNCOMPRESSED_MB', 3000),
     'queue' => env('TRANSIT_QUEUE', 'default'),
 
     'providers' => [

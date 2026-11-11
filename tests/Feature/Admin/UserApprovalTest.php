@@ -6,6 +6,7 @@ use App\Livewire\Admin\Users;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -128,5 +129,33 @@ class UserApprovalTest extends TestCase
     public function test_non_ghost_session_cannot_use_leave(): void
     {
         $this->actingAs(User::factory()->create())->post('/ghost/leave')->assertForbidden();
+    }
+
+    public function test_ghost_enter_and_leave_are_written_to_the_audit_log(): void
+    {
+        $admin = User::factory()->admin()->create(['email' => 'admin@example.test']);
+        $user = User::factory()->create(['email' => 'user@example.test']);
+        $entries = [];
+        $audit = \Mockery::mock(\Psr\Log\LoggerInterface::class);
+        $audit->shouldReceive('info')->andReturnUsing(function (string $event, array $context) use (&$entries): void {
+            $entries[] = [$event, $context];
+        });
+        Log::shouldReceive('channel')->with('audit')->andReturn($audit);
+
+        $this->actingAs($admin)
+            ->withHeader('User-Agent', 'AuditTest/1.0')
+            ->post("/admin/users/{$user->id}/ghost")
+            ->assertRedirect('/home');
+        $this->post('/ghost/leave')->assertRedirect('/admin/users');
+
+        $this->assertSame(['ghost.enter', 'ghost.leave'], array_column($entries, 0));
+        foreach ($entries as [, $context]) {
+            $this->assertSame($admin->id, $context['admin_id']);
+            $this->assertSame('admin@example.test', $context['admin_email']);
+            $this->assertSame($user->id, $context['target_id']);
+            $this->assertSame('user@example.test', $context['target_email']);
+            $this->assertSame('127.0.0.1', $context['ip']);
+        }
+        $this->assertSame('AuditTest/1.0', $entries[0][1]['user_agent']);
     }
 }

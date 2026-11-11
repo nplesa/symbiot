@@ -1,0 +1,630 @@
+AUDIT SYMBIOT - LISTA PROBLEMELOR (2026-11-11)
+================================================
+[V] = verificat direct în cod. Restul provine din analiza agenților (read-only).
+[REZOLVAT] = fix aplicat (necomis).   [OK/SĂRIT] = acceptat așa cum e, nu se modifică.
+
+
+claude --resume 2bad5b03-2293-47ca-ae14-08423d14c2cf
+restaurează acordeonul de categorii POI șters în 23a3749
+vreau iconuri specifice pe harta pentru aeroport, gara si statii de autobuz.
+
+
+
+A. SECRETE ȘI DATE PERSONALE ÎN GIT (CRITIC)
+---------------------------------------------
+1. [V] database/seeders/UserSeeder.php
+   - Conține 4 conturi reale (2 admin) cu parola în clar "Tin...".
+   - Parola seamănă cu vechea parolă a bazei de date.
+
+2. [V] APP_KEY-ul din istoricul git (commit-urile c80fd99, a2ff5af, c5c08c1) e același cu cel din .env-ul local.
+   - Cu el se pot falsifica sau decripta cookie-urile și sesiunile.
+   - Tot în istoric sunt DB_PASSWORD și GEOAPIFY_KEY. Considerați-le compromise și rotiți-le.
+
+3. [V] mobile/symbiot-mobile/response.html
+   - Este o pagină de eroare 500 de pe producție, cu output de dd().
+   - Conține un token Sanctum real ("Bearer 2|...") și căile serverului (/var/www/symbiot.npsoft.ro).
+
+4. [V] Folderul "trasee kml/" e în git.
+   - Conține KML-uri cu adresa personală (Valea cu Flori Residence, Târlungeni).
+
+5. [OK/SĂRIT] Migrarea 2026_10_07_080000_add_approval_fields_to_users_table.php
+   - Are emailurile de admin scrise direct în cod.
+   - Aprobă automat toți utilizatorii existenți.
+
+
+B. BUG-URI CARE STRICĂ FUNCȚIONALITATEA ACUM
+--------------------------------------------
+6. [REZOLVAT] [V] routes/web.php:62
+   - /pending-approval e sub middleware-ul 'approved', deci un cont neaprobat ajunge într-o buclă de redirect.
+   - Testul UserApprovalTest pică din cauza asta.
+   - Fix: ruta are acum doar middleware-ul 'auth'. UserApprovalTest trece 10/10.
+
+7. [REZOLVAT] [V] resources/js/pages/dashboard.js:698, 701, 1258, 1279, 1287
+   - Fix: în home.blade.php am restaurat secțiunile #dashboard-stop-routes și #dashboard-route-details,
+     traduse cu __(). Am adăugat 13 chei în en/ro/it.json.
+   - Nu am restaurat #dashboard-poi-disclosure și #dashboard-poi-filters, pentru că JS-ul le tratează cu verificare de null,
+     iar #mobility_card a fost mutat intenționat în sidebar.
+   - Commit-ul 23a3749 a șters din home.blade.php:
+     #dashboard-stop-routes, #dashboard-route-details, #dashboard-stop-routes-list
+   - dashboard.js le folosește fără verificare de null, deci aruncă TypeError:
+     - la fiecare schimbare de locație;
+     - la fiecare click pe un POI;
+     - la fiecare selecție de rută.
+   - Panoul cu linii, orare, zboruri și trenuri nu mai apare deloc.
+   - Resetarea listei și a căutării nu se mai execută.
+
+8. [ÎN LUCRU - nu se atinge] [V] home.blade.php:16
+   - Butonul "Translate" (#dashboard-translate-me) nu are niciun handler JS, deci nu face nimic.
+   - Cheia "Translate" lipsește și din fișierele de limbă.
+
+9. [OK/SĂRIT] [V] app/Livewire/Trasee/Index.php:95,104
+   - Traseele importate din Google salvează distanța în km (calculateGeometryDistanceKm).
+   - Restul aplicației (import din fișier, tracking) lucrează în metri, iar view-urile împart la 1000.
+   - Un traseu de 12 km apare ca "0,01 km".
+
+10. [REZOLVAT] [V] app/Http/Controllers/Api/TrackingController.php:153
+    - device() folosește firstOrCreate(['uuid','user_id']).
+    - Dacă uuid-ul aparține altui user, se încalcă unicitatea pe uuid și răspunsul e 500.
+    - Câmpul 'name' e ignorat, pentru că coloana se numește device_name.
+    - Fix: device() caută acum doar după uuid și salvează în device_name.
+    - Tratează cererile concurente prin UniqueConstraintViolationException.
+    - Dacă dispozitivul aparține altui user, răspunde cu 409, același mesaj ca la /device/register.
+
+11. [REZOLVAT - varianta B] resources/js/pages/map.js:3101-3126
+    - Direcția săgeții utilizatorului e calculată cu atan2(dLat, dLon), deci săgeata e rotită cu 90° și oglindită.
+    - navigation.js:58 face calculul corect.
+    - De fapt se rotea pin-ul roșu (user.png) în jurul vârfului.
+    - Fix:
+      - Pin-ul rămâne cât timp direcția e necunoscută.
+      - Când utilizatorul se mișcă, apare o săgeată albastră (SVG inline), rotită corect: de la nord, în sensul acelor de ceasornic.
+      - Direcția vine din coords.heading de la GPS, altfel e calculată între poziții, cu prag de 3 m anti-tremur.
+    - BUG NOU rezolvat odată cu acesta:
+      - /location/update primea heading în radiani, inclusiv valori negative.
+      - Serverul validează 0..360, deci request-urile picau cu 422, fără să se observe.
+      - Acum se trimit grade (0..360) sau null.
+
+12. [REZOLVAT] resources/js/pages/dashboard.js:204-246 (startTracking)
+    - Precizare: serverul NU crea sesiuni duplicate, pentru că TrackingSessionService refolosește sesiunea activă, cu lock.
+      Problemele reale erau în client:
+      - punctele duplicate;
+      - sesiunea rămasă deschisă la stop în timpul start-ului;
+      - oprirea definitivă la orice eroare GPS.
+    - Fix:
+      - Se procesează un singur fix GPS odată.
+      - POST /tracking/start e partajat (startPromise), iar stopTracking așteaptă start-ul în curs.
+      - TIMEOUT / POSITION_UNAVAILABLE nu mai opresc tracking-ul și nu mai afișează alert().
+      - PERMISSION_DENIED afișează un mesaj, debifează comutatorul și trimite /tracking/toggle false + /tracking/stop.
+    - Verificat cu o simulare Node: la 5 fixuri în timpul start-ului, înainte erau 5 start-uri și 5 puncte, acum 1 și 1.
+    - Fixurile GPS care sosesc cât timp POST /tracking/start e în curs pornesc fiecare câte o sesiune (sesiuni duplicate).
+    - Orice eroare GPS, inclusiv un timeout trecător (de exemplu într-un tunel), oprește watch-ul definitiv.
+    - Comutatorul rămâne bifat, așa că utilizatorul nu află că tracking-ul s-a oprit.
+
+13. [OK/SĂRIT] app/Livewire/Trasee/Index.php:441-456
+    - O geometrie cu puncte mixte 2D/3D strică inserarea în route_points.
+    - Inserarea pe bucăți ia coloanele din primul rând, deci rezultatul e eroarea 500.
+
+14. [REZOLVAT - varianta B] Pagina /trasee/{route}/navigation probabil nu are stilurile sidebar-ului și ale layout-ului.
+    - Fix:
+      - Am creat resources/sass/_shell.scss: variabile, sidebar, nav, footer, main, header mobil, responsive, dark theme.
+      - Fișierul e importat în app.scss, deci shell-ul se încarcă în <head> pe toate paginile, inclusiv pe navigare.
+      - dashboard.scss păstrează doar stilurile dashboard-ului; e inclus doar pe home.
+      - Blocul .current-position-map, inclusiv media queries, e mutat în current-position.scss.
+      - Am scos dashboard.scss din trasee, tracking, current-position, profile și admin.
+    - Verificat:
+      - Setul de reguli CSS compilate e identic înainte și după (364 = 364).
+      - Build-ul Vite trece, PHP 233/233.
+    - Ajută parțial și la punctul 54: shell-ul nu mai apare o clipă nestilizat pe home.
+    - CSS-ul pentru .symbiot-shell și .symbiot-sidebar e doar în dashboard.scss.
+    - Nu am confirmat vizual.
+
+15. [REZOLVAT] home.blade.php:251 (în diff-ul necomis)
+    - Fix: am pus __('Whole city') și am adăugat cheia în en/ro/it ("Tot orașul", "Tutta la città").
+    - "Tot orașul" e încă scris direct în map.js:108, 142, 235. Ține de punctul 60.
+    - Checkbox-ul "tot orașul" are eticheta greșită: __('Select city and country').
+
+
+C. SECURITATEA APLICAȚIEI ȘI ABUZ (DOS, COSTURI LA API-URI PLĂTITE)
+-------------------------------------------------------------------
+16. [REZOLVAT 1+2+3] [V] /map/tiles/{z}/{x}/{y} (TrackingController::tile)
+    - Fix 1: limiter-ul 'map-tiles' (300/min per user, fallback pe IP) și whereNumber pe z, x, y.
+    - Fix 2:
+      - Zoom-ul maxim e 20 (TrackingController::MAX_TILE_ZOOM), peste 20 răspunsul e 404.
+      - XYZ maxZoom: 20 în map.js, tracks.js și traseu.js; OpenLayers mărește tile-urile la zoom mai mare.
+    - Fix 3:
+      - Store-ul de cache 'tiles' e separat (storage/framework/cache/tiles).
+      - Comanda map:prune-tiles --days=30 rulează zilnic la 04:15.
+    - Teste noi:
+      - zoom 21 și coordonate nenumerice dau 404;
+      - a 301-a cerere/minut dă 429;
+      - prune șterge doar fișierele vechi.
+      PHP: 236/236.
+    - Manual, de la tine: cei ~109 MB de tile-uri vechi rămân în storage/framework/cache/data.
+    - Nu are limită de cereri (throttle).
+    - Pune tile-urile în cache pe disc, până la zoom 22, timp de 30 de zile.
+    - Consecințe: se consumă cheia Geoapify (plătită) și se poate umple discul.
+    - Ruta nu are whereNumber, deci un x nenumeric dă 500 în loc de 404.
+
+17. [REZOLVAT 1+2] /api/poi/* și /api/transport-nearby
+    - Fix 1: limiter-ul 'poi-search' (120/min per user) se aplică pe:
+      - /api/poi/{categorie}
+      - /api/transport/{bus,train,subway,airport}
+      - /api/transport-nearby
+      - /api/poi/waze-traffic
+      - /api/transit-route/{id}
+      Rutele cu throttle propriu (subcategories, fuel/*, flights) au rămas neschimbate.
+    - Fix 2: când datele de transport sunt incomplete, rezultatul se păstrează 60 s în loc de Cache::forget,
+      deci o cădere Overpass nu mai e reinterogată la fiecare cerere.
+    - Rămase intenționat: grila de 5 puncte pentru raze > 15 km și rotunjirea cheii de cache.
+    - Rămas deschis: cererile pentru markerele de tren atașează orarul CFR (RailTimetableProvider).
+      Prima cerere, cu cache-ul gol, poate descărca mai multe pachete data.gov.ro sincron.
+      Ar trebui preîncărcat de un job programat.
+    - Teste: un test nou pentru rate limit; testul pentru rezultate incomplete verifică acum TTL-ul de 60 s.
+      PHP: 237/237.
+    - Nu au limită de cereri.
+    - Un singur request poate declanșa:
+      - până la 5 apeluri Geoapify;
+      - 2 apeluri Overpass;
+      - apeluri OSM API;
+      - descărcarea orarului CFR.
+    - Erorile nu se pun în cache.
+    - Cheia de cache e rotunjită la ~11 m, deci aproape orice cerere ratează cache-ul.
+
+18. [REZOLVAT - varianta B] NavigationPoiController
+    - Precizare: era o SINGURĂ interogare Overpass, nu una pe categorie.
+    - Fix:
+      - Traseul e simplificat cu Douglas–Peucker (15 m), apoi împărțit în bucăți de ~20 km, fiecare cu dreptunghiul ei.
+        Overpass primește doar acest coridor, prin POST.
+      - Distanța se calculează doar față de bucățile din apropiere.
+      - Rezultatele bune stau în cache 6 h; cheia include updated_at.
+      - Erorile stau în cache 2 min.
+      - Throttle 10/min, connectTimeout(5).
+      - Coordonatele invalide sunt ignorate.
+    - Benchmark pe un traseu de 10.000 de puncte: 2.558 după simplificare, 52 de bucăți,
+      filtrarea a 3.000 de elemente în 184 ms.
+    - 4 teste noi: coridor vs. dreptunghi, cache de eroare, rate limit, coordonate invalide. PHP: 241/241.
+    - Bbox-ul acoperă tot traseul și se face câte o interogare Overpass pe categorie.
+    - distanceToRoute are complexitatea O(n×m), adică ~5e8 operații.
+    - Ruta nu are limită de cereri, iar erorile nu se pun în cache.
+
+19. [REZOLVAT 1-4] /api/google-maps/resolve și /api/trasee/google-maps-kml
+    - Fix:
+      - Limiter-ul 'google-maps' (20/min per user), comun ambelor rute.
+      - Fiecare hop are connectTimeout 5 s și timeout 8 s; tot lanțul de redirect-uri are un termen de 20 s.
+      - Un Content-Length peste 2 MB e refuzat; regex-ul se aplică doar pe primii 512 KB.
+      - Validarea gazdei e strictă: (maps.)google.<tld>, google.co.<tld>, google.com.<tld>, doar http(s).
+      - GoogleMapsKmlController folosește aceeași verificare (copia permisivă a fost eliminată).
+    - 4 teste noi. PHP: 245/245.
+    - Nu au limită de cereri și nici connectTimeout.
+    - Pot ține un worker PHP ocupat ~90 s pe request.
+
+20. [REZOLVAT] Endpoint-uri care scriu în baza de date fără limite:
+    - Fix pe rutele web:
+      - /tracking/point folosește throttle:tracking-location (180/min);
+      - /tracking/start, /tracking/stop și /tracking/toggle folosesc throttle:tracking-control (20/min).
+      Sunt aceleași limitere ca în API, cu contoarele per user comune web/API.
+    - Fix pe /api/v1/tracking/planned:
+      - throttle:planned-routes (10/min);
+      - cota TRACKING_PLANNED_ROUTES_MAX_PER_USER=200; peste cotă răspunsul e 422;
+      - răspunsul nu mai conține toate punctele, ci session (cu route_geojson) + points_count.
+    - 4 teste noi.
+    - /api/v1/tracking/planned: inserează până la 10.000 de rânduri per apel, fără limită de cereri și fără cotă.
+    - /tracking/point din web: nu are limită de cereri (API-ul are 180/min).
+
+21. [REZOLVAT - varianta B] UserProfileController.php:56-62
+    - Fix:
+      - Schimbarea emailului cere current_password (Rule::requiredIf), doar când emailul chiar se schimbă.
+      - În formular am adăugat câmpul „Current password”, cu explicație.
+      - EmailChangedNotification se trimite pe adresa VECHE, în try/catch, deci o eroare de mail nu anulează salvarea.
+      - Am eliminat codul mort de la liniile 52-54.
+    - Notă: MAIL_MAILER=log în .env/.env.example. Notificarea pleacă doar dacă emailul e configurat pe producție.
+    - Teste: ProfileEmailChangeTest (4).
+    - Schimbarea emailului nu cere parola și nici reconfirmarea emailului.
+    - Cine fură o sesiune poate prelua contul prin "forgot password".
+    - Liniile 52-54 sunt cod mort.
+
+22. [REZOLVAT] UserProfileController.php:113-125
+    - Fix:
+      - $middleware->authenticateSessions() (auth.session) în bootstrap/app.php.
+        După schimbarea sau resetarea parolei, celelalte sesiuni web și cookie-urile remember-me sunt delogate.
+        Sesiunea curentă rămâne logată.
+      - updatePassword() șterge tokenurile Sanctum ale utilizatorului.
+      - Un listener pe PasswordReset șterge tokenurile și la „forgot password”.
+    - Aplicația mobilă tratează deja 401: șterge tokenul și cere login.
+    - Teste: PasswordChangeLogoutTest (3). Am verificat că testul de sesiune pică fără middleware.
+    - Schimbarea parolei nu deloghează celelalte sesiuni și nu șterge tokenurile Sanctum.
+
+23. [REZOLVAT] Mesaje de excepție trimise clientului, inclusiv SQL și mesaje de configurare:
+    - Fix:
+      - Clasa nouă App\Exceptions\UserFacingException extinde RuntimeException.
+      - Mesajele scrise pentru utilizator aruncă acum UserFacingException:
+        RouteImportService (fără cele de la API-ul de altitudine), GoogleMapsUrlResolver și GoogleMapsKmlController.
+      - GoogleMapsController, GoogleMapsKmlController și Livewire Trasee afișează mesajul doar pentru UserFacingException;
+        altfel afișează un mesaj generic.
+      - TransportPoiController (POI și Waze) afișează detaliile doar cu APP_DEBUG=true;
+        pe producție afișează un mesaj generic. Detaliile ajung oricum în log.
+    - Teste: RouteImportErrorMessageTest (2), un test pentru producție la Waze/POI (cu un QueryException simulat);
+      testul Waze existent rulează explicit cu app.debug=true.
+    - TransportPoiController:186, 222
+    - GoogleMapsController:25
+    - GoogleMapsKmlController:100
+    - Livewire Trasee:221
+
+24. [REZOLVAT] dashboard.js:1238
+    - Precizare: niciun cod din backend nu produce momentan ticket_url, deci riscul era latent.
+    - Fix:
+      - Modulul nou resources/js/safe-url.js exportă safeExternalUrl(), care acceptă doar http(s).
+        O schemă explicită de alt tip (javascript:, data:, file:, mailto:) e respinsă.
+      - dashboard.js îl folosește pentru ticket_url.
+      - createSafeExternalLink() din map.js folosește același helper, nu o copie.
+    - Am verificat și restul link-urilor și locurilor cu innerHTML din JS: sunt sigure.
+    - Testul tests-js/safe-url.test.js e nou.
+      "npm test" rulează acum toate fișierele tests-js/**/*.test.js. JS: 28/28.
+    - ticketLink.href = service.ticket_url, fără verificarea protocolului.
+    - Posibil XSS printr-un URL javascript:.
+
+25. [REZOLVAT 1+2+4] Configurare de sesiune și producție:
+    - Fix:
+      - session.secure devine automat true când APP_URL începe cu https://.
+        Poate fi suprascris cu SESSION_SECURE_COOKIE.
+      - .env.example e acum un template local (APP_URL=https://symbiot.local) și are SESSION_SECURE_COOKIE=true.
+      - La începutul .env.example am adăugat lista de setări pentru producție:
+        APP_ENV=production, APP_DEBUG=false, LOG_LEVEL=warning, SESSION_ENCRYPT=true.
+    - Teste: SessionCookieSecurityTest (2).
+    - De verificat manual pe producție: APP_DEBUG=false și, opțional, SESSION_ENCRYPT=true (deloghează o dată pe toți).
+    - Plasa de siguranță debug-în-producție (opțiunea 3) nu a fost aplicată.
+    - BUG NOU găsit și rezolvat: în routes/api.php, ruta GET /{session}/route din grupul Route::controller
+      avea acțiunea text 'route'.
+      - După ce alias-ul global \Route e încărcat în proces, PHP găsește class_exists('route'),
+        pentru că numele de clase nu țin cont de majuscule, iar înregistrarea rutelor crapă cu "Invalid route action".
+      - Apare în procese care rulează mult: Octane, teste, workeri.
+      - Fix: acțiunea e acum array, [TrackingController::class, 'route'].
+    PHP: 261/261.
+    - Cookie-ul de sesiune nu are flag-ul Secure (SESSION_SECURE_COOKIE nu e setat).
+    - .env.example are APP_DEBUG=true, APP_ENV=local și LOG_LEVEL=debug, dar APP_URL-ul de producție.
+
+26. [REZOLVAT 1-5] Transit:
+    - Fix 1 (cote):
+      - Un utilizator poate declanșa maximum 10 importuri de feed-uri NOI pe zi; aplicația, maximum 30 pe oră.
+        Ambele valori sunt configurabile în config/transit.php.
+      - Reîmprospătarea feed-urilor deja importate nu consumă cota.
+      - Peste cotă, răspunsul are import_limited=true și preparing=false (fără polling infinit),
+        iar UI-ul afișează un mesaj.
+    - Fix 2 (mărime):
+      - Descărcarea e limitată la 300 MB: Content-Length, progres și verificare după descărcare.
+      - Arhiva dezarhivată e limitată la 3 GB.
+      - Pentru „prea mare” nu se mai fac retry-uri.
+    - Fix 3 (SSRF): App\Support\PublicUrlGuard verifică URL-urile GTFS și realtime.
+      Rezolvă DNS-ul, respinge IP-urile private, loopback, link-local și rezervate,
+      și verifică fiecare redirect.
+    - Fix 4: import_error nu mai ajunge la browser pe producție (se vede doar cu APP_DEBUG=true).
+    - Teste: TransitImportSafetyTest (8).
+      În TestCase, rezolvarea DNS e simulată (IP public de documentație), deci testele nu fac DNS real.
+    - Orice user aprobat poate declanșa importuri GTFS pentru orice coordonate (CoverageController -> FeedDiscovery).
+    - Descărcarea GTFS nu are limită de mărime.
+    - Posibil SSRF prin URL-urile din catalogul MobilityDatabase (redirecturi și IP-uri private nu sunt blocate).
+    - syncCatalogIfStale rulează sincron, în interiorul request-ului web.
+
+27. [REZOLVAT parțial - doar audit] GhostController
+    - Fix:
+      - Canalul nou de log 'audit' scrie zilnic în storage/logs/audit-YYYY-MM-DD.log și păstrează 90 de zile (LOG_AUDIT_DAYS).
+      - Se logează ghost.enter și ghost.leave cu admin (id, email), țintă (id, email), IP și user-agent.
+    - Nu s-a aplicat, la cerere:
+      - blocarea admin→admin;
+      - mutarea ghost.leave doar sub middleware-ul 'auth'.
+    - Test nou în UserApprovalTest.
+    - Un admin poate intra ca alt admin.
+    - Nu există jurnal de audit.
+
+28. [REZOLVAT - varianta A] Aplicația mobilă
+    - Fix:
+      - AndroidManifest are acum allowBackup="false".
+      - Am adăugat res/xml/backup_rules.xml (Android ≤11) și res/xml/data_extraction_rules.xml (Android 12+, pentru
+        cloud-backup și device-transfer), care exclud toate datele, inclusiv storage-ul WebView cu tokenul.
+    - Efect: după reinstalare sau la un telefon nou, utilizatorul se loghează din nou.
+    - Verificat: XML-urile sunt valide.
+      Build-ul Gradle NU a fost rulat: dependențele nu sunt în cache, iar modul offline a eșuat.
+      Trebuie făcut un build din Android Studio.
+    - Nu s-a aplicat: mutarea tokenului în Android Keystore (varianta B).
+    - Tokenul e păstrat în localStorage din WebView.
+    - AndroidManifest are allowBackup="true", deci tokenul poate fi extras prin backup.
+
+29. [REZOLVAT] AppServiceProvider.php:24
+    - Fix:
+      - Limiter-ul 'login' folosește emailul doar dacă e string, cu mb_strtolower(trim()).
+        Altfel folosește cheie goală, limitată per IP.
+      - email[]=x dă acum 422 în loc de 500, iar variantele cu majuscule/spații împart limita.
+    - Test: ApiLoginThrottleTest (2).
+    - strtolower($request->input('email')) aruncă TypeError, deci 500, când primește email[]=x.
+
+30. [REZOLVAT] IpCountryResolver
+    - Fix:
+      - config('services.ip_country') are două setări:
+        - TRUST_CLOUDFLARE_COUNTRY=false (producția nu e pe Cloudflare): header-ul CF-IPCountry e ignorat.
+        - IP_COUNTRY_LOOKUP=true: lookup-ul la ipwho.is rămâne; poate fi oprit din .env.
+      - Ambele au fost adăugate și în .env.example.
+    - Teste: IpCountryResolverTest (3).
+    - Are încredere în header-ul CF-IPCountry chiar și fără Cloudflare.
+    - Trimite IP-ul fiecărui utilizator nou înregistrat la ipwho.is (problemă de confidențialitate).
+
+
+D. BACKEND: LOGICĂ ȘI PERFORMANȚĂ
+---------------------------------
+31. [REZOLVAT] TrackingController::sessions (web)
+    - Fix:
+      - TrackingSession::LIST_COLUMNS conține toate coloanele în afară de route_geojson.
+      - Listele web și API fac select(LIST_COLUMNS); traseul se ia separat prin /tracking/{session}/route.
+      - Web: date=abc dă 422 în loc de 500 (rezolvă și o parte din punctul 36).
+    - Teste: 2 noi în SessionsTrackingTest.
+    - Întoarce 500 de sesiuni complete, cu tot route_geojson-ul.
+    - În API sunt 100 pe pagină.
+    - Răspunsul JSON poate avea mai mulți MB.
+
+32. [REZOLVAT 1+2] ProcessTrackingSessionJob
+    - Fix 1: $tries=3, $backoff=[60,300], $timeout=600, $uniqueFor=3600 (lock-ul nu mai rămâne blocat);
+      failed() scrie în log.
+    - Fix 2: punctele se citesc ca rânduri simple, 1000 odată, cu paginare keyset pe (tracked_at, id),
+      fără OFFSET și fără modele Eloquent.
+      TrackProcessingService::processOrdered() calculează distanța într-o singură trecere.
+    - Nu s-a aplicat: simplificarea geometriei pentru sesiunile foarte lungi (opțiunea 3).
+    - Teste: 2 noi (2.500 de puncte pe mai multe pagini, cu timestamp-uri duplicate; setările job-ului).
+    - Încarcă toate punctele sesiunii în memorie (~260k pe zi).
+    - Nu are $timeout, $tries și nici $backoff.
+
+33. [REZOLVAT] TransitMapController
+    - Fix stops():
+      - ORDER BY după distanță (aproximare pătratică, compatibilă cu MariaDB și SQLite) + LIMIT max+1 direct în SQL.
+      - Filtrul exact pe cerc rămâne în PHP.
+      - truncated e corect.
+      - Plafonul e configurabil: transit.max_map_stops (15000).
+    - Fix nearestNextDeparture(): ORDER BY după distanță înainte de LIMIT; candidați 100 → 10,
+      deci cel mult 10 apeluri nextDeparture().
+    - Teste: 2 noi în TransitMapApiTest. Am verificat că testul pentru departure pică fără ORDER BY.
+    - stops: plafonul de 15.000 se aplică după get(); query-ul SQL nu are LIMIT.
+    - nearestNextDeparture: limit(100) se aplică înainte de sortarea după distanță.
+      - Rezultă N+1 query-uri: până la 100 de apeluri nextDeparture.
+      - Stația cea mai apropiată poate fi omisă.
+
+34. TransportPoiController::transform
+    - Rezultatele Geoapify nu sunt filtrate pe rază, deci apar POI-uri aflate la ~60 km.
+
+35. PoiSubcategoryAvailability:21 și FuelBrandAvailability:16
+    - Cheile de cache au precizie de ~1 km, deci filtrele de subcategorii afișează date greșite.
+
+36. Erori 500 pe input invalid:
+    - TrackingController::sessions, cu un 'date' invalid;
+    - FuelBestPriceController:33 prinde doar RuntimeException, nu și ConnectionException (timeout);
+    - TrackingController::status (web) nu filtrează status='active', spre deosebire de API.
+
+37. GtfsStaticProvider:
+    - SQL valabil doar pe MySQL (TEMPORARY TABLE ... ENGINE=InnoDB), deci testele pică pe SQLite.
+    - Tot importul (milioane de stop_times) rulează într-o singură tranzacție.
+    - uniqueFor=1800 e mai mic decât durata posibilă a jobului, deci pot rula importuri duble.
+    - Erorile deterministe (de exemplu ZIP invalid) sunt reîncercate de 5 ori.
+
+38. PoiSubcategoryAvailability.php:172
+    - Folosește LEAST(), care există doar în MySQL, deci 10 teste pică.
+
+39. routes/console.php
+    - withoutOverlapping() folosește mutex-ul implicit de 24h. Dacă procesul moare, poller-ul realtime se oprește 24h.
+    - Comenzi care nu sunt programate:
+      - osm:sync-romania
+      - transit:sync-osm-counties
+      - sanctum:prune-expired
+      - queue:prune-failed
+
+40. Migrări:
+    - harden_device_uuid: down() nu șterge indexul trackings_tracking_session_id_index.
+    - create_planned_routes_tables: down() șterge tabelele necondiționat.
+    - widen_transit_feed_text_columns: down() poate trunchia datele.
+    - transit_gtfs: stop_sequence e smallint (max 65535), deci valorile mai mari sunt trunchiate silențios.
+
+41. RouteImportService
+    - Un KMZ de până la 50 MB e încărcat în DOMDocument.
+    - Urmează până la 10 apeluri Geoapify secvențiale în interiorul request-ului Livewire.
+
+42. UserProfileController:
+    - avatar() șterge avatarul vechi înainte să-l salveze pe cel nou.
+    - edit() scrie în baza de date pe un request GET (firstOrCreate).
+    - Ștergerea unui user din admin lasă fișierul de avatar orfan.
+
+43. RailTimetableProvider
+    - Valabilitatea orarului e verificată în UTC, nu în ora României.
+
+44. FuelPriceService::caBundle
+    - Creează un fișier temporar (tempnam) la fiecare apel dacă directorul storage nu e scriibil.
+
+
+E. FRONTEND: COMPORTAMENT
+-------------------------
+45. Fetch-uri fără verificarea res.ok sau cu json() apelat înaintea verificării:
+    - map.js:1051, 1328, 1861, 2216, 2467, 3159-3175, 3255
+    - current-position.js:156
+    - Efect: erorile 419 și 500 apar ca "Unexpected token <" sau trec neobservate.
+
+46. map.js:2382-2414
+    - Face throw într-un handler async, deci apare o promise rejection netratată.
+    - Harta dispare cât timp se caută un oraș.
+
+47. map.js:3376
+    - categoryLabels citește iconița în loc de numele categoriei, deci toast-urile de eroare arată "⛽ (HTTP 500)".
+
+48. map.js:3711
+    - Filtrele POI nu au debounce și nu folosesc AbortController.
+    - Bifarea a 5 categorii pornește 5 seturi de request-uri în paralel.
+
+49. modals/acquire.blade.php
+    - Modalul e static și nu are buton de anulare.
+    - Dacă updateSubcategoryAvailability nu răspunde, interfața rămâne blocată.
+
+50. transit-coverage.js:72-120
+    - Polling-ul la 2 s nu are limită de încercări și nu ține cont de document.hidden.
+
+51. navigation.js:373
+    - Trimite fiecare fix GPS fără throttle.
+    - Nu oprește sesiunea la pagehide, deci aceasta rămâne deschisă la închiderea tab-ului.
+    - Afișează un toast nou la fiecare timeout.
+
+52. tracks.js:697 (loadTrack)
+    - Nu folosește request id și nici abort, deci un răspuns vechi poate suprascrie traseul nou.
+
+53. traseu.js
+    - Harta OpenLayers e distrusă și reconstruită la fiecare morph Livewire.
+    - route-list.blade.php:18 pune toată geometria în HTML pentru fiecare rând.
+
+54. Pagina apare o clipă nestilizată (FOUC):
+    - SCSS-ul e pus în stack-ul 'js', care se randează la finalul <body>.
+    - Tema dark se aplică abia la DOMContentLoaded, deci pagina pornește întâi pe tema luminoasă.
+
+55. app.js:12 importă dashboard.js global, deci codul de tracking și GPS rulează pe toate paginile.
+
+56. navigation.js:613
+    - Ia tile-urile direct de pe tile.openstreetmap.org, ceea ce încalcă politica OSM.
+    - Ar trebui să folosească proxy-ul /map/tiles.
+
+57. transit-stops-layer.js
+    - watchVehicles nu se actualizează când utilizatorul se mișcă.
+    - feed e pus în URL fără encodeURIComponent.
+
+58. dashboard.js:31-44
+    - Folosește alert() blocant pentru erorile GPS, în loc de Swal sau toast, ca în restul aplicației.
+
+59. Diff-ul necomis:
+    - Comentariu HTML în română ajunge la client (home.blade.php:258).
+    - dashboard.scss:816-836 e CSS mort.
+    - dashboard.scss:1621 e o regulă goală.
+    - dashboard.js:733 mută #mobility_card într-un element care nu mai există.
+
+
+F. TRADUCERI (I18N)
+-------------------
+60. Textele din JS sunt scrise direct în cod:
+    - Majoritatea sunt în română: map.js, dashboard.js, navigation.js, transit-*.js, swal-confirm.js.
+    - Unele sunt în engleză: tracks.js, current-position.js.
+    - Formatul numerelor e fixat pe 'ro-RO'.
+
+61. View-uri fără niciun __():
+    - navigation/index, profile/edit, livewire/admin/users, auth/pending, partials/poi-category-filter
+    - modalele: fuel-prices, fuel-best, train-status, lodging-details, acquire
+    - Etichetele categoriilor POI din config/poi.php nu sunt traduse.
+    - home.blade.php:274 folosește textul 'Poliție' ca logică de program.
+
+62. Chei folosite în view-uri, dar care lipsesc din en/ro/it.json:
+    - Search city for map, Translate, Date, Name, Phone, Camera, Wifi, Acquire, Activate, Activate Wifi,
+      Activate target, Approach, Check, Configure, Connect, Control, Destroy, Detect Cameras, Disconnect,
+      Download Data, Listen, Record, Remove, Set Target, iDrone System
+    - Paginile de autentificare: Password, Confirm Password, Email Address, Remember Me,
+      Forgot Your Password?, Reset Password, Send Password Reset Link, Verify Your Email Address etc.
+
+63. it.json:139
+    - Cheia însăși a fost tradusă: "Import a GPX, KML o KMZ to get started."
+    - View-ul folosește "...KML or KMZ...", deci în italiană apare textul în engleză.
+
+
+G. BUILD, TESTE, CI, DOCUMENTAȚIE
+---------------------------------
+64. [REZOLVAT - teste] [V] Testele: 233 în total, 18 eșecuri și 3 erori. Acum 233/233 trec.
+    Ce s-a modificat:
+    - TileTrackingTest: testele foloseau cache-ul real de tile-uri de pe disc.
+      Acum folosesc un director separat: storage/framework/testing/tile-cache.
+    - tests/TestCase.php: am înregistrat în SQLite funcțiile pe care le folosește SQL-ul aplicației
+      (LEAST, SQRT, POWER, ASIN, SIN, COS, RADIANS). Codul aplicației a rămas neschimbat.
+    - PoiSubcategoryAvailabilityTest: am actualizat testul.
+      Fallback-ul Overpass pentru branduri a fost scos intenționat în f01f339.
+    - PoiNavigationWindowTest: am actualizat selectorii după refactorul dashboard-ului
+      (f01f339, 4e6e98f), mirror-ul overpass.private.coffee și excluderea aeroporturilor din căutarea de rute.
+    - [ANULAT] Ignorarea orarului CFR la include_routes=false a fost o greșeală.
+      Popup-ul gării citește train_services direct din marker, iar markerele se încarcă cu include_routes=false.
+      Orarul se atașează din nou întotdeauna, din cache.
+      Testul s-a redenumit în test_train_markers_skip_route_lookups_but_include_the_published_timetable.
+      Tot în cadrul reparației problemei cu click-ul pe POI: dashboard.js are acum revealPanelSection(),
+      care derulează la panoul stației sau al traseului când acesta apare.
+    - Fix în aplicație: GtfsStaticProvider are acum DDL pentru tabela temporară și pe SQLite.
+      Pe MySQL/MariaDB rămâne identic.
+    - Fix în aplicație, BUG NOU găsit: FeedCatalogSync::importCsv dezactiva TOATE feed-urile GTFS
+      la fiecare sincronizare a catalogului.
+      Cauza: Eloquent\Collection::except() filtrează după id, nu după source_reference.
+      Fix: ->toBase()->except(...).
+    - Testele JS: testul poiFeatureAtPixel folosea semnătura veche.
+      Funcția a fost simplificată în b8d0eab. Acum 24/24 trec.
+    Rămâne de făcut: CI care să ruleze automat testele PHP și JS.
+    - Fișierele care pică: UserApprovalTest, GtfsStaticImportTest, PoiSubcategoryAvailabilityTest,
+      PoiNavigationWindowTest, TileTrackingTest, DynamicFeedDiscoveryTest.
+    - Nu există CI (.github/workflows lipsește).
+    - Testele JS (tests-js) nu rulează automat.
+
+65. vite.config.js
+    - Apare în .gitignore, dar e versionat.
+    - Citește certificate de pe căi locale absolute, deci vite build pică pe orice altă mașină.
+    - Scriptul "build" folosește del public\hot, care merge doar pe Windows.
+    - Helperele din pages/ (poi-map-interactions, transit-stops-layer, transit-coverage) devin entry-uri separate.
+
+66. AUDIT.md și README.md sunt învechite.
+    - Nu menționează Redis, osmium, scheduler-ul, queue worker-ul și flow-ul de aprobare.
+    - Versiunea PHP indicată e greșită.
+
+67. @routes (Ziggy) expune pe orice pagină toate numele și URL-urile rutelor, inclusiv cele de admin.
+
+
+H. COD MORT ȘI CURĂȚENIE
+------------------------
+68. [V] app/Http/Controllers/DeviceController.php declară aceeași clasă (App\Http\Controllers\Api\DeviceController) ca Api/DeviceController.php.
+
+69. Cod mort:
+    - TrackingSessionController: toate metodele fac abort(501).
+    - TrackingController (web): location() și destroy() nu sunt rutate.
+    - TransportPointController::routeCoordinates() nu e folosită.
+    - Modelul TransportPoint e gol.
+    - Acțiuni Livewire publice nefolosite: importGoogleMapsRouteFromClient și downloadGoogleMapsKml.
+
+70. home.blade.php:139-219
+    - Cardurile ascunse Phone/Wifi/Camera/iDrone nu au niciun JS.
+    - id="toggleCameras" apare de două ori.
+    - Un label are for="toggleEnableDevice" greșit.
+
+71. Fișiere prea mari:
+    - map.js: 3.943 de linii (140 KB), ~200 de linii comentate.
+    - dashboard.js: 1.356 de linii.
+    - TransportPoiController: 1.261 de linii.
+
+72. Cod duplicat:
+    - ~25 de *PoiController aproape identice; pot fi înlocuite cu o singură rută /api/poi/{category}.
+    - flattenCoordinates e copiat de 4 ori.
+    - haversine e copiat de ~8 ori.
+    - Generarea KML există de 3 ori.
+    - Construcția interogării Overpass e copiată de 2 ori.
+
+73. SCSS:
+    - .symbiot-sidebar e definit de 7 ori, .dashboard-topbar de 4 ori.
+    - traseu.scss are 67 de !important, admin-users.scss are 55.
+    - Se folosește @import, care e depreciat.
+
+74. Dependențe nefolosite sau greșit plasate:
+    - flag-icons, bootstrap-icons, axios și concurrently nu sunt folosite.
+    - glob ar trebui să fie în devDependencies.
+    - Se folosesc două librării de hărți: leaflet și ol.
+
+75. Fișiere în plus în public/:
+    - public/images/mobility/location.png (1,4 MB) nu e folosit nicăieri.
+    - Sursele .map din public/vendor/livewire sunt comise.
+
+76. google-maps-import.js:113 conține un console.info rămas.
+
+77. Accesibilitate:
+    - .locate-user și .track-user sunt <div class="btn">, deci nu pot fi folosite de la tastatură.
+    - Iconițele nu au aria-hidden.
+    - Steagurile pentru limbă au doar title.
+
+78. Etichetă aria redundantă:
+    - home.blade.php:22: aria-label="Location" e identic cu textul vizibil.
+    - Varianta veche, "Use my location", era mai descriptivă.
+
+
+ORDINEA PROPUSĂ
+---------------
+1. A (1-4). Unele acțiuni le faci tu, în afara codului:
+   - rotirea parolei, a APP_KEY, a cheii Geoapify și a parolei bazei de date;
+   - revocarea tokenului din response.html.
+   Curățarea istoricului git e ireversibilă, așa că o decidem separat.
+2. B (6-10): bug-uri vizibile acum pentru utilizatori.
+3. C (16-22): limite de cereri și securitatea contului.
+4. Restul, pe rând.

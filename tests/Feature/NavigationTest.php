@@ -99,6 +99,87 @@ class NavigationTest extends TestCase
         Http::assertSent(fn ($request) => str_contains($request['data'], 'nwr["shop"="supermarket"]'));
     }
 
+    public function test_long_routes_query_a_corridor_instead_of_the_whole_bounding_box(): void
+    {
+        // Bucharest -> Brasov, ~150 km, densely sampled with GPS-like jitter.
+        $coordinates = [];
+        for ($i = 0; $i <= 2000; $i++) {
+            $ratio = $i / 2000;
+            $coordinates[] = [26.10 - 0.50 * $ratio + ($i % 2 ? 0.00002 : -0.00002), 44.43 + 1.22 * $ratio];
+        }
+        Http::fake(['overpass-api.de/*' => Http::response(['elements' => [
+            // ~100 m east of the route, near its middle.
+            ['type' => 'node', 'id' => 1, 'lon' => 25.8513, 'lat' => 45.04, 'tags' => ['amenity' => 'fuel']],
+            // Targoviste: inside the route's overall bounding box, but ~35 km away from the route.
+            ['type' => 'node', 'id' => 2, 'lon' => 25.45, 'lat' => 44.93, 'tags' => ['amenity' => 'fuel']],
+        ]])]);
+        $user = User::factory()->create();
+        $route = Route::create([
+            'user_id' => $user->id,
+            'name' => 'Bucuresti - Brasov',
+            'geometry' => ['type' => 'LineString', 'coordinates' => $coordinates],
+        ]);
+
+        $this->actingAs($user)->getJson(route('app.navigation.pois', $route))
+            ->assertOk()
+            ->assertJsonCount(1, 'pois')
+            ->assertJsonPath('pois.0.id', 'node/1');
+
+        Http::assertSent(function ($request): bool {
+            preg_match_all('/nwr\["shop"="supermarket"\]\(([^)]+)\)/', $request['data'], $matches);
+            $boxes = array_map(fn (string $box): array => array_map('floatval', explode(',', $box)), $matches[1]);
+            $widest = max(array_map(fn (array $box): float => $box[3] - $box[1], $boxes));
+
+            // Several 20-30 km chunks, none spanning the route's full 0.5° longitude range.
+            return $request->method() === 'POST' && count($boxes) >= 4 && $widest < 0.35;
+        });
+    }
+
+    public function test_failed_overpass_lookup_is_cached_briefly_then_retried(): void
+    {
+        Http::fake(['overpass-api.de/*' => Http::response('busy', 504)]);
+        $user = User::factory()->create();
+        $route = $this->makeRoute($user);
+
+        $this->actingAs($user)->getJson(route('app.navigation.pois', $route))->assertOk()->assertExactJson(['pois' => []]);
+        $sent = Http::recorded()->count();
+        $this->actingAs($user)->getJson(route('app.navigation.pois', $route))->assertOk()->assertExactJson(['pois' => []]);
+        $this->assertSame($sent, Http::recorded()->count(), 'A recent failure should be served from cache.');
+
+        $this->travel(3)->minutes();
+        $this->actingAs($user)->getJson(route('app.navigation.pois', $route))->assertOk();
+        $this->assertGreaterThan($sent, Http::recorded()->count());
+    }
+
+    public function test_route_pois_endpoint_is_rate_limited(): void
+    {
+        Http::fake(['overpass-api.de/*' => Http::response(['elements' => []])]);
+        $user = User::factory()->create();
+        $route = $this->makeRoute($user);
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->actingAs($user)->getJson(route('app.navigation.pois', $route))->assertOk();
+        }
+
+        $this->actingAs($user)->getJson(route('app.navigation.pois', $route))->assertTooManyRequests();
+    }
+
+    public function test_invalid_route_coordinates_are_ignored(): void
+    {
+        Http::fake(['overpass-api.de/*' => Http::response(['elements' => [
+            ['type' => 'node', 'id' => 1, 'lon' => 25.60, 'lat' => 45.65, 'tags' => ['amenity' => 'fuel']],
+        ]])]);
+        $user = User::factory()->create();
+        $route = Route::create([
+            'user_id' => $user->id,
+            'name' => 'Traseu cu puncte invalide',
+            'geometry' => ['type' => 'LineString', 'coordinates' => [[25.60, 45.65], ['x', 'y'], [999, 45], [25.61, 45.66]]],
+        ]);
+
+        $this->actingAs($user)->getJson(route('app.navigation.pois', $route))
+            ->assertOk()->assertJsonCount(1, 'pois');
+    }
+
     private function makeRoute(User $user): Route
     {
         return Route::create([

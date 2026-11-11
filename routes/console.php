@@ -9,4 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('transit:sync-catalog')->dailyAt('03:30')->withoutOverlapping();
+Schedule::command('map:prune-tiles')->dailyAt('04:15')->withoutOverlapping();
 Schedule::command('transit:poll-realtime')->everyFifteenSeconds()->withoutOverlapping()->runInBackground();

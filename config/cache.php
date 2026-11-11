@@ -27,6 +27,13 @@ return [
             'lock_path' => storage_path('framework/cache/data'),
         ],
 
+        // Map tile proxy cache; pruned daily by `map:prune-tiles`.
+        'tiles' => [
+            'driver' => 'file',
+            'path' => storage_path('framework/cache/tiles'),
+            'lock_path' => storage_path('framework/cache/tiles'),
+        ],
+
         'storage' => [
             'driver' => 'storage',
             'disk' => env('CACHE_STORAGE_DISK'),

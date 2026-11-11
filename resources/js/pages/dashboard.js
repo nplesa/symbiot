@@ -1,3 +1,4 @@
+import { safeExternalUrl } from '../safe-url.js';
 
 /* =========================================================
    SYMBIOT GPS TRACKING
@@ -13,6 +14,12 @@ let watchId = null;
 let lastPosition = null;
 let lastSavedTime = null;
 let trackingStarted = false;
+
+// In-flight POST /tracking/start, shared so stopTracking can wait for it.
+let startPromise = null;
+
+// GPS callbacks are async; handle one fix at a time so slow requests cannot duplicate points.
+let positionBusy = false;
 
 const options = {
     enableHighAccuracy: true,
@@ -215,15 +222,31 @@ async function startTracking() {
 
         async position => {
 
+            if (positionBusy) {
+                return;
+            }
+
+            positionBusy = true;
+
             try {
 
                 if (!trackingStarted) {
 
-                    await post('/tracking/start');
+                    startPromise ??= post('/tracking/start')
+                        .then(() => {
+                            trackingStarted = true;
+                            setTrackingIndicator(true);
+                        })
+                        .finally(() => {
+                            startPromise = null;
+                        });
 
-                    trackingStarted = true;
+                    await startPromise;
 
-                    setTrackingIndicator(true);
+                    // Tracking was switched off while the session was starting.
+                    if (watchId === null) {
+                        return;
+                    }
 
                     await savePosition(position.coords);
 
@@ -239,24 +262,58 @@ async function startTracking() {
 
                 console.error('Tracking error:', error);
 
+            } finally {
+
+                positionBusy = false;
+
             }
 
         },
 
         error => {
 
-            showError(error);
-
-            if (watchId !== null) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
+            // TIMEOUT / POSITION_UNAVAILABLE are transient (tunnels, indoors):
+            // keep watching so tracking resumes when the signal returns.
+            if (error.code !== error.PERMISSION_DENIED) {
+                console.warn('GPS temporarily unavailable:', error.message);
+                return;
             }
+
+            showError(error);
+            disableTracking();
 
         },
 
         options
 
     );
+
+}
+
+
+/* =========================================================
+   DISABLE TRACKING (permission revoked)
+   ========================================================= */
+
+async function disableTracking() {
+
+    if (trackingSwitch) {
+        trackingSwitch.checked = false;
+    }
+
+    try {
+
+        await post('/tracking/toggle', {
+            trackingmyself: false
+        });
+
+    } catch (error) {
+
+        console.error('Tracking toggle error:', error);
+
+    }
+
+    await stopTracking();
 
 }
 
@@ -272,6 +329,21 @@ async function stopTracking() {
         navigator.geolocation.clearWatch(watchId);
 
         watchId = null;
+
+    }
+
+    // Let a pending start finish first, otherwise its session would never be stopped.
+    if (startPromise) {
+
+        try {
+
+            await startPromise;
+
+        } catch {
+
+            // The session was never started, so there is nothing to stop.
+
+        }
 
     }
 
@@ -735,6 +807,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const poiAccordion = byId('dashboard-poi-disclosure');
     if (poiFiltersHost && poiFiltersCard) poiFiltersHost.append(poiFiltersCard);
 
+    // The POI filter card sits above these sections in the side panel and no longer
+    // collapses, so bring a newly shown stop/route section into view.
+    const revealPanelSection = (section) => {
+        if (!section) return;
+        const wasHidden = section.hidden;
+        section.hidden = false;
+        // Scroll only when the section appears, not on its loading -> loaded refresh.
+        if (wasHidden) {
+            requestAnimationFrame(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+        }
+    };
+
     const closePoiAccordion = () => {
         const collapse = byId('dashboard-poi-collapse');
         const button = poiAccordion?.querySelector('.accordion-button');
@@ -960,7 +1044,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!stopRoutesPanel || !stopRoutesList) return;
         closePoiAccordion();
         routeEmpty.hidden = true;
-        stopRoutesPanel.hidden = false;
+        revealPanelSection(stopRoutesPanel);
         routePanel.classList.add('has-stop-selection');
         routePanel.classList.add('is-open');
         setText('dashboard-stop-routes-title', 'Linii în stație');
@@ -1034,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closePoiAccordion();
         routeDetails.hidden = true;
         routeEmpty.hidden = true;
-        stopRoutesPanel.hidden = false;
+        revealPanelSection(stopRoutesPanel);
         routePanel.classList.add('has-stop-selection', 'is-open');
         setText('dashboard-stop-routes-title', isAirport ? 'Zboruri în aeroport' : 'Linii în stație');
         setText('dashboard-stop-routes-stop', stopName || (isAirport ? 'Aeroportul selectat pe hartă' : 'Stația selectată pe hartă'));
@@ -1232,10 +1316,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 description.textContent = details.join(' · ') || 'Serviciu feroviar programat';
                 copy.append(name, description);
                 item.append(badge, copy);
-                if (service.ticket_url) {
+                const ticketUrl = safeExternalUrl(service.ticket_url);
+                if (ticketUrl) {
                     const ticketLink = document.createElement('a');
                     ticketLink.className = 'dashboard-train-ticket-link';
-                    ticketLink.href = service.ticket_url;
+                    ticketLink.href = ticketUrl;
                     ticketLink.target = '_blank';
                     ticketLink.rel = 'noopener noreferrer';
                     ticketLink.textContent = 'Cumpără bilet';
@@ -1284,7 +1369,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         selectedRoute = detail;
         routeEmpty.hidden = true;
-        routeDetails.hidden = false;
+        revealPanelSection(routeDetails);
         routePanel.classList.add('is-open');
         stopRoutesList?.querySelectorAll('.dashboard-stop-route-option').forEach((button) => {
             button.classList.toggle('is-selected', button.dataset.routeId === String(detail.route?.route_id));

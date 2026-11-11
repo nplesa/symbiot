@@ -23,6 +23,7 @@ class CoverageController extends Controller
             (float) $validated['lat'],
             (float) $validated['lon'],
             isset($validated['radius']) ? (int) $validated['radius'] : null,
+            $request->user()->id,
         );
 
         return response()->json([
@@ -38,7 +39,15 @@ class CoverageController extends Controller
                 'license' => $feed->license,
                 'progress' => $this->progressFor($feed, $progress),
             ])->all(),
-            'preparing' => $feeds->contains(fn (TransitFeed $feed): bool => in_array($feed->import_status, ['pending', 'queued', 'importing'], true)),
+            // Feeds left "pending" by the import quota are not being prepared, so the
+            // browser must stop polling for them.
+            'preparing' => $feeds->contains(fn (TransitFeed $feed): bool => in_array(
+                $feed->import_status,
+                $discovery->importLimited() ? ['queued', 'importing'] : ['pending', 'queued', 'importing'],
+                true
+            )),
+            // New areas were not queued because an import quota was reached; retry later.
+            'import_limited' => $discovery->importLimited(),
         ]);
     }
 
@@ -59,7 +68,10 @@ class CoverageController extends Controller
             return ['stage' => 'done', 'percent' => 100, 'detail' => null];
         }
         if ($feed->import_status === 'failed') {
-            return ['stage' => 'failed', 'percent' => 0, 'detail' => $feed->import_error];
+            // import_error can contain URLs, paths or SQL; it stays in the DB and the log.
+            $detail = config('app.debug') ? $feed->import_error : 'Importul datelor de transport a eșuat.';
+
+            return ['stage' => 'failed', 'percent' => 0, 'detail' => $detail];
         }
 
         return null;

@@ -144,5 +144,19 @@
     "Starting...": "Se pornește...",
     "Export route for Google Maps / My Maps": "Exportă traseul pentru Google Maps / My Maps",
     "Export Google Maps": "Exportă în Google Maps",
-    "Select a route from the list to see the preview.": "Selectează un traseu din listă pentru a vedea previzualizarea."
+    "Select a route from the list to see the preview.": "Selectează un traseu din listă pentru a vedea previzualizarea.",
+    "SELECTED STOP": "STAȚIE SELECTATĂ",
+    "Lines at stop": "Linii în stație",
+    "0 lines": "0 linii",
+    "Public transport": "Transport public",
+    "Route": "Traseu",
+    "Departure": "Plecare",
+    "Searching...": "Se caută…",
+    "Next departure": "Următoarea plecare",
+    "Searching timetable...": "Se caută orarul…",
+    "Route on map": "Traseul pe hartă",
+    "Show the whole route": "Arată tot traseul",
+    "The selected line is highlighted on the map.": "Linia selectată este evidențiată pe hartă.",
+    "Open my routes": "Deschide traseele mele",
+    "Whole city": "Tot orașul"
 }

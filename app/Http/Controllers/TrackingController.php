@@ -27,9 +27,12 @@ class TrackingController extends Controller
         return view('tracking.index');
     }
 
+    /** Geoapify raster tiles stop at zoom 20; clients upscale beyond that (XYZ maxZoom: 20). */
+    public const MAX_TILE_ZOOM = 20;
+
     public function tile(int $z, int $x, int $y): Response
     {
-        abort_unless($z >= 0 && $z <= 22 && $x >= 0 && $y >= 0, 404);
+        abort_unless($z >= 0 && $z <= self::MAX_TILE_ZOOM && $x >= 0 && $y >= 0, 404);
 
         $maxTile = (2 ** $z) - 1;
         abort_if($x > $maxTile || $y > $maxTile, 404);
@@ -38,7 +41,7 @@ class TrackingController extends Controller
         abort_if(blank($key), 503, 'Map provider is not configured.');
 
         $tileKey = "geoapify-map-tile-v1:{$z}:{$x}:{$y}";
-        $tile = Cache::store('file')->get($tileKey);
+        $tile = Cache::store('tiles')->get($tileKey);
 
         if (! is_string($tile)) {
             $url = "https://maps.geoapify.com/v1/tile/osm-bright-smooth/{$z}/{$x}/{$y}.png";
@@ -69,7 +72,7 @@ class TrackingController extends Controller
             }
 
             $tile = $response->body();
-            Cache::store('file')->put($tileKey, $tile, now()->addDays(30));
+            Cache::store('tiles')->put($tileKey, $tile, now()->addDays(30));
         }
 
         return response($tile, 200, [
@@ -148,7 +151,13 @@ class TrackingController extends Controller
 
     public function sessions(Request $request): JsonResponse
     {
+        $request->validate([
+            'date' => ['nullable', 'date'],
+        ]);
+
+        // The route itself is loaded per session via /tracking/{session}/route.
         $query = TrackingSession::query()
+            ->select(TrackingSession::LIST_COLUMNS)
             ->where('user_id', $request->user()->id);
 
         if ($request->filled('date')) {

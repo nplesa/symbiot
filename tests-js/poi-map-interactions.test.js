@@ -363,27 +363,27 @@ test('assigns maximally separated automatic hues to multiple transit lines', () 
     assert.ok(Math.min(...hueGaps) >= 60);
 });
 
-test('poiFeatureAtPixel prefers OpenLayers hits and otherwise finds the nearest POI', () => {
-    const directFeature = { name: 'direct' };
-    const fixture = createFixture({
-        hitFeature: directFeature,
-        nearestPixels: [{ pixel: [12, 12] }],
-    });
-
-    assert.equal(
-        poiFeatureAtPixel(fixture.map, fixture.poiSource, 'poi-layer', [10, 10]),
-        directFeature
-    );
-
+test('poiFeatureAtPixel finds the nearest POI within 24px without OpenLayers hit detection', () => {
     const nearestFixture = createFixture({
         nearestPixels: [
             { pixel: [80, 80] },
             { pixel: [10, 12] },
+            { pixel: [20, 20] },
         ],
     });
+    nearestFixture.map.forEachFeatureAtPixel = () => assert.fail('hit detection should not be used');
+
     assert.equal(
-        poiFeatureAtPixel(nearestFixture.map, nearestFixture.poiSource, 'poi-layer', [10, 10]),
+        poiFeatureAtPixel(nearestFixture.map, nearestFixture.poiSource, [10, 10]),
         nearestFixture.poiSource.getFeatures()[1]
+    );
+
+    const farFixture = createFixture({
+        nearestPixels: [{ pixel: [40, 40] }],
+    });
+    assert.equal(
+        poiFeatureAtPixel(farFixture.map, farFixture.poiSource, [10, 10]),
+        undefined
     );
 });
 

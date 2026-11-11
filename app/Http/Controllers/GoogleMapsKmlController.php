@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\UserFacingException;
 use App\Services\GoogleMapsUrlResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -61,7 +62,7 @@ class GoogleMapsKmlController extends Controller
                 }
 
                 if ($location === null) {
-                    throw new \RuntimeException(
+                    throw new UserFacingException(
                         'Nu am putut identifica coordonatele tuturor punctelor din link. '
                         . 'Nu vom recalcula traseul și nu vom folosi geocodare externă.'
                     );
@@ -75,7 +76,7 @@ class GoogleMapsKmlController extends Controller
             }
 
             if (count($coordinates) < 2) {
-                throw new \RuntimeException(
+                throw new UserFacingException(
                     'Linkul Google Maps nu conține cel puțin două puncte geografice.'
                 );
             }
@@ -98,8 +99,9 @@ class GoogleMapsKmlController extends Controller
             report($e);
 
             return response()->json([
-                'message' => $e->getMessage()
-                    ?: 'Nu am putut converti linkul Google Maps în KML.',
+                'message' => $e instanceof UserFacingException
+                    ? $e->getMessage()
+                    : 'Nu am putut converti linkul Google Maps în KML.',
             ], 422);
         }
     }
@@ -115,15 +117,10 @@ class GoogleMapsKmlController extends Controller
     {
         $parsed = parse_url($url);
 
-        $host = strtolower(preg_replace('/^www\./', '', $parsed['host'] ?? ''));
         $path = $parsed['path'] ?? '';
 
-        $isGoogleMaps = in_array($host, ['google.com', 'maps.google.com'], true)
-            || str_starts_with($host, 'maps.google.')
-            || (str_starts_with($host, 'google.') && str_contains(strtolower($path), '/maps'));
-
-        if (! $isGoogleMaps || ! str_contains(strtolower($path), '/maps')) {
-            throw new \RuntimeException('URL-ul introdus nu este un link Google Maps valid.');
+        if (! app(GoogleMapsUrlResolver::class)->isGoogleMapsUrl($url) || ! str_contains(strtolower($path), '/maps')) {
+            throw new UserFacingException('URL-ul introdus nu este un link Google Maps valid.');
         }
 
         $query = [];
@@ -209,7 +206,7 @@ class GoogleMapsKmlController extends Controller
         }
 
         if ($origin === null || $destination === null) {
-            throw new \RuntimeException(
+            throw new UserFacingException(
                 'Nu am putut identifica originea și destinația din linkul Google Maps.'
             );
         }

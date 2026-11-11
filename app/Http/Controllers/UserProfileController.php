@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\UserProfile;
+use App\Notifications\EmailChangedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -23,8 +25,13 @@ class UserProfileController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $user = $request->user();
+        $oldEmail = $user->email;
+        $emailChanged = $request->input('email') !== $oldEmail;
 
         $validated = $request->validate([
+            // Changing the email enables a password reset on the new address, so a
+            // hijacked session alone must not be enough to do it.
+            'current_password' => [Rule::requiredIf($emailChanged), 'nullable', 'current_password'],
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
@@ -49,16 +56,10 @@ class UserProfileController extends Controller
             'postal_code' => ['nullable', 'string', 'max:20'],
         ]);
 
-        if ($user->email !== $validated['email']) {
-            $validated['email_verified_at'] = null;
-        }
-
         $user->forceFill([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'email_verified_at' => $validated['email'] !== $user->email
-                ? null
-                : $user->email_verified_at,
+            'email_verified_at' => $emailChanged ? null : $user->email_verified_at,
         ])->save();
 
         $user->profile()->updateOrCreate(
@@ -74,6 +75,18 @@ class UserProfileController extends Controller
                 'postal_code',
             ])->all()
         );
+
+        if ($emailChanged) {
+            try {
+                Notification::route('mail', $oldEmail)
+                    ->notify(new EmailChangedNotification($user->name, $user->email));
+            } catch (\Throwable $exception) {
+                // The change is saved; a mail outage must not turn it into an error page.
+                report($exception);
+            }
+
+            return back()->with('success', 'Profilul a fost actualizat. Am trimis o notificare pe adresa de email anterioară.');
+        }
 
         return back()->with('success', 'Profilul a fost actualizat.');
     }
@@ -117,10 +130,15 @@ class UserProfileController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $request->user()->update([
+        $user = $request->user();
+        $user->update([
             'password' => Hash::make($validated['password']),
         ]);
 
-        return back()->with('success', 'Parola a fost schimbată.');
+        // Other browser sessions are logged out by the auth.session middleware (password hash
+        // mismatch); mobile API tokens have to be revoked explicitly.
+        $user->tokens()->delete();
+
+        return back()->with('success', 'Parola a fost schimbată. Celelalte sesiuni și dispozitive au fost deconectate.');
     }
 }

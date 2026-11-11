@@ -84,9 +84,11 @@ Route::prefix('v1')->group(function () {
                                 'points'
                             );
 
+                            // Array action on purpose: the bare string 'route' is resolved as a class
+                            // name once the global \Route facade alias is loaded (class names are case-insensitive).
                             Route::get(
                                 '/{session}/route',
-                                'route'
+                                [TrackingController::class, 'route']
                             );
 
                             Route::delete(
@@ -99,7 +101,7 @@ Route::prefix('v1')->group(function () {
                     Route::post(
                         '/planned',
                         [PlannedRouteController::class, 'store']
-                    );
+                    )->middleware('throttle:planned-routes');
 
                 });
 

@@ -144,5 +144,19 @@
     "Starting...": "Starting...",
     "Export route for Google Maps / My Maps": "Export route for Google Maps / My Maps",
     "Export Google Maps": "Export Google Maps",
-    "Select a route from the list to see the preview.": "Select a route from the list to see the preview."
+    "Select a route from the list to see the preview.": "Select a route from the list to see the preview.",
+    "SELECTED STOP": "SELECTED STOP",
+    "Lines at stop": "Lines at stop",
+    "0 lines": "0 lines",
+    "Public transport": "Public transport",
+    "Route": "Route",
+    "Departure": "Departure",
+    "Searching...": "Searching...",
+    "Next departure": "Next departure",
+    "Searching timetable...": "Searching timetable...",
+    "Route on map": "Route on map",
+    "Show the whole route": "Show the whole route",
+    "The selected line is highlighted on the map.": "The selected line is highlighted on the map.",
+    "Open my routes": "Open my routes",
+    "Whole city": "Whole city"
 }

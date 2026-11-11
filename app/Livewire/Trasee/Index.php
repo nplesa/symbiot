@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Trasee;
 
+use App\Exceptions\UserFacingException;
 use App\Models\Route as PlannedRoute;
 use App\Services\RouteImportService;
 use Illuminate\Contracts\View\View;
@@ -218,7 +219,10 @@ class Index extends Component
                     'error' => $e->getMessage(),
                 ]);
 
-                $message = $e->getMessage() ?: 'Fișierul de traseu nu a putut fi importat.';
+                // Only messages written for users are shown; anything else (e.g. SQL errors) stays in the log.
+                $message = $e instanceof UserFacingException && $e->getMessage() !== ''
+                    ? $e->getMessage()
+                    : 'Fișierul de traseu nu a putut fi importat.';
                 $this->addError('file', $message);
                 $this->dispatch('route-import-failed', message: $message);
             }

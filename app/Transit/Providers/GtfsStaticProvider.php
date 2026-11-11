@@ -2,7 +2,9 @@
 
 namespace App\Transit\Providers;
 
+use App\Support\PublicUrlGuard;
 use App\Transit\Contracts\TransitProvider;
+use App\Transit\Exceptions\GtfsFeedTooLargeException;
 use App\Transit\Models\TransitFeed;
 use App\Transit\Services\FeedProgress;
 use Illuminate\Support\Facades\DB;
@@ -48,23 +50,44 @@ class GtfsStaticProvider implements TransitProvider
         $path = tempnam(sys_get_temp_dir(), 'gtfs');
         $this->progress->report($feed, 'downloading', 1);
 
+        $urlGuard = app(PublicUrlGuard::class);
+        $maxDownloadBytes = (int) config('transit.max_download_mb') * 1024 * 1024;
+
         try {
             $downloadErrors = [];
             $downloaded = false;
             foreach ($downloadUrls as $url) {
                 try {
+                    // Catalog URLs are third-party data: never let them reach internal hosts.
+                    $urlGuard->assertPublic($url);
+
                     file_put_contents($path, '');
                     $response = Http::withHeaders(['User-Agent' => 'Symbiot/1.0 GTFS importer'])
                         ->timeout(300)
-                        ->retry(2, 500)
+                        ->retry(2, 500, fn (Throwable $e): bool => ! $this->isTooLarge($e))
                         ->sink($path)
-                        ->withOptions(['progress' => function ($total, $bytes) use ($feed): void {
-                            if ($total > 0) {
-                                $this->progress->report($feed, 'downloading', 1 + 14 * $bytes / $total, null, false);
-                            }
-                        }])
+                        ->withOptions([
+                            'allow_redirects' => $urlGuard->redirectOptions(),
+                            'on_headers' => function ($response) use ($maxDownloadBytes): void {
+                                if ((int) $response->getHeaderLine('Content-Length') > $maxDownloadBytes) {
+                                    throw new GtfsFeedTooLargeException('The GTFS download exceeds the configured size limit.');
+                                }
+                            },
+                            'progress' => function ($total, $bytes) use ($feed, $maxDownloadBytes): void {
+                                if ($bytes > $maxDownloadBytes) {
+                                    throw new GtfsFeedTooLargeException('The GTFS download exceeds the configured size limit.');
+                                }
+                                if ($total > 0) {
+                                    $this->progress->report($feed, 'downloading', 1 + 14 * $bytes / $total, null, false);
+                                }
+                            },
+                        ])
                         ->get($url);
                     $response->throw();
+
+                    if (filesize($path) > $maxDownloadBytes) {
+                        throw new GtfsFeedTooLargeException('The GTFS download exceeds the configured size limit.');
+                    }
 
                     $probe = new ZipArchive;
                     if ($probe->open($path) !== true) {
@@ -102,6 +125,9 @@ class GtfsStaticProvider implements TransitProvider
                 }
 
                 $this->measure($zip);
+                if ($this->totalBytes > (int) config('transit.max_uncompressed_mb') * 1024 * 1024) {
+                    throw new GtfsFeedTooLargeException('The uncompressed GTFS feed exceeds the configured size limit.');
+                }
                 DB::transaction(function () use ($feed, $path): void {
                     $this->clear($feed);
                     $this->importAll($feed, $path);
@@ -125,6 +151,18 @@ class GtfsStaticProvider implements TransitProvider
         } finally {
             @unlink($path);
         }
+    }
+
+    /** Guzzle wraps exceptions thrown from on_headers/progress, so look through the chain. */
+    private function isTooLarge(Throwable $exception): bool
+    {
+        for ($current = $exception; $current !== null; $current = $current->getPrevious()) {
+            if ($current instanceof GtfsFeedTooLargeException) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function measure(ZipArchive $zip): void
@@ -227,14 +265,25 @@ class GtfsStaticProvider implements TransitProvider
     private function importShapes(string $path, int $feedId): void
     {
         $staging = 'transit_shape_points_tmp';
-        DB::statement("DROP TEMPORARY TABLE IF EXISTS {$staging}");
-        DB::statement("CREATE TEMPORARY TABLE {$staging} (
-            shape_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-            shape_pt_sequence BIGINT UNSIGNED NOT NULL,
-            lon DOUBLE NOT NULL,
-            lat DOUBLE NOT NULL,
-            PRIMARY KEY (shape_id, shape_pt_sequence)
-        ) ENGINE=InnoDB");
+        $this->dropStagingTable($staging);
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            // SQLite (test suite) compares TEXT binary by default, matching utf8mb4_bin ordering.
+            DB::statement("CREATE TEMP TABLE {$staging} (
+                shape_id TEXT NOT NULL,
+                shape_pt_sequence INTEGER NOT NULL,
+                lon REAL NOT NULL,
+                lat REAL NOT NULL,
+                PRIMARY KEY (shape_id, shape_pt_sequence)
+            )");
+        } else {
+            DB::statement("CREATE TEMPORARY TABLE {$staging} (
+                shape_id VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+                shape_pt_sequence BIGINT UNSIGNED NOT NULL,
+                lon DOUBLE NOT NULL,
+                lat DOUBLE NOT NULL,
+                PRIMARY KEY (shape_id, shape_pt_sequence)
+            ) ENGINE=InnoDB");
+        }
 
         try {
             $batch = [];
@@ -311,8 +360,15 @@ class GtfsStaticProvider implements TransitProvider
                 DB::table('transit_shapes')->insert($rows);
             }
         } finally {
-            DB::statement("DROP TEMPORARY TABLE IF EXISTS {$staging}");
+            $this->dropStagingTable($staging);
         }
+    }
+
+    private function dropStagingTable(string $table): void
+    {
+        DB::statement(DB::connection()->getDriverName() === 'sqlite'
+            ? "DROP TABLE IF EXISTS temp.{$table}"
+            : "DROP TEMPORARY TABLE IF EXISTS {$table}");
     }
 
     private function load(string $path, string $file, string $table, callable $map): void

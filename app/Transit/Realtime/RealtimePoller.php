@@ -2,6 +2,7 @@
 
 namespace App\Transit\Realtime;
 
+use App\Support\PublicUrlGuard;
 use App\Transit\Models\TransitFeed;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -35,8 +36,13 @@ class RealtimePoller
         }
 
         try {
+            // Realtime URLs come from the third-party feed catalog.
+            $urlGuard = app(PublicUrlGuard::class);
+            $urlGuard->assertPublic((string) $feed->vehicle_positions_url);
+
             $response = Http::withHeaders(['User-Agent' => 'Symbiot/1.0 GTFS-RT poller'])
                 ->timeout(15)
+                ->withOptions(['allow_redirects' => $urlGuard->redirectOptions()])
                 ->get($feed->vehicle_positions_url);
             $response->throw();
 

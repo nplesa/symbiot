@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\UserFacingException;
 use App\Services\PoiCatalog;
 use App\Services\RailTimetableProvider;
 use Illuminate\Http\JsonResponse;
@@ -147,7 +148,9 @@ class TransportPoiController extends Controller
                 ];
             });
             if ($includeTransitRoutes && $transitTypes !== [] && ! ($data['transit_routes_available'] ?? false)) {
-                Cache::forget($cacheKey);
+                // Incomplete transit data: keep it briefly so an Overpass outage is not
+                // re-queried on every request, then retry for complete routes.
+                Cache::put($cacheKey, $data, now()->addMinute());
             }
 
             $result = array_merge(
@@ -171,6 +174,8 @@ class TransportPoiController extends Controller
                 ),
             );
 
+            // Train markers are loaded with include_routes=false, and the station popup reads
+            // train_services from the marker, so the (cached) timetable is attached either way.
             if (in_array('train', $poiTypes, true)) {
                 $result = app(RailTimetableProvider::class)->addScheduledServices($result);
             }
@@ -184,7 +189,7 @@ class TransportPoiController extends Controller
             ]);
 
             return response()->json([
-                'error' => $e->getMessage(),
+                'error' => $this->clientErrorMessage($e, 'Serviciul POI nu este disponibil momentan. Încearcă din nou.'),
             ], 500);
         }
     }
@@ -220,9 +225,22 @@ class TransportPoiController extends Controller
             ]);
 
             return response()->json([
-                'error' => $e->getMessage(),
+                'error' => $this->clientErrorMessage($e, 'Alertele de trafic nu sunt disponibile momentan.'),
             ], 500);
         }
+    }
+
+    /**
+     * Upstream/config errors (Waze key, OSM HTTP status, SQL) only help while setting up the app,
+     * so they are shown in debug mode; production users get a generic message.
+     */
+    private function clientErrorMessage(\Throwable $exception, string $fallback): string
+    {
+        if ($exception instanceof UserFacingException || config('app.debug')) {
+            return $exception->getMessage() !== '' ? $exception->getMessage() : $fallback;
+        }
+
+        return $fallback;
     }
 
     public function routeGeometry(int $relationId): JsonResponse

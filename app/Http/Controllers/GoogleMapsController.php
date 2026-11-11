@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\UserFacingException;
 use App\Services\GoogleMapsUrlResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,11 @@ class GoogleMapsController extends Controller
         } catch (\Throwable $e) {
             report($e);
 
-            return response()->json(['message' => $e->getMessage() ?: 'Nu am putut rezolva linkul Google Maps.'], 422);
+            return response()->json([
+                'message' => $e instanceof UserFacingException
+                    ? $e->getMessage()
+                    : 'Nu am putut rezolva linkul Google Maps.',
+            ], 422);
         }
     }
 }

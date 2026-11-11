@@ -10,10 +10,16 @@ class IpCountryResolver
 {
     public function resolve(Request $request): ?string
     {
-        $code = strtoupper((string) $request->header('CF-IPCountry'));
+        if (config('services.ip_country.trust_cloudflare_header')) {
+            $code = strtoupper((string) $request->header('CF-IPCountry'));
 
-        if (preg_match('/^[A-Z]{2}$/', $code) === 1 && $code !== 'XX') {
-            return $code;
+            if (preg_match('/^[A-Z]{2}$/', $code) === 1 && $code !== 'XX') {
+                return $code;
+            }
+        }
+
+        if (! config('services.ip_country.lookup')) {
+            return null;
         }
 
         $ip = $request->ip();

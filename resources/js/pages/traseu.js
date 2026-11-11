@@ -58,7 +58,7 @@ function buildMap(target) {
             new TileLayer({ source: new XYZ({
                 url: '/map/tiles/{z}/{x}/{y}',
                 crossOrigin: 'anonymous',
-                maxZoom: 22,
+                maxZoom: 20,
             }) }),
             vectorLayer,
             markerLayer,

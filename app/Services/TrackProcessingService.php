@@ -13,11 +13,37 @@ class TrackProcessingService
      */
     public function process(Collection $points): array
     {
-        $ordered = $this->orderPoints($points);
+        return $this->processOrdered($this->orderPoints($points));
+    }
+
+    /**
+     * Single pass over points that are already in tracking order, so callers can stream
+     * rows (e.g. a lazy query) instead of holding every Tracking model in memory.
+     *
+     * @param  iterable<object{latitude: mixed, longitude: mixed}>  $points
+     * @return array{distance: float, geojson: array{type: 'LineString', coordinates: list<array{float, float}>}}
+     */
+    public function processOrdered(iterable $points): array
+    {
+        $distance = 0.0;
+        $coordinates = [];
+        $previous = null;
+
+        foreach ($points as $point) {
+            $current = [(float) $point->longitude, (float) $point->latitude];
+            if ($previous !== null) {
+                $distance += $this->haversine($previous[1], $previous[0], $current[1], $current[0]);
+            }
+            $coordinates[] = $current;
+            $previous = $current;
+        }
 
         return [
-            'distance' => $this->calculateDistance($ordered),
-            'geojson' => $this->buildGeoJson($ordered),
+            'distance' => $distance,
+            'geojson' => [
+                'type' => 'LineString',
+                'coordinates' => $coordinates,
+            ],
         ];
     }
 
@@ -50,23 +76,6 @@ class TrackProcessingService
             ->values();
     }
 
-    /** @param Collection<int, Tracking> $points */
-    private function calculateDistance(Collection $points): float
-    {
-        $distance = 0.0;
-
-        for ($i = 1; $i < $points->count(); $i++) {
-            $distance += $this->haversine(
-                (float) $points[$i - 1]->latitude,
-                (float) $points[$i - 1]->longitude,
-                (float) $points[$i]->latitude,
-                (float) $points[$i]->longitude
-            );
-        }
-
-        return $distance;
-    }
-
     private function haversine(
         float $lat1,
         float $lon1,
@@ -87,25 +96,5 @@ class TrackProcessingService
         $a = min(1.0, max(0.0, $a));
 
         return 2 * $earthRadius * asin(sqrt($a));
-    }
-
-    /**
-     * @param  Collection<int, Tracking>  $points
-     * @return array{type: 'LineString', coordinates: list<array{float, float}>}
-     */
-    private function buildGeoJson(Collection $points): array
-    {
-        return [
-            'type' => 'LineString',
-            'coordinates' => $points
-                ->map(
-                    static fn (Tracking $point): array => [
-                        (float) $point->longitude,
-                        (float) $point->latitude,
-                    ]
-                )
-                ->values()
-                ->all(),
-        ];
     }
 }

@@ -6,6 +6,7 @@ use App\Models\TrackingSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PlannedRouteController extends Controller
 {
@@ -23,6 +24,17 @@ class PlannedRouteController extends Controller
             'coordinates.*.0' => ['required', 'numeric', 'between:-180,180'],
             'coordinates.*.1' => ['required', 'numeric', 'between:-90,90'],
         ]);
+
+        $maxPlannedRoutes = (int) config('tracking.planned_routes_max_per_user', 200);
+        $plannedRoutes = TrackingSession::query()
+            ->where('user_id', $request->user()->id)
+            ->where('type', 'planned')
+            ->count();
+        if ($plannedRoutes >= $maxPlannedRoutes) {
+            throw ValidationException::withMessages([
+                'coordinates' => "Ai atins limita de {$maxPlannedRoutes} trasee planificate. Șterge trasee vechi pentru a adăuga altele.",
+            ]);
+        }
 
         $session = DB::transaction(function () use ($request, $data): TrackingSession {
             $now = now();
@@ -67,9 +79,11 @@ class PlannedRouteController extends Controller
             return $session;
         });
 
+        // The route is already in session.route_geojson; echoing up to 10k tracking rows back is wasteful.
         return response()->json([
             'success' => true,
-            'session' => $session->load('trackings'),
+            'session' => $session,
+            'points_count' => count($data['coordinates']),
         ], 201);
     }
 }

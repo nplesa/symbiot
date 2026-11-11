@@ -128,7 +128,9 @@ class FeedCatalogSync
 
         // Feeds that left the catalog keep their data but stop being auto-imported.
         $preservedReferences = config('transit.preserved_gtfs_references', []);
+        // toBase(): Eloquent\Collection::except() filters by primary key, not by the source_reference keys.
         $removed = $existingByReference
+            ->toBase()
             ->except([...array_keys($feeds), ...$preservedReferences])
             ->pluck('id');
         foreach ($removed->chunk(500) as $ids) {

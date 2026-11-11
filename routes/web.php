@@ -59,8 +59,9 @@ Route::get('lang/{locale}', function ($locale) {
     return redirect()->back();
 })->name('lang.switch');
 
+Route::view('/pending-approval', 'auth.pending')->middleware('auth')->name('pending');
+
 Route::middleware(['auth', 'approved'])->group(function () {
-    Route::view('/pending-approval', 'auth.pending')->name('pending');
     Route::post('/ghost/leave', [GhostController::class, 'leave'])->name('ghost.leave');
 });
 
@@ -73,40 +74,44 @@ Route::name('app.')->middleware(['auth', 'approved'])->group(function () {
     Route::post('/location/update', [LocationController::class, 'update']);
     Route::get('/api/location/city', CityLocationController::class)->middleware('throttle:30,1');
     Route::get('/api/location/city-boundary', CityBoundaryController::class)->middleware('throttle:10,1');
-    Route::get('/api/transport/bus', BusPoiController::class)->name('api.transport.bus');
-    Route::get('/api/transport/train', TrainPoiController::class)->name('api.transport.train');
-    Route::get('/api/transport/subway', SubwayPoiController::class)->name('api.transport.subway');
-    Route::get('/api/transport/airport', AirportPoiController::class)->name('api.transport.airport');
     Route::get('/api/transport/airport/{airport}/flights', AirportFlightsController::class)
         ->where('airport', '[A-Za-z0-9]{3,4}')
         ->middleware('throttle:30,1')->name('api.transport.airport.flights');
-    Route::get('/api/poi/fuel', FuelPoiController::class)->name('api.poi.fuel');
     Route::get('/api/poi/subcategories', PoiSubcategoryController::class)->middleware('throttle:60,1')->name('api.poi.subcategories');
     Route::get('/api/fuel/best', FuelBestPriceController::class)->middleware('throttle:30,1')->name('api.fuel.best');
     Route::get('/api/fuel/prices', FuelPriceController::class)->middleware('throttle:60,1')->name('api.fuel.prices');
-    Route::get('/api/poi/parking', ParkingPoiController::class)->name('api.poi.parking');
-    Route::get('/api/poi/restaurant', RestaurantPoiController::class)->name('api.poi.restaurant');
-    Route::get('/api/poi/cafe', CafePoiController::class)->name('api.poi.cafe');
-    Route::get('/api/poi/lodging', LodgingPoiController::class)->name('api.poi.lodging');
-    Route::get('/api/poi/supermarket', SupermarketPoiController::class)->name('api.poi.supermarket');
-    Route::get('/api/poi/taxi', TaxiPoiController::class)->name('api.poi.taxi');
-    Route::get('/api/poi/hospital', HospitalPoiController::class)->name('api.poi.hospital');
-    Route::get('/api/poi/pharmacy', PharmacyPoiController::class)->name('api.poi.pharmacy');
-    Route::get('/api/poi/fire', FirePoiController::class)->name('api.poi.fire');
-    Route::get('/api/poi/tourism', TourismPoiController::class)->name('api.poi.tourism');
-    Route::get('/api/poi/charging_station', ChargingStationPoiController::class)->name('api.poi.charging_station');
-    Route::get('/api/poi/police', PolicePoiController::class)->name('api.poi.police');
-    Route::get('/api/poi/speed_camera', SpeedCameraPoiController::class)->name('api.poi.speed_camera');
-    Route::get('/api/poi/speed_limit', SpeedLimitPoiController::class)->name('api.poi.speed_limit');
-    Route::get('/api/poi/traffic_sign', TrafficSignPoiController::class)->name('api.poi.traffic_sign');
-    Route::get('/api/poi/vignette_control', VignetteControlPoiController::class)->name('api.poi.vignette_control');
-    Route::get('/api/poi/control', ControlPoiController::class)->name('api.poi.control');
-    Route::get('/api/poi/locality', LocalityPoiController::class)->name('api.poi.locality');
-    Route::get('/api/poi/waze-traffic', [TransportPoiController::class, 'wazeTrafficAlerts'])
-        ->name('api.poi.waze_traffic');
-    Route::get('/api/transport-nearby', [TransportPoiController::class, 'nearby']);
-    Route::get('/api/transit-route/{relationId}', [TransportPoiController::class, 'routeGeometry'])
-        ->whereNumber('relationId');
+
+    // Each request can fan out to several Geoapify/Overpass/OSM calls.
+    Route::middleware('throttle:poi-search')->group(function (): void {
+        Route::get('/api/transport/bus', BusPoiController::class)->name('api.transport.bus');
+        Route::get('/api/transport/train', TrainPoiController::class)->name('api.transport.train');
+        Route::get('/api/transport/subway', SubwayPoiController::class)->name('api.transport.subway');
+        Route::get('/api/transport/airport', AirportPoiController::class)->name('api.transport.airport');
+        Route::get('/api/poi/fuel', FuelPoiController::class)->name('api.poi.fuel');
+        Route::get('/api/poi/parking', ParkingPoiController::class)->name('api.poi.parking');
+        Route::get('/api/poi/restaurant', RestaurantPoiController::class)->name('api.poi.restaurant');
+        Route::get('/api/poi/cafe', CafePoiController::class)->name('api.poi.cafe');
+        Route::get('/api/poi/lodging', LodgingPoiController::class)->name('api.poi.lodging');
+        Route::get('/api/poi/supermarket', SupermarketPoiController::class)->name('api.poi.supermarket');
+        Route::get('/api/poi/taxi', TaxiPoiController::class)->name('api.poi.taxi');
+        Route::get('/api/poi/hospital', HospitalPoiController::class)->name('api.poi.hospital');
+        Route::get('/api/poi/pharmacy', PharmacyPoiController::class)->name('api.poi.pharmacy');
+        Route::get('/api/poi/fire', FirePoiController::class)->name('api.poi.fire');
+        Route::get('/api/poi/tourism', TourismPoiController::class)->name('api.poi.tourism');
+        Route::get('/api/poi/charging_station', ChargingStationPoiController::class)->name('api.poi.charging_station');
+        Route::get('/api/poi/police', PolicePoiController::class)->name('api.poi.police');
+        Route::get('/api/poi/speed_camera', SpeedCameraPoiController::class)->name('api.poi.speed_camera');
+        Route::get('/api/poi/speed_limit', SpeedLimitPoiController::class)->name('api.poi.speed_limit');
+        Route::get('/api/poi/traffic_sign', TrafficSignPoiController::class)->name('api.poi.traffic_sign');
+        Route::get('/api/poi/vignette_control', VignetteControlPoiController::class)->name('api.poi.vignette_control');
+        Route::get('/api/poi/control', ControlPoiController::class)->name('api.poi.control');
+        Route::get('/api/poi/locality', LocalityPoiController::class)->name('api.poi.locality');
+        Route::get('/api/poi/waze-traffic', [TransportPoiController::class, 'wazeTrafficAlerts'])
+            ->name('api.poi.waze_traffic');
+        Route::get('/api/transport-nearby', [TransportPoiController::class, 'nearby']);
+        Route::get('/api/transit-route/{relationId}', [TransportPoiController::class, 'routeGeometry'])
+            ->whereNumber('relationId');
+    });
 
     Route::get('/api/transit/coverage', CoverageController::class)
         ->middleware('throttle:60,1')->name('api.transit.coverage');
@@ -120,18 +125,24 @@ Route::name('app.')->middleware(['auth', 'approved'])->group(function () {
     });
 
     Route::post('/location/toggle', [LocationController::class, 'toggle'])->name('user.location.toggle');
-    Route::post('/tracking/toggle', [TrackingController::class, 'toggle'])->name('user.tracking.toggle');
+    Route::post('/tracking/toggle', [TrackingController::class, 'toggle'])
+        ->middleware('throttle:tracking-control')->name('user.tracking.toggle');
 
     Route::get('/tracking/index', [TrackingController::class, 'index'])->name('trackings.index');
     Route::get('/trasee', fn () => view('trasee'))->name('trasee.index');
     Route::get('/trasee/{route}/navigation', [NavigationController::class, 'show'])->name('navigation.show');
-    Route::get('/trasee/{route}/navigation/pois', [NavigationPoiController::class, 'index'])->name('navigation.pois');
+    Route::get('/trasee/{route}/navigation/pois', [NavigationPoiController::class, 'index'])
+        ->middleware('throttle:10,1')->name('navigation.pois');
     Route::get('/trasee/{route}/export-kml', [RouteKmlController::class, 'export'])->name('trasee.export-kml');
-    Route::post('/tracking/start', [TrackingController::class, 'start'])->name('tracking.start');
-    Route::post('/tracking/point', [TrackingController::class, 'point'])->name('tracking.point');
-    Route::post('/tracking/stop', [TrackingController::class, 'stop'])->name('tracking.stop');
+    Route::post('/tracking/start', [TrackingController::class, 'start'])
+        ->middleware('throttle:tracking-control')->name('tracking.start');
+    Route::post('/tracking/point', [TrackingController::class, 'point'])
+        ->middleware('throttle:tracking-location')->name('tracking.point');
+    Route::post('/tracking/stop', [TrackingController::class, 'stop'])
+        ->middleware('throttle:tracking-control')->name('tracking.stop');
 
-    Route::get('/map/tiles/{z}/{x}/{y}', [TrackingController::class, 'tile']);
+    Route::get('/map/tiles/{z}/{x}/{y}', [TrackingController::class, 'tile'])
+        ->whereNumber(['z', 'x', 'y'])->middleware('throttle:map-tiles');
     Route::get('/map/traffic/{z}/{x}/{y}', TrafficTileController::class)
         ->whereNumber(['z', 'x', 'y'])->middleware('throttle:240,1')->name('navigation.traffic');
     Route::get('/tracks/{session}', [TrackingController::class, 'show'])->name('tracking.show');
@@ -156,8 +167,9 @@ Route::name('app.')->middleware(['auth', 'approved'])->group(function () {
     });
 });
 
-Route::middleware(['auth', 'approved'])->get('/api/google-maps/resolve', [GoogleMapsController::class, 'resolve'])
+// Both may follow goo.gl redirects; keep outbound calls per user bounded.
+Route::middleware(['auth', 'approved', 'throttle:google-maps'])->get('/api/google-maps/resolve', [GoogleMapsController::class, 'resolve'])
     ->name('api.google-maps.resolve');
 
-Route::middleware(['auth', 'approved'])->post('/api/trasee/google-maps-kml', GoogleMapsKmlController::class)
+Route::middleware(['auth', 'approved', 'throttle:google-maps'])->post('/api/trasee/google-maps-kml', GoogleMapsKmlController::class)
     ->name('api.trasee.google-maps-kml');

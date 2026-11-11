@@ -149,4 +149,86 @@ class TransitMapApiTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->getJson('/api/transit/stops?lat=44&lon=26&radius=999999')->assertStatus(422);
     }
+
+    /** A feed whose stops lie north of 45.0/26.0, $count of them, the farthest inserted first. */
+    private function seedStopLine(int $count): TransitFeed
+    {
+        $feed = TransitFeed::create([
+            'slug' => 'line', 'name' => 'Line', 'provider' => 'gtfs', 'static_url' => 'https://feeds.test/line.zip',
+            'static_hash' => 'h', 'import_status' => 'imported', 'last_imported_at' => now(), 'active' => true,
+            'min_lat' => 44.9, 'max_lat' => 45.1, 'min_lon' => 25.9, 'max_lon' => 26.1,
+        ]);
+        $rows = [];
+        for ($i = $count - 1; $i >= 0; $i--) {
+            // ~22 m apart, so all of them fit in the 500 m departure search radius.
+            $rows[] = ['feed_id' => $feed->id, 'stop_id' => "S{$i}", 'name' => "Stop {$i}", 'lat' => 45.0 + $i * 0.0002, 'lon' => 26.0, 'location_type' => 0];
+        }
+        DB::table('transit_stops')->insert($rows);
+
+        return $feed;
+    }
+
+    public function test_stops_are_capped_to_the_nearest_ones_and_flagged_as_truncated(): void
+    {
+        $this->seedStopLine(30);
+        $this->actingAs(User::factory()->create());
+
+        config(['transit.max_map_stops' => 10]);
+        $response = $this->getJson('/api/transit/stops?lat=45.0&lon=26.0&radius=5000')
+            ->assertOk()
+            ->assertJsonCount(10, 'stops')
+            ->assertJsonPath('truncated', true);
+        $this->assertSame(
+            array_map(fn (int $i): string => "Stop {$i}", range(0, 9)),
+            array_column($response->json('stops'), 'name')
+        );
+
+        config(['transit.max_map_stops' => 30]);
+        $this->getJson('/api/transit/stops?lat=45.0&lon=26.0&radius=5000')
+            ->assertJsonCount(30, 'stops')
+            ->assertJsonPath('truncated', false);
+    }
+
+    public function test_nearest_next_departure_uses_the_closest_stop_even_with_many_candidates(): void
+    {
+        $feed = $this->seedStopLine(15);
+        Carbon::setTestNow('2026-10-05 10:00:00');
+        DB::table('transit_agencies')->insert(['feed_id' => $feed->id, 'agency_id' => 'a', 'name' => 'A', 'timezone' => 'UTC']);
+        DB::table('transit_calendars')->insert([
+            'feed_id' => $feed->id, 'service_id' => 's', 'days_mask' => 127, 'start_date' => '2026-10-01', 'end_date' => '2026-10-10',
+        ]);
+        DB::table('transit_routes')->insert(['feed_id' => $feed->id, 'route_id' => 'R5', 'short_name' => '5', 'route_type' => 3]);
+        DB::table('transit_trips')->insert(['feed_id' => $feed->id, 'trip_id' => 't', 'route_id' => 'R5', 'service_id' => 's', 'direction_id' => 0]);
+        $stopTimes = [];
+        // Inserted farthest first: without ORDER BY before LIMIT the closest stop would be cut off.
+        for ($i = 14; $i >= 0; $i--) {
+            $stopTimes[] = [
+                'feed_id' => $feed->id, 'trip_id' => 't', 'stop_id' => "S{$i}", 'stop_sequence' => $i + 1,
+                'arrival_seconds' => 10 * 3600 + (20 + $i) * 60, 'departure_seconds' => 10 * 3600 + (20 + $i) * 60,
+            ];
+        }
+        DB::table('transit_stop_times')->insert($stopTimes);
+        $candidateQueries = [];
+        DB::listen(function ($query) use (&$candidateQueries): void {
+            if (str_contains($query->sql, 'LOWER(TRIM(r.short_name))')) {
+                $candidateQueries[] = strtolower($query->sql);
+            }
+        });
+
+        try {
+            $this->actingAs(User::factory()->create())
+                ->getJson('/api/transit/stops/nearest-next-departure?lat=45.0&lon=26.0&route_ref=5')
+                ->assertOk()
+                ->assertJsonPath('stop_name', 'Stop 0')
+                ->assertJsonPath('distance_meters', 0)
+                ->assertJsonPath('departure.time', '10:20');
+        } finally {
+            Carbon::setTestNow();
+        }
+
+        // The row order of DISTINCT + LIMIT is engine-dependent, so the query itself must
+        // sort by distance before limiting the candidates.
+        $this->assertCount(1, $candidateQueries);
+        $this->assertMatchesRegularExpression('/order by .*s\.lat - \?.*limit 10/s', $candidateQueries[0]);
+    }
 }

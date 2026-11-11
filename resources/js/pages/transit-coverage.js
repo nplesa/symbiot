@@ -101,7 +101,12 @@ export async function watchTransitCoverage(lat, lon, anchor, onReady = () => {},
         }
         render(el, data.feeds, data.preparing);
         if (!data.preparing) {
-            if (data.feeds.length === 0) {
+            if (data.import_limited) {
+                const note = document.createElement('div');
+                note.className = 'text-warning';
+                note.textContent = 'Limita de importuri pentru zone noi a fost atinsă. Încearcă din nou mai târziu.';
+                el.append(note);
+            } else if (data.feeds.length === 0) {
                 el.textContent = 'Nu a fost găsit un feed GTFS disponibil pentru această zonă.';
             }
             if (run !== activeRun) {

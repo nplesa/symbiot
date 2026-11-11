@@ -19,7 +19,7 @@
             <button type="button" class="dashboard-track-button" id="dashboard-track-me" aria-pressed="false">
                 <i class="fa-solid fa-person-walking" aria-hidden="true"></i><span>{{ __('Track me') }}</span>
             </button>
-            <button type="button" class="dashboard-location-button" id="dashboard-use-location" aria-label="{{ __('Use my location') }}">
+            <button type="button" class="dashboard-location-button" id="dashboard-use-location" aria-label="{{ __('Location') }}">
                 <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i><span>{{ __('Location') }}</span>
             </button>
         </div>
@@ -32,11 +32,6 @@
                 <div class="card-header">{{ __('Dashboard') }}</div>
 
                 <div class="card-body">
-                    {{-- Indicator vizual de limbă și sesiune (poți să îl ștergi ulterior) --}}
-                    <div class="alert alert-info py-2 px-3 small mb-3">
-                        Current lang: <strong>{{ app()->getLocale() }}</strong> | Session locale: <strong>{{ session('locale') }}</strong>
-                    </div>
-
                     @if (session('status'))
                         <div class="alert alert-success" role="alert">
                             {{ session('status') }}
@@ -55,7 +50,7 @@
                                     <div class="btn locate-user dashboard-button" title="{{ __('Location') }}">
                                         <i class="fa-solid fa-2x fa-location-dot" id="i_location"></i>
                                     </div>    
-                                    <div class="btn track-user dashboard-button" title="{{ __('Tracking') }}">
+                                    <div class="btn track-user dashboard-button" title="{{ __('Tracking Me') }}">
                                         <i class="fa-solid fa-2x fa-street-view" id="i_tracking"></i>
                                     </div>    
                                 </div>
@@ -110,30 +105,7 @@
                                 <div class="col-12 small" id="city-location-status" aria-live="polite"></div>
                             </form>
 
-                            <div class="card mt-3 main-mobility-card d-none" id="mobility_card">
-                                <div class="card-header">
-                                    {{ __('Points of interest and filters') }}
-                                </div>
-                                <div class="card-body">
-                                    <div class="poi-filter-toolbar">
-                                        <p>{{ __('Select the categories you want to see on the map.') }}</p>
-                                        <label class="poi-filter-search">
-                                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                                            <input type="search" class="poi-category-search" placeholder="{{ __('Search category...') }}" aria-label="{{ __('Search POI category') }}">
-                                        </label>
-                                        <button type="button" class="poi-clear-selection">{{ __('Clear selection') }}</button>
-                                    </div>
-                                    <div class="poi-category-filters">
-                                        @foreach ($locations as $location)
-                                            @if ($location === 'police' || $poiCategories[$location]['group'] !== 'Poliție')
-                                                @include('partials.poi-category-filter', ['categoryIndex' => $loop->index])
-                                            @endif
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="card main-map-card" id="map_card">
+                            <div class="card main-map-card mt-3" id="map_card">
                                 <div class="card-header">
                                     {{ __('Map') }}
                                 </div>
@@ -166,7 +138,6 @@
                         </div>
                     </div>
 
-                    {{-- Carduri dispozitive --}}
                     <div class="card mt-3 d-none" id="phone_card">
                       <div class="card-header">{{ __('Phone') }}</div>
                       <div class="card-body">
@@ -263,6 +234,48 @@
                     </div>
                     <span class="dashboard-live-poi-count" id="dashboard-panel-poi-count">0 POI</span>
                 </div>
+                <div class="dashboard-panel-heading-bottom mt-2 d-none">
+                     <div class="dashboard-search-status text-center" id="dashboard-search-status" role="status" aria-live="polite"></div>    
+                </div>
+            </div>
+        </div>
+        <div id="dashboard-transit-progress-host" class="dashboard-transit-progress-host" aria-live="polite"></div>
+
+        <section class="dashboard-radius-control d-none" id="dashboard-radius-control" aria-labelledby="dashboard-radius-label">
+            <div class="dashboard-radius-heading">
+                <label id="dashboard-radius-label" for="dashboard-search-radius">{{ __('Search radius (meters)') }}</label>
+                <output id="dashboard-radius-value" for="dashboard-search-radius">5 km</output>
+            </div>
+            <label class="dashboard-citywide-choice d-none" id="dashboard-citywide-wrap" for="dashboard-citywide">
+                <input class="form-check-input" type="checkbox" id="dashboard-citywide">
+                <span>{{ __('Whole city') }}</span>
+            </label>
+            <input class="form-range" id="dashboard-search-radius" type="range" min="100" max="35000" step="100" value="5000" aria-label="{{ __('Search radius (meters)') }}">
+            <div class="dashboard-radius-scale"><span>100 m</span><span>35 km</span></div>
+            <div class="dashboard-radius-status" id="dashboard-radius-status" role="status" aria-live="polite"></div>
+        </section>
+
+        <!-- AICI ESTE MUTAT CARDUL DE MOBILITATE / FILTRE POI ÎN DREAPTA -->
+        <div class="card mt-3 main-mobility-card d-none" id="mobility_card">
+            <div class="card-header">
+                {{ __('Points of interest and filters') }}
+            </div>
+            <div class="card-body">
+                <div class="poi-filter-toolbar">
+                    <p>{{ __('Select the categories you want to see on the map.') }}</p>
+                    <label class="poi-filter-search">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" class="poi-category-search" placeholder="{{ __('Search category...') }}" aria-label="{{ __('Search category...') }}">
+                    </label>
+                    <button type="button" class="poi-clear-selection">{{ __('Clear selection') }}</button>
+                </div>
+                <div class="poi-category-filters">
+                    @foreach ($locations as $location)
+                        @if ($location === 'police' || $poiCategories[$location]['group'] !== 'Poliție')
+                            @include('partials.poi-category-filter', ['categoryIndex' => $loop->index])
+                        @endif
+                    @endforeach
+                </div>
             </div>
         </div>
 
@@ -270,8 +283,39 @@
             <div class="dashboard-empty-illustration"><i class="fa-solid fa-bus-simple"></i></div>
             <h2 id="dashboard-empty-title">{{ __('Explore the area') }}</h2>
             <p id="dashboard-empty-copy">{{ __('Choose a locality, then select the POI categories you want to see on the map.') }}</p>
-            <button type="button" class="btn dashboard-primary-button" id="dashboard-search-location"><i class="fa-solid fa-magnifying-glass-location"></i> {{ __('Search location') }}</button>
+            <button type="button" class="btn dashboard-primary-button" id="dashboard-search-location"><i class="fa-solid fa-magnifying-glass-location"></i> {{ __('Choose locality') }}</button>
             <a href="{{ route('app.trasee.index') }}" class="dashboard-routes-link"><i class="fa-solid fa-map-location-dot"></i> {{ __('My routes') }}</a>
+        </section>
+
+        <section class="dashboard-stop-routes" id="dashboard-stop-routes" hidden aria-labelledby="dashboard-stop-routes-title">
+            <div class="dashboard-stop-routes-heading">
+                <div><span class="dashboard-eyebrow">{{ __('SELECTED STOP') }}</span><h2 id="dashboard-stop-routes-title">{{ __('Lines at stop') }}</h2></div>
+                <span class="dashboard-stop-routes-count" id="dashboard-stop-routes-count">{{ __('0 lines') }}</span>
+            </div>
+            <p class="dashboard-stop-routes-stop" id="dashboard-stop-routes-stop"></p>
+            <div class="dashboard-stop-routes-list" id="dashboard-stop-routes-list"></div>
+        </section>
+
+        <section class="dashboard-route-details" id="dashboard-route-details" hidden>
+            <div class="dashboard-route-title-row">
+                <span class="dashboard-route-badge" id="dashboard-route-badge">—</span>
+                <div><span class="dashboard-eyebrow" id="dashboard-route-mode">{{ __('Public transport') }}</span><h2 id="dashboard-route-title">{{ __('Route') }}</h2><p id="dashboard-route-subtitle"></p></div>
+            </div>
+            <div class="dashboard-route-metrics">
+                <div><i class="fa-solid fa-route"></i><span>{{ __('Distance') }}</span><strong id="dashboard-route-distance">—</strong></div>
+                <div><i class="fa-regular fa-clock"></i><span>{{ __('Departure') }}</span><strong id="dashboard-route-departure">{{ __('Searching...') }}</strong></div>
+            </div>
+            <section class="dashboard-next-trip">
+                <h3><i class="fa-solid fa-clock"></i> {{ __('Next departure') }}</h3>
+                <strong class="dashboard-countdown" id="dashboard-route-countdown">{{ __('Searching timetable...') }}</strong>
+                <p id="dashboard-route-stop"></p>
+                <small id="dashboard-route-headsign"></small>
+            </section>
+            <section class="dashboard-route-map-info">
+                <div class="dashboard-section-title"><h3>{{ __('Route on map') }}</h3><button type="button" id="dashboard-fit-route" aria-label="{{ __('Show the whole route') }}"><i class="fa-solid fa-expand"></i></button></div>
+                <p id="dashboard-route-shape-status">{{ __('The selected line is highlighted on the map.') }}</p>
+            </section>
+            <a href="{{ route('app.trasee.index') }}" class="dashboard-routes-link"><i class="fa-solid fa-list"></i> {{ __('Open my routes') }}</a>
         </section>
 
         <section class="dashboard-nearby-section" aria-labelledby="dashboard-nearby-title">
@@ -282,7 +326,9 @@
             <p class="dashboard-nearby-status" id="dashboard-nearby-status">{{ __('Select one or more POI categories to load nearby points.') }}</p>
             <ul class="dashboard-nearby-list" id="dashboard-nearby-list"></ul>
         </section>
+
     </aside>
+
 </div>
 </div>
 <input type="hidden" name="radius" id="radius" value="{{config('app.distance_number')}}" data-unit="{{config('app.distance_unit')}}">

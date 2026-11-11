@@ -177,6 +177,59 @@ class ProcessTrackingSessionJobTest extends TestCase
         $this->assertNull($session->processed_at);
     }
 
+    public function test_long_sessions_are_streamed_in_tracking_order_across_pages(): void
+    {
+        $session = $this->createSession();
+        $start = now()->subHours(2)->startOfSecond();
+        $rows = [];
+        // 2500 points over several 1000-row pages; pairs share a timestamp, so the
+        // (tracked_at, id) keyset must not skip or repeat points at page boundaries.
+        // Inserted in reverse time order to prove the job orders by tracked_at.
+        for ($i = 2499; $i >= 0; $i--) {
+            $rows[] = [
+                'tracking_session_id' => $session->id,
+                'latitude' => 45.0 + $i / 100000,
+                'longitude' => 25.0,
+                'tracked_at' => $start->copy()->addSeconds(intdiv($i, 2)),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        foreach (array_chunk($rows, 500) as $chunk) {
+            Tracking::query()->insert($chunk);
+        }
+
+        (new ProcessTrackingSessionJob($session->id))->handle(app(TrackProcessingService::class));
+
+        $coordinates = $session->fresh()->route_geojson['coordinates'];
+        $this->assertCount(2500, $coordinates);
+
+        // Order is (tracked_at, id). Within a shared timestamp the point inserted first
+        // (the higher index, because of the reverse insert) has the lower id: 1,0,3,2,5,4...
+        $expectedOrder = [];
+        for ($pair = 0; $pair < 1250; $pair++) {
+            $expectedOrder[] = $pair * 2 + 1;
+            $expectedOrder[] = $pair * 2;
+        }
+        $this->assertSame(
+            array_map(fn (int $i): float => round(45.0 + $i / 100000, 7), $expectedOrder),
+            array_map(fn ($latitude): float => round($latitude, 7), array_column($coordinates, 1))
+        );
+
+        // 1250 in-pair steps of ~1.11 m plus 1249 steps of 3 points between pairs.
+        $this->assertEqualsWithDelta((1250 + 1249 * 3) * 1.1119, $session->fresh()->distance, 5.0);
+    }
+
+    public function test_job_has_retry_timeout_and_unique_lock_expiry(): void
+    {
+        $job = new ProcessTrackingSessionJob(1);
+
+        $this->assertSame(3, $job->tries);
+        $this->assertSame(600, $job->timeout);
+        $this->assertSame([60, 300], $job->backoff);
+        $this->assertSame(3600, $job->uniqueFor);
+    }
+
     private function createSession(): TrackingSession
     {
         $user = User::factory()->create();

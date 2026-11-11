@@ -15,6 +15,23 @@ class TrackingSession extends Model
 
     public $timestamps = false;
 
+    /** Columns for session lists: everything except the (potentially huge) route_geojson. */
+    public const LIST_COLUMNS = [
+        'id',
+        'user_id',
+        'device_id',
+        'type',
+        'source',
+        'name',
+        'status',
+        'started_at',
+        'ended_at',
+        'planned_at',
+        'processed_at',
+        'duration',
+        'distance',
+    ];
+
     protected $fillable = [
         'type',
         'source',

@@ -144,5 +144,19 @@
     "Starting...": "Avvio in corso...",
     "Export route for Google Maps / My Maps": "Esporta percorso per Google Maps / My Maps",
     "Export Google Maps": "Esporta Google Maps",
-    "Select a route from the list to see the preview.": "Seleziona un percorso dalla lista per visualizzarne l'anteprima."
+    "Select a route from the list to see the preview.": "Seleziona un percorso dalla lista per visualizzarne l'anteprima.",
+    "SELECTED STOP": "FERMATA SELEZIONATA",
+    "Lines at stop": "Linee alla fermata",
+    "0 lines": "0 linee",
+    "Public transport": "Trasporto pubblico",
+    "Route": "Percorso",
+    "Departure": "Partenza",
+    "Searching...": "Ricerca…",
+    "Next departure": "Prossima partenza",
+    "Searching timetable...": "Ricerca orario…",
+    "Route on map": "Percorso sulla mappa",
+    "Show the whole route": "Mostra tutto il percorso",
+    "The selected line is highlighted on the map.": "La linea selezionata è evidenziata sulla mappa.",
+    "Open my routes": "Apri i miei percorsi",
+    "Whole city": "Tutta la città"
 }

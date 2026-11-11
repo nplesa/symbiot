@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\UserFacingException;
 use RuntimeException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -21,7 +22,7 @@ class RouteImportService
                 (string) file_get_contents($path)
             ),
             'csv' => $this->fromCsv((string) file_get_contents($path)),
-            default => throw new RuntimeException('Format de traseu nesuportat.'),
+            default => throw new UserFacingException('Format de traseu nesuportat.'),
         };
 
         return $this->addMissingElevations($parsed);
@@ -33,7 +34,7 @@ class RouteImportService
         $xml = @file_get_contents($path);
 
         if ($xml === false) {
-            throw new RuntimeException('Fișierul nu poate fi citit.');
+            throw new UserFacingException('Fișierul nu poate fi citit.');
         }
 
         return $this->fromXml(
@@ -46,7 +47,7 @@ class RouteImportService
     private function fromKmz(string $path): array
     {
         if (! class_exists(\ZipArchive::class)) {
-            throw new RuntimeException(
+            throw new UserFacingException(
                 'Extensia PHP ZipArchive este necesară pentru KMZ.'
             );
         }
@@ -54,7 +55,7 @@ class RouteImportService
         $zip = new \ZipArchive();
 
         if ($zip->open($path) !== true) {
-            throw new RuntimeException('Arhiva KMZ nu poate fi deschisă.');
+            throw new UserFacingException('Arhiva KMZ nu poate fi deschisă.');
         }
 
         $maxFiles = 100;
@@ -63,7 +64,7 @@ class RouteImportService
         if ($zip->numFiles > $maxFiles) {
             $zip->close();
 
-            throw new RuntimeException(
+            throw new UserFacingException(
                 'Arhiva KMZ conține prea multe fișiere.'
             );
         }
@@ -82,7 +83,7 @@ class RouteImportService
             ) {
                 $zip->close();
 
-                throw new RuntimeException(
+                throw new UserFacingException(
                     'Arhiva KMZ este prea mare după decomprimare.'
                 );
             }
@@ -106,7 +107,7 @@ class RouteImportService
         $zip->close();
 
         if (! is_string($xml) || $xml === '') {
-            throw new RuntimeException(
+            throw new UserFacingException(
                 'Arhiva KMZ nu conține un fișier KML.'
             );
         }
@@ -176,7 +177,7 @@ class RouteImportService
     private function fromXml(string $xml, string $format): array
     {
         if (! class_exists(\DOMDocument::class)) {
-            throw new RuntimeException(
+            throw new UserFacingException(
                 'Extensia PHP DOM este necesară pentru GPX/KML/KMZ.'
             );
         }
@@ -206,7 +207,7 @@ class RouteImportService
                     }
                 }
 
-                throw new RuntimeException(
+                throw new UserFacingException(
                     'Fișierul XML al traseului este invalid'
                     . ($detail !== '' ? ': ' . $detail : '.')
                 );
@@ -377,7 +378,7 @@ class RouteImportService
         $data = json_decode($json, true);
 
         if (! is_array($data)) {
-            throw new RuntimeException('GeoJSON invalid.');
+            throw new UserFacingException('GeoJSON invalid.');
         }
 
         $segments = [];
@@ -490,7 +491,7 @@ class RouteImportService
         $stream = fopen('php://temp', 'r+');
 
         if ($stream === false) {
-            throw new RuntimeException('Nu s-a putut procesa CSV-ul.');
+            throw new UserFacingException('Nu s-a putut procesa CSV-ul.');
         }
 
         fwrite($stream, $csv);
@@ -501,7 +502,7 @@ class RouteImportService
         if (! is_array($headers)) {
             fclose($stream);
 
-            throw new RuntimeException('CSV gol sau invalid.');
+            throw new UserFacingException('CSV gol sau invalid.');
         }
 
         $headers = array_map(
@@ -516,7 +517,7 @@ class RouteImportService
         if ($latIndex === null || $lonIndex === null) {
             fclose($stream);
 
-            throw new RuntimeException(
+            throw new UserFacingException(
                 'CSV-ul trebuie să conțină coloane latitude/longitude sau lat/lon.'
             );
         }
@@ -573,13 +574,13 @@ class RouteImportService
         }
 
         if ($totalPoints < 2) {
-            throw new RuntimeException(
+            throw new UserFacingException(
                 'Traseul trebuie să conțină cel puțin două puncte GPS valide.'
             );
         }
 
         if ($totalPoints > $max) {
-            throw new RuntimeException(
+            throw new UserFacingException(
                 sprintf(
                     'Traseul conține %d puncte, iar limita configurată este %d. '
                     . 'Nu am eliminat puncte. Mărește tracking.planned_route_max_coordinates pentru a importa geometria completă.',

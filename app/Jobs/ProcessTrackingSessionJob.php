@@ -10,10 +10,23 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ProcessTrackingSessionJob implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
+
+    public int $tries = 3;
+
+    /** @var list<int> */
+    public array $backoff = [60, 300];
+
+    /** A day of tracking can hold ~260k points. */
+    public int $timeout = 600;
+
+    /** Releases the uniqueness lock even if a worker dies mid-job, so the session can be retried. */
+    public int $uniqueFor = 3600;
 
     public function __construct(
         public int $sessionId
@@ -26,19 +39,19 @@ class ProcessTrackingSessionJob implements ShouldBeUnique, ShouldQueue
 
     public function handle(TrackProcessingService $trackingService): void
     {
-        $session = $this->loadSession();
+        $session = TrackingSession::find($this->sessionId);
 
         if (! $session || $session->processed_at !== null || $session->status !== 'completed') {
             return;
         }
 
-        if ($session->trackings->count() < 2) {
+        if ($session->trackings()->count() < 2) {
             $this->markProcessed($session);
 
             return;
         }
 
-        $result = $trackingService->process($session->trackings);
+        $result = $trackingService->processOrdered($this->orderedPoints($session->id));
 
         $this->saveResult(
             $session,
@@ -47,13 +60,44 @@ class ProcessTrackingSessionJob implements ShouldBeUnique, ShouldQueue
         );
     }
 
-    private function loadSession(): ?TrackingSession
+    /**
+     * Plain rows in tracking order, 1000 at a time, instead of eager-loaded models.
+     * Keyset paging on (tracked_at, id) uses the (tracking_session_id, tracked_at)
+     * index and avoids OFFSET scans on sessions with hundreds of thousands of points.
+     *
+     * @return \Generator<int, object{id: int, tracked_at: string, latitude: string, longitude: string}>
+     */
+    private function orderedPoints(int $sessionId): \Generator
     {
-        return TrackingSession::with([
-            'trackings' => fn ($query) => $query
+        $last = null;
+
+        do {
+            $page = DB::table('trackings')
+                ->select(['id', 'tracked_at', 'latitude', 'longitude'])
+                ->where('tracking_session_id', $sessionId)
+                ->when($last !== null, fn ($query) => $query->where(fn ($after) => $after
+                    ->where('tracked_at', '>', $last->tracked_at)
+                    ->orWhere(fn ($sameTime) => $sameTime
+                        ->where('tracked_at', $last->tracked_at)
+                        ->where('id', '>', $last->id))))
                 ->orderBy('tracked_at')
-                ->orderBy('id'),
-        ])->find($this->sessionId);
+                ->orderBy('id')
+                ->limit(1000)
+                ->get();
+
+            foreach ($page as $point) {
+                yield $point;
+                $last = $point;
+            }
+        } while ($page->count() === 1000);
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        Log::error('Tracking session processing failed.', [
+            'session_id' => $this->sessionId,
+            'message' => $exception?->getMessage(),
+        ]);
     }
 
     private function markProcessed(TrackingSession $session): void

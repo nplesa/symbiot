@@ -12,7 +12,24 @@ use Illuminate\Support\Facades\DB;
 
 class TransitMapController extends Controller
 {
-    private const MAX_STOPS = 15000;
+    /** Nearest schedule candidates checked by nearestNextDeparture (each one runs several queries). */
+    private const MAX_DEPARTURE_CANDIDATES = 10;
+
+    /**
+     * SQL ORDER BY expression for the squared equirectangular distance to ($lat, $lon).
+     * Plain arithmetic, so it works on MariaDB and SQLite; exact distances are checked in PHP.
+     *
+     * @return array{0: string, 1: list<float>}
+     */
+    private function distanceOrder(string $alias, float $lat, float $lon): array
+    {
+        $lonScale = cos(deg2rad($lat)) ** 2;
+
+        return [
+            "(({$alias}.lat - ?) * ({$alias}.lat - ?)) + (({$alias}.lon - ?) * ({$alias}.lon - ?) * ?)",
+            [$lat, $lat, $lon, $lon, $lonScale],
+        ];
+    }
 
     public function stops(Request $request, FeedDiscovery $discovery): JsonResponse
     {
@@ -30,7 +47,11 @@ class TransitMapController extends Controller
             ->pluck('id');
         $dLat = $radius / 111320;
         $dLon = $radius / (111320 * max(0.1, cos(deg2rad($lat))));
+        $maxStops = max(1, (int) config('transit.max_map_stops'));
+        [$distanceSql, $distanceBindings] = $this->distanceOrder('s', $lat, $lon);
 
+        // Nearest first with a SQL LIMIT, so dense areas never load every stop of the
+        // search square; one extra row tells whether the result was truncated.
         $stops = DB::table('transit_stops as s')
             ->whereIn('s.feed_id', $feedIds)
             ->whereBetween('s.lat', [$lat - $dLat, $lat + $dLat])
@@ -49,11 +70,13 @@ class TransitMapController extends Controller
                             });
                     });
             })
+            ->orderByRaw($distanceSql, $distanceBindings)
+            ->limit($maxStops + 1)
             ->get(['s.feed_id', 's.stop_id', 's.name', 's.lat', 's.lon'])
             ->filter(fn ($s): bool => $this->metersBetween($lat, $lon, (float) $s->lat, (float) $s->lon) <= $radius)
-            ->sortBy(fn ($s): float => (($s->lat - $lat) ** 2) + (($s->lon - $lon) ** 2))
-            ->take(self::MAX_STOPS)
             ->values();
+        $truncated = $stops->count() > $maxStops;
+        $stops = $stops->take($maxStops);
 
         return response()->json([
             'stops' => $stops->map(fn ($s): array => [
@@ -63,7 +86,7 @@ class TransitMapController extends Controller
                 'lat' => (float) $s->lat,
                 'lon' => (float) $s->lon,
             ])->all(),
-            'truncated' => $stops->count() >= self::MAX_STOPS,
+            'truncated' => $truncated,
         ]);
     }
 
@@ -114,7 +137,7 @@ class TransitMapController extends Controller
         $lat = (float) $data['lat'];
         $lon = (float) $data['lon'];
         $routeRef = mb_strtolower(trim($data['route_ref']));
-        $feeds = $discovery->ensureImported($lat, $lon);
+        $feeds = $discovery->ensureImported($lat, $lon, userId: $request->user()->id);
         $feedIds = $feeds
             ->filter(fn (TransitFeed $feed): bool => $feed->provider !== 'osm' && $feed->static_hash !== null)
             ->pluck('id');
@@ -134,6 +157,9 @@ class TransitMapController extends Controller
         $radius = 500;
         $dLat = $radius / 111320;
         $dLon = $radius / (111320 * max(0.1, cos(deg2rad($lat))));
+        [$distanceSql, $distanceBindings] = $this->distanceOrder('s', $lat, $lon);
+        // Sort before LIMIT so the nearest stops are never cut off, and keep the list
+        // short: every candidate below costs several schedule queries.
         $candidates = DB::table('transit_stops as s')
             ->join('transit_stop_times as st', fn ($join) => $join->on('st.feed_id', '=', 's.feed_id')->on('st.stop_id', '=', 's.stop_id'))
             ->join('transit_trips as t', fn ($join) => $join->on('t.feed_id', '=', 'st.feed_id')->on('t.trip_id', '=', 'st.trip_id'))
@@ -143,7 +169,8 @@ class TransitMapController extends Controller
             ->whereBetween('s.lon', [$lon - $dLon, $lon + $dLon])
             ->whereRaw('LOWER(TRIM(r.short_name)) = ?', [$routeRef])
             ->distinct()
-            ->limit(100)
+            ->orderByRaw($distanceSql, $distanceBindings)
+            ->limit(self::MAX_DEPARTURE_CANDIDATES)
             ->get(['s.feed_id', 's.stop_id', 's.name', 's.lat', 's.lon', 'r.route_id'])
             ->map(fn ($stop): array => [
                 ...((array) $stop),

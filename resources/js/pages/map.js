@@ -1,6 +1,7 @@
 import 'ol/ol.css';
 import { watchTransitCoverage } from './transit-coverage.js';
 import { createTransitLayer } from './transit-stops-layer.js';
+import { safeExternalUrl } from '../safe-url.js';
 
 import Map from 'ol/Map.js';
 import View from 'ol/View.js';
@@ -59,7 +60,8 @@ let trackFeature = null;
 let lastCoords = null;
 let lastPosition = null;
 
-let heading = 0;
+// Direction of travel in radians, clockwise from north; null until the user actually moves.
+let heading = null;
 let hasCentered = false;
 
 let lastSent = 0;
@@ -524,6 +526,37 @@ const userStyle = new Style({
     })
 });
 
+// Shown instead of the pin once a direction of travel is known; the arrow points north at rotation 0.
+const userArrowStyle = new Style({
+    image: new Icon({
+        src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">'
+            + '<circle cx="24" cy="24" r="21" fill="#0d6efd" stroke="#ffffff" stroke-width="3"/>'
+            + '<path d="M24 9 L35 35 L24 29 L13 35 Z" fill="#ffffff"/>'
+            + '</svg>'
+        ),
+        scale: 0.6,
+        anchor: [0.5, 0.5],
+        rotateWithView: true
+    })
+});
+
+const HEADING_MIN_MOVE_METERS = 3;
+
+/** Bearing in radians, clockwise from north, between two { lat, lon } points. */
+function bearingBetween(from, to) {
+    const longitudeDelta = (to.lon - from.lon) * Math.cos((from.lat + to.lat) * Math.PI / 360);
+    const latitudeDelta = to.lat - from.lat;
+
+    return Math.atan2(longitudeDelta, latitudeDelta);
+}
+
+function approximateDistanceMeters(from, to) {
+    const longitudeDelta = (to.lon - from.lon) * Math.cos((from.lat + to.lat) * Math.PI / 360);
+
+    return Math.hypot(longitudeDelta, to.lat - from.lat) * 111320;
+}
+
 const trackStyle = new Style({
     stroke: new Stroke({
         color: 'rgba(255,0,0,0.8)',
@@ -547,7 +580,8 @@ const radiusStyle = new Style({
 
 
 const baseLayer = new TileLayer({
-    source: new XYZ({ url: '/map/tiles/{z}/{x}/{y}' })
+    // The tile proxy serves up to zoom 20; OpenLayers upscales those tiles beyond it.
+    source: new XYZ({ url: '/map/tiles/{z}/{x}/{y}', maxZoom: 20 })
 });
 
 const clusterLayer = new VectorLayer({
@@ -1706,18 +1740,14 @@ function showLodgingDetails(feature) {
 }
 
 function createSafeExternalLink(value) {
-    const urlValue = /^https?:\/\//i.test(value) ? value : `https://${value}`;
-    try {
-        const url = new URL(urlValue);
-        if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
-        const link = document.createElement('a');
-        link.href = url.href;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        return link;
-    } catch {
-        return null;
-    }
+    const href = safeExternalUrl(value);
+    if (!href) return null;
+
+    const link = document.createElement('a');
+    link.href = href;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    return link;
 }
 
 function enableTransitModalDragging(modalElement) {
@@ -2896,6 +2926,7 @@ document
             hasCentered = false;
             lastCoords = null;
             lastPosition = null;
+            heading = null;
             currentUserLocation = null;
             return;
         }
@@ -2927,6 +2958,7 @@ document
         hasCentered = false;
         lastCoords = null;
         lastPosition = null;
+        heading = null;
         fixedCityLocation = null;
 
         app_radius = deviceRadiusMeters;
@@ -3097,14 +3129,18 @@ document
 
                 const currentCenter = fromLonLat([lon, lat]);
 
-                if (lastPosition) {
-                    heading = Math.atan2(
-                        lat - lastPosition.lat,
-                        lon - lastPosition.lon
-                    );
+                const gpsHeading = position.coords.heading;
+                const gpsSpeed = position.coords.speed;
+                if (Number.isFinite(gpsHeading) && Number.isFinite(gpsSpeed) && gpsSpeed > 0) {
+                    heading = gpsHeading * Math.PI / 180;
+                    lastPosition = { lat, lon };
+                } else if (!lastPosition) {
+                    lastPosition = { lat, lon };
+                } else if (approximateDistanceMeters(lastPosition, { lat, lon }) >= HEADING_MIN_MOVE_METERS) {
+                    // Keep the previous heading for GPS jitter below the threshold.
+                    heading = bearingBetween(lastPosition, { lat, lon });
+                    lastPosition = { lat, lon };
                 }
-
-                lastPosition = { lat, lon };
 
                 currentLocation.dataset.lat = String(lat);
                 currentLocation.dataset.lon = String(lon);
@@ -3122,8 +3158,13 @@ document
                         );
                     }
 
-                    userFeature.setStyle(userStyle);
-                    userStyle.getImage().setRotation(heading);
+                    if (heading === null) {
+                        userFeature.setStyle(userStyle);
+                    } else {
+                        userArrowStyle.getImage().setRotation(heading);
+                        userFeature.setStyle(userArrowStyle);
+                        userFeature.changed();
+                    }
 
                     const geometry = trackFeature.getGeometry();
                     geometry.appendCoordinate(currentCenter);
@@ -3166,7 +3207,10 @@ document
                             lat,
                             lon,
                             active: true,
-                            heading
+                            // The API expects degrees in 0..360.
+                            heading: heading === null
+                                ? null
+                                : ((heading * 180 / Math.PI) + 360) % 360
                         })
                     }).catch(error => {
                         console.error('Location update failed:', error);
@@ -3240,7 +3284,7 @@ function resetMap() {
         .getElementById('shareLocation')
         ?.classList.add('d-none');
 
-    heading = 0;
+    heading = null;
     hasCentered = false;
 
     map.getView().animate({

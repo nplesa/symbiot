@@ -40,6 +40,12 @@ return [
         // Intermediate certificate missing from the fuel price host's chain, relative to the project root.
         'ca_certificate' => env('PETROLEUM_CHECK', 'resources/certs/sectigo-dv-r36.pem'),
     ],
+    'ip_country' => [
+        // Only behind Cloudflare is CF-IPCountry set by the proxy; otherwise any client can forge it.
+        'trust_cloudflare_header' => (bool) env('TRUST_CLOUDFLARE_COUNTRY', false),
+        // Sends the registering user's IP to ipwho.is (third party) to look up the country.
+        'lookup' => (bool) env('IP_COUNTRY_LOOKUP', true),
+    ],
     'rail_timetable' => [
         'packages' => [
             ['package' => 'mers-tren-sntfc-cfr-calatori-s-a', 'operator' => 'CFR Călători'],

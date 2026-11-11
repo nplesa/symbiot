@@ -31,7 +31,8 @@ return [
 
     'domain' => env('SESSION_DOMAIN'),
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // HTTPS sites send the session cookie only over HTTPS unless explicitly overridden.
+    'secure' => env('SESSION_SECURE_COOKIE', str_starts_with((string) env('APP_URL', ''), 'https://')),
 
     'http_only' => env('SESSION_HTTP_ONLY', true),
 

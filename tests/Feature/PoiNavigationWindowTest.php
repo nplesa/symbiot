@@ -42,7 +42,7 @@ class PoiNavigationWindowTest extends TestCase
             ->assertSee('id="city-location-mode"', false)
             ->assertSee('id="city-location-form"', false)
             ->assertSee('id="city-location-radius"', false)
-            ->assertSee('Caută un oraș oriunde în lume')
+            ->assertSee('id="city-location-input"', false)
             ->assertSee('id="city-location-results"', false)
             ->assertSee('min="100" max="35000" step="100" value="5000"', false);
         $response->assertSee('progress-bar-animated', false);
@@ -65,10 +65,10 @@ class PoiNavigationWindowTest extends TestCase
         libxml_clear_errors();
         libxml_use_internal_errors($previousLibxmlErrorMode);
         $xpath = new \DOMXPath($dom);
-        $poiCategoryGrid = $xpath->query('//*[contains(concat(" ", normalize-space(@class), " "), " poi-category-filters ")]//div[contains(@class, "row-cols-lg-3")]')->item(0);
+        $poiCategoryGrid = $xpath->query('//*[contains(concat(" ", normalize-space(@class), " "), " poi-category-filters ")]')->item(0);
         $this->assertNotNull($poiCategoryGrid);
         $visibleCategoryLabels = [];
-        foreach ($xpath->query('.//label[contains(@class, "poi-category-label")]', $poiCategoryGrid) as $label) {
+        foreach ($xpath->query('.//span[contains(@class, "poi-filter-name")]', $poiCategoryGrid) as $label) {
             $visibleCategoryLabels[] = trim($label->textContent);
         }
         $expectedCategoryLabels = collect(config('poi.categories'))
@@ -121,7 +121,7 @@ class PoiNavigationWindowTest extends TestCase
             $this->assertStringContainsString($label, $subcategoryPanel->textContent);
         }
         $visiblePoliceSubcategories = [];
-        foreach ($xpath->query('.//label[contains(@class, "form-check-label")]', $subcategoryPanel) as $label) {
+        foreach ($xpath->query('.//label[contains(@class, "poi-subcategory-choice")]', $subcategoryPanel) as $label) {
             $visiblePoliceSubcategories[] = trim($label->textContent);
         }
         $expectedPoliceSubcategories = array_column(config('poi.osm_subcategories.police'), 'label');
@@ -155,8 +155,24 @@ class PoiNavigationWindowTest extends TestCase
             ->assertDontSee('mobility-cards-container', false)
             ->assertDontSee('mobility-card-body', false);
 
-        $response->assertSee('Selectează categoriile POI afișate pe hartă')
+        $response->assertSee(__('Select the categories you want to see on the map.'))
             ->assertSee('poi-category-filters');
+    }
+
+    public function test_poi_search_endpoints_share_a_per_user_rate_limit(): void
+    {
+        Http::fake(['*' => Http::response(['features' => [], 'elements' => []])]);
+        Cache::flush();
+        $user = User::factory()->create();
+
+        for ($i = 0; $i < 120; $i++) {
+            $this->actingAs($user)
+                ->getJson($i % 2 === 0 ? '/api/poi/cafe?lat=45.65&lon=25.60' : '/api/transport-nearby?lat=45.65&lon=25.60&types=police')
+                ->assertOk();
+        }
+
+        $this->actingAs($user)->getJson('/api/transport/bus?lat=45.65&lon=25.60')->assertTooManyRequests();
+        $this->actingAs(User::factory()->create())->getJson('/api/poi/cafe?lat=45.65&lon=25.60')->assertOk();
     }
 
     public function test_home_poi_search_uses_only_selected_categories(): void
@@ -325,10 +341,11 @@ class PoiNavigationWindowTest extends TestCase
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'api.openwebninja.com/waze'));
     }
 
-    public function test_waze_forbidden_response_explains_key_and_api_access_requirements(): void
+    public function test_waze_forbidden_response_explains_key_and_api_access_requirements_in_debug_mode(): void
     {
         Cache::flush();
         config([
+            'app.debug' => true,
             'services.waze.url' => 'https://waze.test/api',
             'services.waze.key' => 'test-waze-key',
         ]);
@@ -343,6 +360,33 @@ class PoiNavigationWindowTest extends TestCase
                 'error',
                 'OpenWebNinja Waze API returned HTTP 403. Verifică WAZE_API_KEY și confirmă că API-ul Waze este activat în contul OpenWebNinja.'
             );
+    }
+
+    public function test_waze_and_poi_errors_hide_internal_details_in_production(): void
+    {
+        Cache::flush();
+        config([
+            'app.debug' => false,
+            'services.waze.url' => 'https://waze.test/api',
+            'services.waze.key' => 'test-waze-key',
+        ]);
+        Http::fake(['waze.test/*' => Http::response(['error' => 'Forbidden'], 403)]);
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/waze-traffic?lat=45.65&lon=25.60&radius=5000')
+            ->assertInternalServerError()
+            ->assertExactJson(['error' => 'Alertele de trafic nu sunt disponibile momentan.']);
+
+        // A database failure inside the POI lookup must not leak SQL to the client.
+        Cache::shouldReceive('remember')->andThrow(new \Illuminate\Database\QueryException(
+            'sqlite', 'select * from secret_table where token = ?', ['abc'], new \Exception('no such table: secret_table')
+        ));
+
+        $response = $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/cafe?lat=45.65&lon=25.60')
+            ->assertInternalServerError()
+            ->assertExactJson(['error' => 'Serviciul POI nu este disponibil momentan. Încearcă din nou.']);
+        $this->assertStringNotContainsString('secret_table', $response->getContent());
     }
 
     public function test_every_poi_category_has_its_own_named_endpoint(): void
@@ -675,16 +719,31 @@ class PoiNavigationWindowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('0.id', 'bus-stop-incomplete-routes')
             ->assertJsonPath('0.routes_available', false);
+        // Per lookup: Geoapify, then Overpass, then the Overpass mirror after the incomplete result.
+        Http::assertSentCount(3);
+
+        // Within a minute the incomplete result is served from cache, sparing the upstream APIs.
+        $this->getJson($url)
+            ->assertOk()
+            ->assertJsonPath('0.routes_available', false);
+        Http::assertSentCount(3);
+
+        // After the short TTL the lookup is retried instead of caching missing routes for 10 minutes.
+        $this->travel(61)->seconds();
         $this->getJson($url)
             ->assertOk()
             ->assertJsonPath('0.id', 'bus-stop-incomplete-routes')
             ->assertJsonPath('0.routes_available', false);
 
-        Http::assertSentCount(4);
+        Http::assertSentCount(6);
         Http::assertSent(fn ($request) => str_contains($request->url(), 'overpass-api.de'));
         $this->assertSame(
             2,
             Http::recorded(fn ($request) => str_contains($request->url(), 'overpass-api.de'))->count()
+        );
+        $this->assertSame(
+            2,
+            Http::recorded(fn ($request) => str_contains($request->url(), 'overpass.private.coffee'))->count()
         );
     }
 
@@ -745,7 +804,7 @@ class PoiNavigationWindowTest extends TestCase
             ->assertJsonPath('0.routes.0.label', 'Autobuz 5');
     }
 
-    public function test_bus_filter_reports_failure_when_geoapify_and_openstreetmap_fallback_both_fail(): void
+    public function test_bus_filter_returns_empty_list_when_geoapify_and_openstreetmap_fallback_both_fail(): void
     {
         Cache::flush();
         Http::fake(function ($request) {
@@ -756,15 +815,14 @@ class PoiNavigationWindowTest extends TestCase
             return Http::response([], 503);
         });
 
+        // An Overpass outage is logged and degrades to an empty result instead of HTTP 500.
         $this->actingAs(User::factory()->create())
             ->getJson('/api/transport/bus?lat=45.65&lon=25.60&radius=10000')
-            ->assertInternalServerError()
-            ->assertJsonPath('error', 'OpenStreetMap POI service returned HTTP 503.');
+            ->assertOk()
+            ->assertExactJson([]);
 
-        $this->assertSame(
-            1,
-            Http::recorded(fn ($request) => str_contains($request->url(), 'overpass-api.de'))->count()
-        );
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'overpass-api.de'));
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'overpass.private.coffee'));
     }
 
     public function test_bus_filter_accepts_the_configured_ten_kilometer_location_radius(): void
@@ -860,11 +918,13 @@ class PoiNavigationWindowTest extends TestCase
             ->assertJsonPath('2.routes.0.label', 'Tren IR 15')
             ->assertJsonPath('3.routes.0.label', 'Companie aeriană RO');
 
+        // Airports are excluded from the Overpass route lookup, so no airline routes or aerodrome selector here.
         Http::assertSent(fn ($request) => str_contains($request->url(), 'overpass-api.de')
             && $request->method() === 'POST'
-            && str_contains($request['data'], '^(bus|trolleybus|subway|train|light_rail|tram|monorail|funicular|airline)$')
+            && str_contains($request['data'], '^(bus|trolleybus|subway|train|light_rail|tram|monorail|funicular)$')
+            && ! str_contains($request['data'], 'airline')
             && str_contains($request['data'], 'around:5500,45.65000,25.60000')
-            && substr_count($request['data'], 'nwr(around:5500,') === 8
+            && substr_count($request['data'], 'nwr(around:5500,') === 7
             && str_contains($request['data'], '.routes out meta;.routes out body;'));
     }
 
@@ -1062,7 +1122,7 @@ class PoiNavigationWindowTest extends TestCase
         Http::assertSent(fn ($request) => str_contains($request->url(), 'api.openstreetmap.org/api/0.6/node/8935426209/relations.json'));
     }
 
-    public function test_train_endpoint_returns_stations_without_blocking_on_published_timetable_lookups(): void
+    public function test_train_markers_skip_route_lookups_but_include_the_published_timetable(): void
     {
         Cache::flush();
         config([
@@ -1124,9 +1184,13 @@ class PoiNavigationWindowTest extends TestCase
             ->getJson('/api/transport/train?lat=44.95368&lon=26.027174&radius=5000&include_routes=false')
             ->assertOk()
             ->assertJsonPath('0.name', 'Ploiești Nord')
-            ->assertJsonPath('0.routes', []);
+            ->assertJsonPath('0.routes', [])
+            ->assertJsonPath('0.train_timetable_source', 'data.gov.ro')
+            ->assertJsonStructure(['0' => ['train_services', 'train_services_available']]);
 
-        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'data.gov.ro'));
+        // Marker requests skip the Overpass route lookup, but the station popup reads
+        // train_services from the marker, so the published timetable is still attached.
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'data.gov.ro'));
     }
 
     public function test_train_endpoint_skips_slow_osm_fallback_when_loading_stations_without_lines(): void
