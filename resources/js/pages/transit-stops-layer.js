@@ -10,6 +10,7 @@ import Stroke from 'ol/style/Stroke.js';
 import Style from 'ol/style/Style.js';
 import Text from 'ol/style/Text.js';
 import { fromLonLat } from 'ol/proj.js';
+import { movedFarEnough } from '../vehicle-center.js';
 
 const ROUTE_PALETTE = ['#e6194b', '#3cb44b', '#0d6efd', '#f58231', '#911eb4', '#008080', '#f032e6', '#9a6324', '#800000', '#808000', '#000075', '#e6a800'];
 
@@ -137,7 +138,7 @@ export function createTransitLayer(map) {
         window.dispatchEvent(new CustomEvent('symbiot:transit-route-selected', { detail: routeDetail }));
         schedule.textContent = 'Se caută următoarea plecare programată…';
         schedule.hidden = false;
-        fetchJson(`/api/transit/stops/${feed}/${encodeURIComponent(stopId)}/next-departure?route_id=${encodeURIComponent(route.route_id)}`)
+        fetchJson(`/api/transit/stops/${encodeURIComponent(feed)}/${encodeURIComponent(stopId)}/next-departure?route_id=${encodeURIComponent(route.route_id)}`)
             .then(({ departure, reason }) => {
                 if (activeRoutes.get(key) !== entry) return;
                 if (!departure) {
@@ -165,7 +166,7 @@ export function createTransitLayer(map) {
             });
 
         try {
-            const data = await fetchJson(`/api/transit/routes/${feed}/${encodeURIComponent(route.route_id)}/shape?stop_id=${encodeURIComponent(stopId)}`);
+            const data = await fetchJson(`/api/transit/routes/${encodeURIComponent(feed)}/${encodeURIComponent(route.route_id)}/shape?stop_id=${encodeURIComponent(stopId)}`);
             if (activeRoutes.get(key) !== entry) {
                 return;
             }
@@ -240,7 +241,7 @@ export function createTransitLayer(map) {
         }));
 
         try {
-            const data = await fetchJson(`/api/transit/stops/${feed}/${encodeURIComponent(stopId)}/routes`);
+            const data = await fetchJson(`/api/transit/stops/${encodeURIComponent(feed)}/${encodeURIComponent(stopId)}/routes`);
             if (current !== selection) {
                 return;
             }
@@ -292,11 +293,14 @@ export function createTransitLayer(map) {
     let loadRun = 0;
     let vehicleTimer = null;
     let vehicleRun = 0;
+    // Where live vehicles are searched; follows the user in GPS mode (moveVehicleCenter).
+    let vehicleCenter = null;
 
-    async function refreshVehicles(lat, lon, radius, run) {
-        if (document.hidden) {
+    async function refreshVehicles(run) {
+        if (document.hidden || !vehicleCenter) {
             return;
         }
+        const { lat, lon, radius } = vehicleCenter;
         try {
             const data = await fetchJson(`/api/transit/vehicles?lat=${lat}&lon=${lon}&radius=${radius}`);
             if (run !== vehicleRun) {
@@ -314,6 +318,14 @@ export function createTransitLayer(map) {
         }
     }
 
+    function startVehicleTimer() {
+        clearInterval(vehicleTimer);
+        vehicleSource.clear();
+        const run = ++vehicleRun;
+        refreshVehicles(run);
+        vehicleTimer = setInterval(() => refreshVehicles(run), 10000);
+    }
+
     return {
         hasStopAtPixel(pixel, tolerance = 12) {
             if (!stopLayer.getVisible()) return false;
@@ -326,17 +338,29 @@ export function createTransitLayer(map) {
         },
 
         watchVehicles(lat, lon, radius = 3000) {
-            clearInterval(vehicleTimer);
-            vehicleSource.clear();
-            const run = ++vehicleRun;
-            refreshVehicles(lat, lon, radius, run);
-            vehicleTimer = setInterval(() => refreshVehicles(lat, lon, radius, run), 10000);
+            vehicleCenter = { lat, lon, radius };
+            startVehicleTimer();
+        },
+
+        /** GPS mode: keep live vehicles around the user instead of the first position. */
+        moveVehicleCenter(lat, lon) {
+            if (!vehicleCenter) return;
+            const refreshNow = movedFarEnough(vehicleCenter, lat, lon);
+            vehicleCenter = { ...vehicleCenter, lat, lon };
+            if (refreshNow && vehicleTimer !== null) {
+                refreshVehicles(vehicleRun);
+            }
         },
 
         setVisible(visible) {
             stopLayer.setVisible(visible);
             vehicleLayer.setVisible(visible);
             shapeLayer.setVisible(visible);
+
+            // Re-enabling the bus filter resumes live vehicles for the current area.
+            if (visible && vehicleTimer === null && vehicleCenter) {
+                startVehicleTimer();
+            }
 
             if (!visible) {
                 clearInterval(vehicleTimer);

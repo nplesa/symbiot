@@ -38,6 +38,26 @@ class PoiSubcategoryAvailabilityTest extends TestCase
         ]);
     }
 
+    public function test_small_radius_results_are_not_reused_for_a_point_400_m_away(): void
+    {
+        Cache::flush();
+        $this->station(['brand' => 'Petrom'], 44.43, 26.10);
+        $this->station(['brand' => 'OMV'], 44.4336, 26.10); // ~400 m north
+        $user = User::factory()->create();
+
+        $first = $this->actingAs($user)
+            ->getJson('/api/poi/subcategories?lat=44.43&lon=26.10&radius=300')
+            ->json('subcategories.fuel');
+        $second = $this->actingAs($user)
+            ->getJson('/api/poi/subcategories?lat=44.4336&lon=26.10&radius=300')
+            ->json('subcategories.fuel');
+
+        $this->assertContains('subcategory:fuel:petrom', $first);
+        $this->assertNotContains('subcategory:fuel:omv', $first);
+        $this->assertContains('subcategory:fuel:omv', $second);
+        $this->assertNotContains('subcategory:fuel:petrom', $second);
+    }
+
     public function test_lists_only_brands_present_around_the_location(): void
     {
         Cache::flush();

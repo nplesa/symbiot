@@ -1,3 +1,5 @@
+import { pollDelayMs } from '../transit-polling.js';
+
 const STAGES = {
     queued: 'În așteptare la coadă…',
     retrying: 'Reîncerc importul…',
@@ -8,8 +10,23 @@ const STAGES = {
     failed: 'Importul a eșuat',
 };
 
-const POLL_MS = 2000;
 let activeRun = 0;
+
+/** Resolves after `ms`, but never while the tab is hidden: a hidden tab waits until it is shown again. */
+function waitForNextPoll(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms)).then(() => {
+        if (!document.hidden) return undefined;
+
+        return new Promise((resolve) => {
+            const onVisible = () => {
+                if (document.hidden) return;
+                document.removeEventListener('visibilitychange', onVisible);
+                resolve();
+            };
+            document.addEventListener('visibilitychange', onVisible);
+        });
+    });
+}
 
 window.addEventListener('symbiot:location-changing', () => {
     activeRun++;
@@ -74,6 +91,7 @@ export async function watchTransitCoverage(lat, lon, anchor, onReady = () => {},
     const run = ++activeRun;
     const el = panel(anchor);
     render(el, [], true);
+    const startedAt = Date.now();
 
     while (run === activeRun) {
         let data;
@@ -122,6 +140,17 @@ export async function watchTransitCoverage(lat, lon, anchor, onReady = () => {},
             }
             return;
         }
-        await new Promise((resolve) => setTimeout(resolve, POLL_MS));
+
+        const delay = pollDelayMs(Date.now() - startedAt);
+        if (delay === null) {
+            // A stuck queue or a very long import: stop polling, keep the map usable.
+            const note = document.createElement('div');
+            note.className = 'text-warning';
+            note.textContent = 'Importul durează mai mult decât de obicei. Reîncarcă pagina mai târziu pentru datele de transport.';
+            el.append(note);
+            onReady(data.feeds);
+            return;
+        }
+        await waitForNextPoll(delay);
     }
 }

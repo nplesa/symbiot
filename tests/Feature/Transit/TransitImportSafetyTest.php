@@ -175,6 +175,43 @@ class TransitImportSafetyTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_an_invalid_feed_fails_after_a_single_attempt(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'gz');
+        $zip = new ZipArchive;
+        $zip->open($path, ZipArchive::OVERWRITE);
+        // Valid archive, but stop_times.txt is missing: retrying cannot fix that.
+        foreach (['stops.txt', 'routes.txt', 'trips.txt'] as $file) {
+            $zip->addFromString($file, "id\n1\n");
+        }
+        $zip->close();
+        $body = file_get_contents($path);
+        unlink($path);
+        Http::fake(['feeds.test/*' => fn () => Http::response($body)]);
+        $feed = TransitFeed::create([
+            'slug' => 'broken', 'name' => 'Broken', 'static_url' => 'https://feeds.test/broken.zip', 'active' => true,
+        ]);
+
+        ImportTransitFeedJob::dispatchSync($feed->id);
+
+        Http::assertSentCount(1);
+        $feed->refresh();
+        $this->assertSame('failed', $feed->import_status);
+        $this->assertStringContainsString('missing stop_times.txt', (string) $feed->import_error);
+    }
+
+    public function test_import_job_retries_and_unique_lock_cover_the_whole_run(): void
+    {
+        $job = new ImportTransitFeedJob(1);
+
+        $this->assertSame(3, $job->tries);
+        $this->assertLessThan((int) config('queue.connections.database.retry_after'), $job->timeout);
+        $this->assertGreaterThanOrEqual(
+            $job->tries * $job->timeout + array_sum($job->backoff()),
+            $job->uniqueFor
+        );
+    }
+
     public function test_oversized_downloads_and_archives_are_rejected(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'gz');

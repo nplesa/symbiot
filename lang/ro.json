@@ -158,5 +158,22 @@
     "Show the whole route": "Arată tot traseul",
     "The selected line is highlighted on the map.": "Linia selectată este evidențiată pe hartă.",
     "Open my routes": "Deschide traseele mele",
-    "Whole city": "Tot orașul"
+    "Whole city": "Tot orașul",
+    "Email Address": "Adresă de email",
+    "Password": "Parolă",
+    "Remember Me": "Ține-mă minte",
+    "Forgot Your Password?": "Ți-ai uitat parola?",
+    "Confirm Password": "Confirmă parola",
+    "Please confirm your password before continuing.": "Confirmă parola înainte de a continua.",
+    "Reset Password": "Resetează parola",
+    "Send Password Reset Link": "Trimite linkul de resetare a parolei",
+    "Name": "Nume",
+    "Verify Your Email Address": "Verifică-ți adresa de email",
+    "A fresh verification link has been sent to your email address.": "Un nou link de verificare a fost trimis pe adresa ta de email.",
+    "Before proceeding, please check your email for a verification link.": "Înainte de a continua, caută în email linkul de verificare.",
+    "If you did not receive the email": "Dacă nu ai primit emailul",
+    "click here to request another": "apasă aici pentru a cere altul",
+    "Search city for map": "Caută un oraș pe hartă",
+    "Date": "Data",
+    "Translate": "Traduce"
 }

@@ -26,6 +26,17 @@
         @if (request()->routeIs('app.*'))
 
             <div class="symbiot-shell" id="symbiotShell">
+                {{-- Applies the saved/system theme before the page paints (dashboard.js only runs after DOMContentLoaded). --}}
+                <script>
+                    (function (shell) {
+                        var theme = null;
+                        try { theme = window.localStorage.getItem('symbiot-theme'); } catch (e) {}
+                        if (theme !== 'dark' && theme !== 'light') {
+                            theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                        }
+                        shell.dataset.theme = theme;
+                    })(document.getElementById('symbiotShell'));
+                </script>
 
                 {{-- MOBILE HEADER --}}
                 <header class="symbiot-mobile-header">

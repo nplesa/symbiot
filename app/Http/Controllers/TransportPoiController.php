@@ -158,6 +158,7 @@ class TransportPoiController extends Controller
                     $data['features'] ?? [],
                     $lat,
                     $lon,
+                    $radius,
                     $data['transit_stops'] ?? [],
                     $data['transit_routes'] ?? [],
                     $data['transit_routes_available'] ?? false
@@ -974,6 +975,7 @@ class TransportPoiController extends Controller
         array $features,
         float $userLat,
         float $userLon,
+        int $radius,
         array $transitStops = [],
         array $transitRoutes = [],
         bool $transitRoutesAvailable = true
@@ -993,6 +995,11 @@ class TransportPoiController extends Controller
             [$lon, $lat] = $coords;
 
             $meters = $this->distance($userLat, $userLon, $lat, $lon);
+            // Large radii query a grid of offset circles, which also returns POIs outside the requested circle.
+            if ($meters > $radius) {
+                continue;
+            }
+
             $routes = $this->routesNearTransitStop(
                 $lat,
                 $lon,

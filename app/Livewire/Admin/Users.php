@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -51,8 +52,16 @@ class Users extends Component
 
         abort_if($user->is(auth()->user()), 403);
 
+        // The profile row goes with the user (FK cascade); its avatar file must be removed by hand,
+        // and only once the user is really gone.
+        $avatar = $user->profile?->avatar;
+
         $user->tokens()->delete();
         $user->delete();
+
+        if ($avatar) {
+            Storage::disk('public')->delete($avatar);
+        }
 
         if ($this->editingId === $userId) {
             $this->cancelEdit();

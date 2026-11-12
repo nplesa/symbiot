@@ -24,6 +24,7 @@ class PoiNavigationWindowTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('poi-loading-elapsed', false)
+            ->assertSee('id="poiLoadingCancel"', false)
             ->assertSee('aria-labelledby="poiLoadingModalTitle"', false)
             ->assertSee('aria-describedby="poiLoadingModalDescription"', false);
         $response->assertSee('id="trainStatusModal"', false)
@@ -173,6 +174,29 @@ class PoiNavigationWindowTest extends TestCase
 
         $this->actingAs($user)->getJson('/api/transport/bus?lat=45.65&lon=25.60')->assertTooManyRequests();
         $this->actingAs(User::factory()->create())->getJson('/api/poi/cafe?lat=45.65&lon=25.60')->assertOk();
+    }
+
+    public function test_geoapify_pois_outside_the_requested_radius_are_dropped(): void
+    {
+        Cache::flush();
+        config(['services.geoapify.key' => 'test-key']);
+        Http::fake([
+            'api.geoapify.com/*' => Http::response(['features' => [
+                // ~10 km north of the user.
+                ['type' => 'Feature', 'geometry' => ['type' => 'Point', 'coordinates' => [25.60, 45.74]],
+                    'properties' => ['place_id' => 'near-cafe', 'name' => 'Aproape', 'categories' => ['catering.cafe']]],
+                // ~40 km north: returned by an offset grid circle, but outside the 20 km radius.
+                ['type' => 'Feature', 'geometry' => ['type' => 'Point', 'coordinates' => [25.60, 46.01]],
+                    'properties' => ['place_id' => 'far-cafe', 'name' => 'Departe', 'categories' => ['catering.cafe']]],
+            ]]),
+            '*' => Http::response(['elements' => []]),
+        ]);
+
+        $response = $this->actingAs(User::factory()->create())
+            ->getJson('/api/poi/cafe?lat=45.65&lon=25.60&radius=20000')
+            ->assertOk();
+
+        $this->assertSame(['near-cafe'], array_column($response->json(), 'id'));
     }
 
     public function test_home_poi_search_uses_only_selected_categories(): void

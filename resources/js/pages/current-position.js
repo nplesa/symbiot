@@ -5,7 +5,7 @@ import Map from 'ol/Map.js';
 import View from 'ol/View.js';
 import TileLayer from 'ol/layer/Tile.js';
 import VectorLayer from 'ol/layer/Vector.js';
-import OSM from 'ol/source/OSM.js';
+import XYZ from 'ol/source/XYZ.js';
 import VectorSource from 'ol/source/Vector.js';
 import Feature from 'ol/Feature.js';
 import Point from 'ol/geom/Point.js';
@@ -13,6 +13,8 @@ import Circle from 'ol/geom/Circle.js';
 import { fromLonLat } from 'ol/proj.js';
 import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style.js';
 import { fromCircle } from 'ol/geom/Polygon.js';
+import { fetchJson } from '../http.js';
+import { MAP_ATTRIBUTION } from '../map-attribution.js';
 
 const mapElement = document.getElementById('currentPositionMap');
 
@@ -53,8 +55,13 @@ if (mapElement) {
     const map = new Map({
         target: mapElement,
         layers: [
+            // Cached, rate-limited proxy used by every map; the public OSM tile servers forbid app traffic.
             new TileLayer({
-                source: new OSM()
+                source: new XYZ({
+                    url: '/map/tiles/{z}/{x}/{y}',
+                    maxZoom: 20,
+                    attributions: MAP_ATTRIBUTION
+                })
             }),
             accuracyLayer,
             positionLayer
@@ -141,25 +148,7 @@ if (mapElement) {
                 lon: longitude
             });
 
-            const response = await fetch(
-                `/api/location/reverse?${params.toString()}`,
-                {
-                    method: 'GET',
-                    headers: {
-                        Accept: 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    credentials: 'same-origin'
-                }
-            );
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message || `Request failed (${response.status})`
-                );
-            }
+            const data = await fetchJson(`/api/location/reverse?${params.toString()}`);
 
             updateAddress(data.address);
 

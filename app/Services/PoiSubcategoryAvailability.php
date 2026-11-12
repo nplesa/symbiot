@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\GeoCacheKey;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -18,7 +19,7 @@ class PoiSubcategoryAvailability
      */
     public function around(float $lat, float $lon, int $radius): array
     {
-        $key = sprintf('poi_subcategories:v3:%.2f:%.2f:%d', $lat, $lon, intdiv($radius, 500));
+        $key = GeoCacheKey::around('poi_subcategories:v4', $lat, $lon, $radius);
 
         return Cache::remember($key, now()->addHours(6), fn (): array => $this->compute($lat, $lon, $radius));
     }

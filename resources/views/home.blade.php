@@ -255,7 +255,7 @@
             <div class="dashboard-radius-status" id="dashboard-radius-status" role="status" aria-live="polite"></div>
         </section>
 
-        <!-- AICI ESTE MUTAT CARDUL DE MOBILITATE / FILTRE POI ÎN DREAPTA -->
+        {{-- POI filters (mobility_card) live in the right-hand panel. --}}
         <div class="card mt-3 main-mobility-card d-none" id="mobility_card">
             <div class="card-header">
                 {{ __('Points of interest and filters') }}
@@ -338,9 +338,12 @@
 @include('modals.fuel-prices')
 @include('modals.fuel-best')
 @endsection
+@push('css')
+    @vite('resources/sass/pages/dashboard.scss')
+@endpush
+
 @push('js')
     @vite([
-        'resources/sass/pages/dashboard.scss',
         'resources/js/pages/dashboard.js',
         'resources/js/pages/map.js'
         ])

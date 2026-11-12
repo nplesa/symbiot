@@ -1,3 +1,5 @@
+import { notify } from '../notify.js';
+
 document.addEventListener('DOMContentLoaded', function () {
     const input = document.getElementById('avatarInput');
     const choose = document.getElementById('chooseAvatar');
@@ -30,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
         ];
 
         if (!allowedTypes.includes(file.type)) {
-            alert('Format invalid. Folosește JPG, PNG sau WEBP.');
+            notify('Format invalid. Folosește JPG, PNG sau WEBP.');
             input.value = '';
             fileName.textContent = 'No photo selected';
             upload.disabled = true;
@@ -38,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (file.size > 4 * 1024 * 1024) {
-            alert('Imaginea nu poate depăși 4 MB.');
+            notify('Imaginea nu poate depăși 4 MB.');
             input.value = '';
             fileName.textContent = 'No photo selected';
             upload.disabled = true;
@@ -68,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
     form.addEventListener('submit', function (event) {
         if (!input.files || !input.files.length) {
             event.preventDefault();
-            alert('Selectează mai întâi o fotografie.');
+            notify('Selectează mai întâi o fotografie.');
             return;
         }
 

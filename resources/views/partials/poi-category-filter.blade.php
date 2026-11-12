@@ -32,9 +32,9 @@
             <span class="poi-filter-name">{{ $poiCategories[$location]['label'] }}</span>
         </label>
         <div class="poi-filter-actions">
-            <span class="poi-filter-count" aria-label="{{ count($poiSubcategories[$location] ?? []) }} subcategorii">{{ count($poiSubcategories[$location] ?? []) }}</span>
+            <span class="poi-filter-count" aria-label="{{ __(':count subcategories', ['count' => count($poiSubcategories[$location] ?? [])]) }}">{{ count($poiSubcategories[$location] ?? []) }}</span>
             @if ($location === 'fuel')
-                <button class="fuel-best-button" type="button" aria-label="Arată cele mai bune prețuri">BEST</button>
+                <button class="fuel-best-button" type="button" aria-label="{{ __('Show the best prices') }}">BEST</button>
             @endif
             <button
                 class="poi-subcategory-toggle"
@@ -43,7 +43,7 @@
                 data-bs-target="#poi-subcategories-{{ $categoryIndex }}"
                 aria-expanded="false"
                 aria-controls="poi-subcategories-{{ $categoryIndex }}"
-                aria-label="Subcategorii: {{ $poiCategories[$location]['label'] }}"
+                aria-label="{{ __('Subcategories: :category', ['category' => $poiCategories[$location]['label']]) }}"
             >
                 <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
             </button>

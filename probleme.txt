@@ -384,27 +384,58 @@ D. BACKEND: LOGICĂ ȘI PERFORMANȚĂ
       - Rezultă N+1 query-uri: până la 100 de apeluri nextDeparture.
       - Stația cea mai apropiată poate fi omisă.
 
-34. TransportPoiController::transform
+34. [REZOLVAT] TransportPoiController::transform
+    - Fix: transform() primește $radius și elimină POI-urile Geoapify aflate în afara razei, la fel ca transformOsm().
+    - Test: test_geoapify_pois_outside_the_requested_radius_are_dropped.
     - Rezultatele Geoapify nu sunt filtrate pe rază, deci apar POI-uri aflate la ~60 km.
 
-35. PoiSubcategoryAvailability:21 și FuelBrandAvailability:16
+35. [REZOLVAT] PoiSubcategoryAvailability:21 și FuelBrandAvailability:16
+    - Fix:
+      - App\Support\GeoCacheKey::around() rotunjește poziția la un pas de 10% din rază (minimum 50 m).
+      - Raza intră în cheie exact, nu pe trepte de 500 m.
+      - Prefixele noi sunt poi_subcategories:v4 și fuel_brands:v2.
+    - Teste: GeoCacheKeyTest (4) + un test de integrare (două poziții la 400 m, cu raza de 300 m).
     - Cheile de cache au precizie de ~1 km, deci filtrele de subcategorii afișează date greșite.
 
-36. Erori 500 pe input invalid:
+36. [REZOLVAT] Erori 500 pe input invalid:
+    - date invalid: rezolvat la punctul 31.
+    - FuelPriceService::fetchPriced() prinde acum ConnectionException și o transformă în RuntimeException,
+      deci un timeout dă 502 cu mesaj, nu 500. Test nou în FuelBestPriceApiTest.
+    - TrackingController::status (web) era cod mort, fără rută; a fost șters. Versiunea din API rămâne.
     - TrackingController::sessions, cu un 'date' invalid;
     - FuelBestPriceController:33 prinde doar RuntimeException, nu și ConnectionException (timeout);
     - TrackingController::status (web) nu filtrează status='active', spre deosebire de API.
 
-37. GtfsStaticProvider:
+37. [REZOLVAT parțial - 1+2] GtfsStaticProvider:
+    - SQL-ul care mergea doar pe MySQL: rezolvat la reparatul testelor (punctul 64).
+    - Fix 1: ImportTransitFeedJob are $tries 5 → 3 și $uniqueFor 1800 → 3600 (acoperă 3×900 s + backoff).
+      $timeout=900 rămâne sub retry_after=1200.
+    - Fix 2: GtfsFeedInvalidException (fișiere GTFS lipsă; GtfsFeedTooLargeException o extinde)
+      oprește job-ul imediat, prin fail(), fără reîncercări. Erorile de rețea rămân reîncercabile.
+    - DESCHIS: importul rulează în continuare într-o singură tranzacție.
+      Soluția corectă e un feed separat de lucru, importat în bucăți și apoi inversat cu cel vechi;
+      e de reluat după măsurători pe producție.
+    - Teste: 2 noi în TransitImportSafetyTest.
     - SQL valabil doar pe MySQL (TEMPORARY TABLE ... ENGINE=InnoDB), deci testele pică pe SQLite.
     - Tot importul (milioane de stop_times) rulează într-o singură tranzacție.
     - uniqueFor=1800 e mai mic decât durata posibilă a jobului, deci pot rula importuri duble.
     - Erorile deterministe (de exemplu ZIP invalid) sunt reîncercate de 5 ori.
 
-38. PoiSubcategoryAvailability.php:172
+38. [REZOLVAT] PoiSubcategoryAvailability.php:172
+    - Rezolvat la reparatul testelor (punctul 64): funcțiile LEAST/SQRT/... sunt înregistrate în SQLite în TestCase.
+      Pe MariaDB codul funcționa deja.
     - Folosește LEAST(), care există doar în MySQL, deci 10 teste pică.
 
-39. routes/console.php
+39. [REZOLVAT] routes/console.php
+    - Fix:
+      - Toate task-urile au withoutOverlapping cu expirare: poll-realtime 2 min, celelalte 60–180 min.
+      - Programări noi:
+        - osm:sync-romania zilnic la 02:30 (necesită osmium);
+        - transit:sync-osm-counties luni la 03:00;
+        - sanctum:prune-expired --hours=24 la 04:30;
+        - queue:prune-failed --hours=168 la 04:45.
+    - Necesită cron "* * * * * php artisan schedule:run" sau "schedule:work" pe server.
+    - Teste: ScheduleTest (2).
     - withoutOverlapping() folosește mutex-ul implicit de 24h. Dacă procesul moare, poller-ul realtime se oprește 24h.
     - Comenzi care nu sunt programate:
       - osm:sync-romania
@@ -412,83 +443,199 @@ D. BACKEND: LOGICĂ ȘI PERFORMANȚĂ
       - sanctum:prune-expired
       - queue:prune-failed
 
-40. Migrări:
+40. [REZOLVAT 1+3+4] Migrări:
+    - Fix 1: down() din harden_device_uuid șterge acum trackings_tracking_session_id_index.
+      Testul pică fără fix ("index already exists").
+    - Fix 3: down() din widen_transit_feed_text_columns scurtează valorile la 255 de caractere înainte de varchar.
+    - Fix 4: migrarea nouă 2026_11_12_090000_widen_transit_stop_sequence schimbă stop_sequence din smallint în unsignedInteger.
+      ATENȚIE: pe producție rescrie transit_stop_times, durează minute și blochează scrierile în tabel.
+    - Nu s-a modificat: create_planned_routes_tables (down() e corect pentru o migrare de creare).
+    - Teste: MigrationsTest (3). Testul pentru stop_sequence nu poate dovedi mare lucru pe SQLite (smallint = integer).
     - harden_device_uuid: down() nu șterge indexul trackings_tracking_session_id_index.
     - create_planned_routes_tables: down() șterge tabelele necondiționat.
     - widen_transit_feed_text_columns: down() poate trunchia datele.
     - transit_gtfs: stop_sequence e smallint (max 65535), deci valorile mai mari sunt trunchiate silențios.
 
-41. RouteImportService
+41. [REZOLVAT] RouteImportService
+    - Fix:
+      - KML-ul dezarhivat dintr-un KMZ are maximum 20 MB (înainte 50 MB).
+      - Altitudinile se cer prin Http::pool (concurrency 5, connectTimeout 3 s, timeout 10 s).
+        Cel mai rău caz: ~20 s în loc de ~200 s.
+      - Rămâne „totul sau nimic”: dacă o bucată eșuează, importul reușește fără altitudine.
+    - Teste: RouteImportServiceTest (3).
     - Un KMZ de până la 50 MB e încărcat în DOMDocument.
     - Urmează până la 10 apeluri Geoapify secvențiale în interiorul request-ului Livewire.
 
-42. UserProfileController:
+42. [REZOLVAT] UserProfileController:
+    - Fix:
+      - avatar() salvează fișierul nou, actualizează profilul și abia apoi șterge fișierul vechi.
+      - edit() folosește profilul existent sau un UserProfile nesalvat, deci GET nu mai scrie în baza de date.
+      - Admin delete șterge și fișierul de avatar, după ce utilizatorul a fost șters.
+    - Teste: ProfileAvatarTest (3).
     - avatar() șterge avatarul vechi înainte să-l salveze pe cel nou.
     - edit() scrie în baza de date pe un request GET (firstOrCreate).
     - Ștergerea unui user din admin lasă fișierul de avatar orfan.
 
-43. RailTimetableProvider
+43. [REZOLVAT] RailTimetableProvider
+    - Fix: data curentă pentru valabilitate e calculată în Europe/Bucharest (TIMEZONE + today()).
+    - Teste: RailTimetableTimezoneTest (2). Am verificat că pică fără fix.
+    - Observație, NEschimbată: config/app.php are 'timezone' => 'UTC' scris fix, iar APP_TIMEZONE din .env e ignorat.
     - Valabilitatea orarului e verificată în UTC, nu în ora României.
 
-44. FuelPriceService::caBundle
+44. [REZOLVAT] FuelPriceService::caBundle
+    - Fix:
+      - Se încearcă pe rând două locații fixe: storage/app/certs/fuel-prices-ca.pem și TEMP/symbiot-fuel-prices-ca.pem.
+        Fiecare e refolosită cât timp e actuală.
+      - Fără tempnam(); dacă nicio locație nu se poate scrie, se folosește verificarea TLS implicită (true).
+    - Teste: FuelPriceCaBundleTest (2).
     - Creează un fișier temporar (tempnam) la fiecare apel dacă directorul storage nu e scriibil.
 
 
 E. FRONTEND: COMPORTAMENT
 -------------------------
-45. Fetch-uri fără verificarea res.ok sau cu json() apelat înaintea verificării:
+45. [REZOLVAT] Fetch-uri fără verificarea res.ok sau cu json() apelat înaintea verificării:
+    - Fix:
+      - Modulul nou resources/js/http.js are fetchJson() + readJson() + HttpError.
+        Tratează explicit login redirect, 419, 429, răspunsurile non-JSON și JSON-ul invalid,
+        apoi folosește mesajul de la server.
+      - Aplicat în 11 locuri din map.js și current-position.js
+        (tourism are acum try/catch, iar location/update are .catch).
+    - Teste: tests-js/http.test.js (6). JS: 34/34.
+    - BUG NOU găsit și REPARAT: resetMap() trimite /location/update cu {active:false} fără lat/lon,
+      iar cererea primea mereu 422.
+      - lat/lon sunt acum required_unless:active,false.
+      - Fără coordonate, ultima poziție e ștearsă din cache.
+      - Contractul existent („active=false cu coordonate salvează poziția”) a rămas neschimbat.
+      - 2 teste noi în UpdateLocationTest.
     - map.js:1051, 1328, 1861, 2216, 2467, 3159-3175, 3255
     - current-position.js:156
     - Efect: erorile 419 și 500 apar ca "Unexpected token <" sau trec neobservate.
 
-46. map.js:2382-2414
+46. [REZOLVAT] map.js:2382-2414
+    - Fix:
+      - /location/toggle trece prin fetchJson în try/catch; la eroare, mesajul apare în #city-location-status.
+      - Harta rămâne vizibilă cât timp se caută orașul; doar mobility_card (filtrele POI) e ascuns.
+    - Neverificat în browser.
     - Face throw într-un handler async, deci apare o promise rejection netratată.
     - Harta dispare cât timp se caută un oraș.
 
-47. map.js:3376
+47. [REZOLVAT] map.js:3376
+    - Fix: eticheta se ia din span.poi-filter-name (fallback: data-type).
     - categoryLabels citește iconița în loc de numele categoriei, deci toast-urile de eroare arată "⛽ (HTTP 500)".
 
-48. map.js:3711
+48. [REZOLVAT] map.js:3711
+    - Fix:
+      - loadNearby() pornește cu un debounce de 400 ms după ultima schimbare de filtru (efectele vizuale rămân imediate).
+      - Un AbortController per loadNearby(): un apel nou sau debifarea tuturor filtrelor anulează cererile HTTP vechi.
+      - fetchPoiJsonResponse() acceptă opțiunea signal.
+    - Teste: 2 noi în tests-js/poi-map-interactions.test.js. JS: 36/36. Neverificat în browser.
     - Filtrele POI nu au debounce și nu folosesc AbortController.
     - Bifarea a 5 categorii pornește 5 seturi de request-uri în paralel.
 
-49. modals/acquire.blade.php
+49. [REZOLVAT] modals/acquire.blade.php
+    - Fix:
+      - Modalul are butonul „Anulează” (#poiLoadingCancel → cancelPoiLoad(): oprește încărcarea curentă și închide modalul).
+      - Cererea de subcategorii are timeout de 10 s și e legată de anularea încărcării POI.
+    - Neverificat în browser.
     - Modalul e static și nu are buton de anulare.
     - Dacă updateSubcategoryAvailability nu răspunde, interfața rămâne blocată.
 
-50. transit-coverage.js:72-120
+50. [REZOLVAT] transit-coverage.js:72-120
+    - Fix:
+      - Intervalul crește: 2 s (primul minut), 5 s (până la 5 min), apoi 15 s
+        (resources/js/transit-polling.js → pollDelayMs).
+      - După 30 de minute polling-ul se oprește cu un mesaj, iar harta rămâne utilizabilă.
+      - În tab-ul ascuns polling-ul așteaptă până la visibilitychange.
+    - Teste: tests-js/transit-polling.test.js (4). JS: 40/40.
     - Polling-ul la 2 s nu are limită de încercări și nu ține cont de document.hidden.
 
-51. navigation.js:373
+51. [REZOLVAT] navigation.js:373
+    - Fix:
+      - shouldSendPoint() (resources/js/navigation-tracking.js) trimite doar fixurile cu precizie ≤50 m,
+        la ≥10 m sau ≥10 s de ultimul punct, și un singur fix odată. Markerul de pe hartă se actualizează la fiecare fix.
+      - pagehide trimite /tracking/stop prin sendBeacon (_token în FormData);
+        o pagină restaurată din bfcache se reîncarcă.
+      - Timeout GPS = doar text de status; celelalte erori au un singur toast per serie.
+    - Teste: tests-js/navigation-tracking.test.js (5). JS: 45/45. Neverificat pe telefon.
     - Trimite fiecare fix GPS fără throttle.
     - Nu oprește sesiunea la pagehide, deci aceasta rămâne deschisă la închiderea tab-ului.
     - Afișează un toast nou la fiecare timeout.
 
-52. tracks.js:697 (loadTrack)
+52. [REZOLVAT] tracks.js:697 (loadTrack)
+    - Fix:
+      - TrackLoader.sessions()/points() acceptă signal.
+      - loadSessions()/loadTrack() au câte un AbortController: o cerere nouă o anulează pe cea veche,
+        iar schimbarea sau golirea datei anulează și traseul în curs.
+      - Înainte de desenare se verifică dacă cererea mai e cea curentă; anulările nu afișează eroare.
+    - Fără test automat (tracks.js depinde de OpenLayers și DOM). Neverificat în browser.
     - Nu folosește request id și nici abort, deci un răspuns vechi poate suprascrie traseul nou.
 
-53. traseu.js
+53. [REZOLVAT] traseu.js
+    - Fix:
+      - traseu.js reține geometria desenată și nu reconstruiește harta la un morph Livewire dacă traseul și ținta sunt aceleași.
+      - Livewire Trasee: lista selectează coloanele fără geometry; doar traseul selectat se încarcă cu geometrie.
+        Am scos data-route-geometry din rânduri și handler-ul de click care o citea.
+    - Teste: TraseeListTest (2). Neverificat în browser.
     - Harta OpenLayers e distrusă și reconstruită la fiecare morph Livewire.
     - route-list.blade.php:18 pune toată geometria în HTML pentru fiecare rând.
 
-54. Pagina apare o clipă nestilizată (FOUC):
+54. [REZOLVAT] Pagina apare o clipă nestilizată (FOUC):
+    - Fix:
+      - home și profile încarcă .scss prin @push('css'), în <head>; JS-ul rămâne la final.
+      - Un script inline mic, imediat după deschiderea #symbiotShell, setează data-theme
+        (localStorage sau preferința sistemului) înainte de desenarea paginii.
+      - Shell-ul era deja în <head> de la punctul 14.
+    - Teste: PageAssetsTest (2).
     - SCSS-ul e pus în stack-ul 'js', care se randează la finalul <body>.
     - Tema dark se aplică abia la DOMContentLoaded, deci pagina pornește întâi pe tema luminoasă.
 
-55. app.js:12 importă dashboard.js global, deci codul de tracking și GPS rulează pe toate paginile.
+55. [REZOLVAT] app.js:12 importă dashboard.js global
+    - Precizare: codul GPS nu rula efectiv în afara home (#trackingmyself există doar acolo),
+      dar ~23 KB de JS se încărcau pe toate paginile.
+    - Fix:
+      - Secțiunea „NAVIGATION & THEME” (sidebar, meniu mobil, temă) e mutată în resources/js/shell.js, importat de app.js.
+      - pages/dashboard.js (tracking GPS + dashboard-ul cu harta) se încarcă doar pe home.
+    - Teste: tests-js/app-structure.test.js (3). Neverificat în browser., deci codul de tracking și GPS rulează pe toate paginile.
 
-56. navigation.js:613
+56. [REZOLVAT] navigation.js:613
+    - Fix:
+      - navigation.js (Leaflet) și current-position.js (OpenLayers; acesta lipsea din audit) folosesc acum
+        /map/tiles/{z}/{x}/{y} în loc de tile.openstreetmap.org.
+      - Atribuirea comună MAP_ATTRIBUTION (resources/js/map-attribution.js: „© OpenStreetMap contributors · Powered by Geoapify”)
+        apare pe toate cele 5 hărți: map, tracks, traseu, navigation, current-position.
+    - Teste: tests-js/map-tiles.test.js (2). JS: 50/50. Neverificat în browser.
     - Ia tile-urile direct de pe tile.openstreetmap.org, ceea ce încalcă politica OSM.
     - Ar trebui să folosească proxy-ul /map/tiles.
 
-57. transit-stops-layer.js
+57. [REZOLVAT] transit-stops-layer.js
+    - Fix:
+      - Centrul vehiculelor e acum o stare internă.
+      - moveVehicleCenter() e apelat din callback-ul GPS din map.js; la o mutare de ≥300 m vehiculele se reîmprospătează imediat.
+      - BUG NOU rezolvat: setVisible(true) repornește urmărirea vehiculelor
+        (înainte, după debifarea și rebifarea „Autobuz”, vehiculele dispăreau definitiv).
+      - encodeURIComponent(feed) în cele 3 URL-uri.
+    - Rămas deschis: stațiile nu se reîncarcă când utilizatorul iese din zona inițială (1,5 km).
+    - Teste: tests-js/vehicle-center.test.js (3). JS: 53/53. Neverificat în browser.
     - watchVehicles nu se actualizează când utilizatorul se mișcă.
     - feed e pus în URL fără encodeURIComponent.
 
-58. dashboard.js:31-44
+58. [REZOLVAT] dashboard.js:31-44
+    - Fix:
+      - Modulul nou resources/js/notify.js: toast Swal neblocant, cu fallback în consolă.
+      - Am înlocuit toate cele 10 apeluri alert(): 7 în dashboard.js și 3 în profile.js
+        (cele din profile.js nu erau în audit).
+    - Teste: tests-js/notify.test.js (3), inclusiv „niciun alert( în resources/js”. JS: 56/56.
     - Folosește alert() blocant pentru erorile GPS, în loc de Swal sau toast, ca în restul aplicației.
 
-59. Diff-ul necomis:
+59. [REZOLVAT] Diff-ul necomis:
+    - Fix:
+      - Comentariul HTML a devenit comentariu Blade.
+      - CSS-ul mort a fost șters: .dashboard-map-content #mobility_card (suprascris integral de .dashboard-route-panel #mobility_card),
+        acordeonul .dashboard-poi-disclosure/.dashboard-poi-count (9 reguli) și regula goală.
+      - JS-ul mort a fost șters: mutarea în #dashboard-poi-filters, poiAccordion/closePoiAccordion (+3 apeluri),
+        4× setText('dashboard-poi-count') și 2 linii din map.js.
+      - #mobility_card și poiFiltersCard rămân, pentru că sunt folosite.
+    - Nicio schimbare vizuală. Verificat prin build și teste.
     - Comentariu HTML în română ajunge la client (home.blade.php:258).
     - dashboard.scss:816-836 e CSS mort.
     - dashboard.scss:1621 e o regulă goală.
@@ -508,14 +655,20 @@ F. TRADUCERI (I18N)
     - Etichetele categoriilor POI din config/poi.php nu sunt traduse.
     - home.blade.php:274 folosește textul 'Poliție' ca logică de program.
 
-62. Chei folosite în view-uri, dar care lipsesc din en/ro/it.json:
+62. [REZOLVAT parțial] Chei folosite în view-uri, dar care lipsesc din en/ro/it.json:
+    - Fix: am adăugat 17 chei în en/ro/it: autentificarea (14), Search city for map, Date și Translate
+      (doar cheia; butonul de la punctul 8 nu a fost atins).
+    - Nu s-au tradus: cele 21 de chei ale cardurilor ascunse Phone/Wifi/Camera/iDrone; vor fi șterse la punctul 70.
+    - Teste: TranslationKeysTest (2). Toate cheile __() din view-uri există în en/ro/it, iar fișierele au aceleași chei.
+      Cardurile ascunse sunt excluse temporar.
     - Search city for map, Translate, Date, Name, Phone, Camera, Wifi, Acquire, Activate, Activate Wifi,
       Activate target, Approach, Check, Configure, Connect, Control, Destroy, Detect Cameras, Disconnect,
       Download Data, Listen, Record, Remove, Set Target, iDrone System
     - Paginile de autentificare: Password, Confirm Password, Email Address, Remember Me,
       Forgot Your Password?, Reset Password, Send Password Reset Link, Verify Your Email Address etc.
 
-63. it.json:139
+63. [REZOLVAT] it.json:139
+    - Fix: am corectat cheia în "Import a GPX, KML or KMZ to get started."; traducerea italiană a rămas aceeași.
     - Cheia însăși a fost tradusă: "Import a GPX, KML o KMZ to get started."
     - View-ul folosește "...KML or KMZ...", deci în italiană apare textul în engleză.
 

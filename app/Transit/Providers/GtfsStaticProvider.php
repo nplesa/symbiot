@@ -4,6 +4,7 @@ namespace App\Transit\Providers;
 
 use App\Support\PublicUrlGuard;
 use App\Transit\Contracts\TransitProvider;
+use App\Transit\Exceptions\GtfsFeedInvalidException;
 use App\Transit\Exceptions\GtfsFeedTooLargeException;
 use App\Transit\Models\TransitFeed;
 use App\Transit\Services\FeedProgress;
@@ -56,6 +57,7 @@ class GtfsStaticProvider implements TransitProvider
         try {
             $downloadErrors = [];
             $downloaded = false;
+            $allTooLarge = true;
             foreach ($downloadUrls as $url) {
                 try {
                     // Catalog URLs are third-party data: never let them reach internal hosts.
@@ -98,10 +100,15 @@ class GtfsStaticProvider implements TransitProvider
                     break;
                 } catch (Throwable $e) {
                     $downloadErrors[] = $url . ': ' . $e->getMessage();
+                    $allTooLarge = $allTooLarge && $this->isTooLarge($e);
                 }
             }
             if (! $downloaded) {
-                throw new RuntimeException('All GTFS download URLs failed. ' . implode(' | ', $downloadErrors));
+                $message = 'All GTFS download URLs failed. ' . implode(' | ', $downloadErrors);
+                // Network errors may be temporary; a feed that is too large everywhere is not.
+                throw $allTooLarge
+                    ? new GtfsFeedTooLargeException($message)
+                    : new RuntimeException($message);
             }
 
             $hash = hash_file('sha256', $path);
@@ -120,7 +127,7 @@ class GtfsStaticProvider implements TransitProvider
             try {
                 foreach (['stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt'] as $required) {
                     if ($zip->locateName($required) === false) {
-                        throw new RuntimeException("GTFS feed is missing {$required}.");
+                        throw new GtfsFeedInvalidException("GTFS feed is missing {$required}.");
                     }
                 }
 

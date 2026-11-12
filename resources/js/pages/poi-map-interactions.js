@@ -128,6 +128,7 @@ export function buildPoiCategoryRequests(selectedTypes, {
 export async function fetchPoiJsonResponse(url, {
     timeoutMs = 35_000,
     fetchImpl = fetch,
+    signal = null,
 } = {}) {
     const controller = new AbortController();
     let timedOut = false;
@@ -135,6 +136,13 @@ export async function fetchPoiJsonResponse(url, {
         timedOut = true;
         controller.abort();
     }, timeoutMs);
+    // A newer POI load cancels this one (the caller passes its own signal).
+    const abortFromCaller = () => controller.abort();
+    if (signal?.aborted) {
+        controller.abort();
+    } else {
+        signal?.addEventListener('abort', abortFromCaller, { once: true });
+    }
 
     try {
         const response = await fetchImpl(url, {
@@ -151,6 +159,7 @@ export async function fetchPoiJsonResponse(url, {
         throw error;
     } finally {
         clearTimeout(timeout);
+        signal?.removeEventListener('abort', abortFromCaller);
     }
 }
 

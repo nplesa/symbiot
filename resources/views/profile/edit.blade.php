@@ -7,9 +7,9 @@
     {{-- PAGE HEADER --}}
     <div class="profile-heading">
         <div>
-            <span class="profile-eyebrow">ACCOUNT SETTINGS</span>
-            <h1>My Profile</h1>
-            <p>Gestionează informațiile personale și securitatea contului tău.</p>
+            <span class="profile-eyebrow">{{ __('ACCOUNT SETTINGS') }}</span>
+            <h1>{{ __('My Profile') }}</h1>
+            <p>{{ __('Manage your personal information and account security.') }}</p>
         </div>
     </div>
 
@@ -24,7 +24,7 @@
     {{-- VALIDATION ERRORS --}}
     @if($errors->any())
         <div class="alert alert-danger">
-            <strong>Verifică informațiile introduse.</strong>
+            <strong>{{ __('Please check the information you entered.') }}</strong>
             <ul class="mb-0 mt-2">
                 @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -40,8 +40,8 @@
 
             <div class="profile-card-heading">
                 <div>
-                    <h2>Profile photo</h2>
-                    <p>Fotografia asociată contului tău.</p>
+                    <h2>{{ __('Profile photo') }}</h2>
+                    <p>{{ __('The photo linked to your account.') }}</p>
                 </div>
                 <i class="fa-solid fa-camera"></i>
             </div>
@@ -50,7 +50,7 @@
                 @if($profile->avatar)
                     <img
                         src="{{ asset('storage/'.$profile->avatar) }}"
-                        alt="Profile photo"
+                        alt="{{ __('Profile photo') }}"
                     >
                 @else
                     <span>{{ strtoupper(substr($user->name, 0, 1)) }}</span>
@@ -80,11 +80,11 @@
                     id="chooseAvatar"
                 >
                     <i class="fa-solid fa-image me-2"></i>
-                    Choose photo
+                    {{ __('Choose photo') }}
                 </button>
 
                 <div id="avatarFileName" class="profile-help mt-2">
-                    No photo selected
+                    {{ __('No photo selected') }}
                 </div>
 
                 <button
@@ -94,7 +94,7 @@
                     disabled
                 >
                     <i class="fa-solid fa-upload me-2"></i>
-                    Upload photo
+                    {{ __('Upload photo') }}
                 </button>
             </form>
 
@@ -103,7 +103,7 @@
                     method="POST"
                     action="{{ route('app.profile.avatar.remove') }}"
                     class="mt-2"
-                    onsubmit="return confirm('Sigur dorești să elimini fotografia de profil?');"
+                    onsubmit="return confirm(@js(__('Are you sure you want to remove your profile photo?')));"
                 >
                     @csrf
                     @method('DELETE')
@@ -113,13 +113,13 @@
                         class="btn btn-outline-secondary w-100"
                     >
                         <i class="fa-solid fa-trash me-2"></i>
-                        Remove photo
+                        {{ __('Remove photo') }}
                     </button>
                 </form>
             @endif
 
             <small class="profile-help">
-                JPG, PNG sau WEBP. Maximum 4 MB.
+                {{ __('JPG, PNG or WEBP. Maximum 4 MB.') }}
             </small>
 
         </section>
@@ -129,8 +129,8 @@
 
             <div class="profile-card-heading">
                 <div>
-                    <h2>Personal information</h2>
-                    <p>Informațiile principale ale contului.</p>
+                    <h2>{{ __('Personal information') }}</h2>
+                    <p>{{ __('The main information of your account.') }}</p>
                 </div>
                 <i class="fa-solid fa-user"></i>
             </div>
@@ -145,7 +145,7 @@
                 <div class="profile-form-grid">
 
                     <div class="profile-field">
-                        <label for="name">Full name</label>
+                        <label for="name">{{ __('Full name') }}</label>
                         <input
                             id="name"
                             name="name"
@@ -157,7 +157,7 @@
                     </div>
 
                     <div class="profile-field">
-                        <label for="username">Username</label>
+                        <label for="username">{{ __('Username') }}</label>
                         <input
                             id="username"
                             name="username"
@@ -169,7 +169,7 @@
                     </div>
 
                     <div class="profile-field">
-                        <label for="email">Email address</label>
+                        <label for="email">{{ __('Email address') }}</label>
                         <input
                             id="email"
                             name="email"
@@ -181,7 +181,7 @@
                     </div>
 
                     <div class="profile-field">
-                        <label for="profile_current_password">Current password</label>
+                        <label for="profile_current_password">{{ __('Current password') }}</label>
                         <input
                             id="profile_current_password"
                             name="current_password"
@@ -190,12 +190,12 @@
                             aria-describedby="profile_current_password_hint"
                         >
                         <small id="profile_current_password_hint" class="profile-help mt-1">
-                            Necesară doar dacă schimbi adresa de email.
+                            {{ __('Only needed if you change your email address.') }}
                         </small>
                     </div>
 
                     <div class="profile-field">
-                        <label for="phone">Phone number</label>
+                        <label for="phone">{{ __('Phone number') }}</label>
                         <input
                             id="phone"
                             name="phone"
@@ -206,7 +206,7 @@
                     </div>
 
                     <div class="profile-field">
-                        <label for="birth_date">Date of birth</label>
+                        <label for="birth_date">{{ __('Date of birth') }}</label>
                         <input
                             id="birth_date"
                             name="birth_date"
@@ -222,8 +222,8 @@
                 {{-- ADDRESS --}}
                 <div class="profile-card-heading profile-address-heading">
                     <div>
-                        <h2>Address</h2>
-                        <p>Adresa ta de domiciliu sau corespondență.</p>
+                        <h2>{{ __('Address') }}</h2>
+                        <p>{{ __('Your home or mailing address.') }}</p>
                     </div>
                     <i class="fa-solid fa-location-dot"></i>
                 </div>
@@ -231,7 +231,7 @@
                 <div class="profile-form-grid">
 
                     <div class="profile-field">
-                        <label for="address_country">Country</label>
+                        <label for="address_country">{{ __('Country') }}</label>
                         <input
                             id="address_country"
                             name="address_country"
@@ -242,7 +242,7 @@
                     </div>
 
                     <div class="profile-field">
-                        <label for="county">County / State</label>
+                        <label for="county">{{ __('County / State') }}</label>
                         <input
                             id="county"
                             name="county"
@@ -253,7 +253,7 @@
                     </div>
 
                     <div class="profile-field">
-                        <label for="city">City</label>
+                        <label for="city">{{ __('City') }}</label>
                         <input
                             id="city"
                             name="city"
@@ -264,7 +264,7 @@
                     </div>
 
                     <div class="profile-field">
-                        <label for="postal_code">Postal code</label>
+                        <label for="postal_code">{{ __('Postal code') }}</label>
                         <input
                             id="postal_code"
                             name="postal_code"
@@ -275,7 +275,7 @@
                     </div>
 
                     <div class="profile-field profile-field-full">
-                        <label for="street">Street and number</label>
+                        <label for="street">{{ __('Street and number') }}</label>
                         <input
                             id="street"
                             name="street"
@@ -290,7 +290,7 @@
                 <div class="profile-actions">
                     <button type="submit" class="btn btn-primary">
                         <i class="fa-solid fa-check me-2"></i>
-                        Save changes
+                        {{ __('Save changes') }}
                     </button>
                 </div>
 
@@ -302,8 +302,8 @@
 
             <div class="profile-card-heading">
                 <div>
-                    <h2>Security</h2>
-                    <p>Schimbă parola contului tău.</p>
+                    <h2>{{ __('Security') }}</h2>
+                    <p>{{ __('Change your account password.') }}</p>
                 </div>
                 <i class="fa-solid fa-shield-halved"></i>
             </div>
@@ -316,7 +316,7 @@
                 @method('PUT')
 
                 <div class="profile-field">
-                    <label for="current_password">Current password</label>
+                    <label for="current_password">{{ __('Current password') }}</label>
                     <input
                         id="current_password"
                         name="current_password"
@@ -329,7 +329,7 @@
                 <div class="profile-form-grid mt-3">
 
                     <div class="profile-field">
-                        <label for="password">New password</label>
+                        <label for="password">{{ __('New password') }}</label>
                         <input
                             id="password"
                             name="password"
@@ -341,7 +341,7 @@
 
                     <div class="profile-field">
                         <label for="password_confirmation">
-                            Confirm new password
+                            {{ __('Confirm new password') }}
                         </label>
                         <input
                             id="password_confirmation"
@@ -357,7 +357,7 @@
                 <div class="profile-actions">
                     <button type="submit" class="btn btn-primary">
                         <i class="fa-solid fa-lock me-2"></i>
-                        Update password
+                        {{ __('Update password') }}
                     </button>
                 </div>
 
@@ -368,9 +368,10 @@
 </div>
 @endsection
 
+@push('css')
+    @vite('resources/sass/pages/profile.scss')
+@endpush
+
 @push('js')
-    @vite([
-        'resources/sass/pages/profile.scss',
-        'resources/js/pages/profile.js',
-        ])
+    @vite('resources/js/pages/profile.js')
 @endpush

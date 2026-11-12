@@ -10,6 +10,14 @@ use SimpleXMLElement;
 
 class RailTimetableProvider
 {
+    /** Validity dates in the published timetables are Romanian calendar days; the app runs in UTC. */
+    private const TIMEZONE = 'Europe/Bucharest';
+
+    private function today(): string
+    {
+        return now(self::TIMEZONE)->format('Ymd');
+    }
+
     /**
      * @param  list<array<string, mixed>>  $pois
      * @return list<array<string, mixed>>
@@ -40,8 +48,8 @@ class RailTimetableProvider
             try {
                 $timetable = $this->loadPackageTimetable($source);
                 if ($timetable === null
-                    || now()->format('Ymd') < $timetable['valid_from']
-                    || now()->format('Ymd') > $timetable['valid_until']) {
+                    || $this->today() < $timetable['valid_from']
+                    || $this->today() > $timetable['valid_until']) {
                     continue;
                 }
 
@@ -130,8 +138,8 @@ class RailTimetableProvider
                 fn (): array => $this->downloadAndParse($url, $source['operator'])
             );
 
-            if (now()->format('Ymd') >= $timetable['valid_from']
-                && now()->format('Ymd') <= $timetable['valid_until']) {
+            if ($this->today() >= $timetable['valid_from']
+                && $this->today() <= $timetable['valid_until']) {
                 return $timetable;
             }
         }

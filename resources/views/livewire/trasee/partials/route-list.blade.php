@@ -15,7 +15,6 @@
                 role="button"
                 tabindex="0"
                 data-route-id="{{ $route->id }}"
-                data-route-geometry='{{ json_encode($route->geometry, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}'
                 aria-label="{{ __('Select route') }} {{ $route->name ?: __('unnamed') }}"
             >
                 <span class="trasee-item__icon"><x-trasee-icon name="turn" /></span>

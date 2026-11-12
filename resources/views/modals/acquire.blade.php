@@ -4,15 +4,17 @@
 
             <div class="modal-body">
 
-                <h5 class="fw-bold" id="poiLoadingModalTitle">ACQUIRING DATA</h5>
+                <h5 class="fw-bold" id="poiLoadingModalTitle">{{ __('ACQUIRING DATA') }}</h5>
 
                 <p class="text-muted mb-0" id="poiLoadingModalDescription">
-                    Fetching nearby interest points...
+                    {{ __('Fetching nearby points of interest...') }}
                 </p>
-                <div class="progress mt-3" role="progressbar" aria-label="Încărcare puncte de interes">
+                <div class="progress mt-3" role="progressbar" aria-label="{{ __('Loading points of interest') }}">
                     <div class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
                 </div>
-                <p class="text-muted small mt-2 mb-0" id="poi-loading-elapsed" aria-live="polite">Timp scurs: 00:00</p>
+                <p class="text-muted small mt-2 mb-0" id="poi-loading-elapsed" aria-live="polite">{{ __('Elapsed time') }}: 00:00</p>
+                {{-- The backdrop is static, so this is the way out of a slow or stuck load. --}}
+                <button type="button" class="btn btn-outline-secondary btn-sm mt-3" id="poiLoadingCancel">{{ __('Cancel') }}</button>
 
             </div>
 

@@ -299,28 +299,6 @@
     min-height: 340px;
 }
 
-.dashboard-map-content #mobility_card {
-    position: absolute;
-    z-index: 5;
-    top: 16px;
-    left: 16px;
-    width: min(330px, calc(100% - 32px));
-    max-height: calc(100% - 32px);
-    margin: 0;
-    overflow: auto;
-    border: 1px solid rgba(220, 228, 239, .95);
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(28, 42, 72, .15);
-}
-
-.dashboard-map-content #mobility_card > .card-header {
-    padding: .7rem .9rem;
-    font-size: .9rem;
-    font-weight: 750;
-}
-
-.dashboard-map-content #mobility_card > .card-body { padding: .8rem; }
-
 .dashboard-map-page #city-location-form:not(.d-none) {
     position: fixed;
     top: 86px;
@@ -536,13 +514,6 @@
 .dashboard-nearby-item-copy small { color: var(--dashboard-muted); font-size: .7rem; }
 .dashboard-nearby-distance { flex: 0 0 auto; color: var(--dashboard-muted); font-size: .7rem; }
 
-.dashboard-poi-disclosure { margin: 0 1.1rem 1.2rem; border: 0; background: transparent; }
-.dashboard-poi-disclosure .accordion-item { overflow: hidden; border: 1px solid var(--dashboard-line); border-radius: 10px; background: var(--dashboard-panel-bg); }
-.dashboard-poi-disclosure .accordion-button { gap: .45rem; padding: .75rem .85rem; background: var(--dashboard-panel-bg); color: var(--dashboard-ink); font-size: .8rem; font-weight: 750; box-shadow: none; }
-.dashboard-poi-disclosure .accordion-button:not(.collapsed) { background: var(--dashboard-hover-bg); color: var(--dashboard-ink); }
-.dashboard-poi-disclosure .accordion-button > i { color: var(--dashboard-blue); }
-.dashboard-poi-disclosure .accordion-body { padding: .45rem .8rem .85rem; }
-.dashboard-poi-count { margin-left: auto; padding: .22rem .5rem; border-radius: 99px; background: var(--dashboard-blue-soft); color: var(--dashboard-blue); font-size: .68rem; font-weight: 800; white-space: nowrap; }
 
 .dashboard-route-panel #mobility_card {
     position: static;
@@ -750,7 +721,6 @@
 .symbiot-shell[data-theme="dark"] .dashboard-panel-heading h1,
 .symbiot-shell[data-theme="dark"] .dashboard-section-title h3,
 .symbiot-shell[data-theme="dark"] .dashboard-nearby-item,
-.symbiot-shell[data-theme="dark"] .dashboard-poi-disclosure .accordion-button { color: var(--dashboard-ink); }
 
 .symbiot-shell[data-theme="dark"] .dashboard-live-poi-count { color: #9bc4ff; }
 
@@ -842,7 +812,6 @@
     .dashboard-countdown { margin-top: .45rem; font-size: 2.4rem; }
     .dashboard-route-map-info { margin-top: 1rem; }
     .dashboard-route-map-info p { padding: .7rem .8rem; border-radius: 8px; background: #f4f7fb; }
-    .dashboard-poi-disclosure,
     .dashboard-nearby-section { margin-inline: 1.25rem; }
 }
 
@@ -1082,10 +1051,6 @@
     width: 100%;
     position: relative;
     display: grid;
-}
-
-.dashboard-panel-heading-bottom {
-    
 }
 
 .dashboard-search-status {

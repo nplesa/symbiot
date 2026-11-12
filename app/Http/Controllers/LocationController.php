@@ -28,13 +28,23 @@ class LocationController extends Controller
     {
         $request->validate(
             [
-                'lat' => ['required', 'numeric', 'between:-90,90'],
-                'lon' => ['required', 'numeric', 'between:-180,180'],
+                // Turning location off (resetMap) sends only active=false.
+                'lat' => ['required_unless:active,false,0', 'nullable', 'numeric', 'between:-90,90'],
+                'lon' => ['required_unless:active,false,0', 'nullable', 'numeric', 'between:-180,180'],
                 'heading' => ['nullable', 'numeric', 'between:0,360'],
                 'active' => ['nullable', 'boolean'],
             ]);
 
         $user = auth()->user();
+
+        // resetMap() turns location off without a position: drop the last one instead of storing nulls.
+        if (! $request->filled('lat') || ! $request->filled('lon')) {
+            cache()->forget("user_location_{$user->id}");
+
+            return response()->json([
+                'success' => true,
+            ]);
+        }
 
         cache()->put(
             "user_location_{$user->id}",

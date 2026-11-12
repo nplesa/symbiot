@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -207,13 +208,18 @@ class FuelPriceService
     /** @return array<string, array<string, mixed>> Stations with their lowest price for the requested fuel, by station id. */
     private function fetchPriced(float $lat, float $lon, int $radius, string $category): array
     {
-        $response = Http::withOptions(['verify' => $this->caBundle()])->timeout(20)->get(self::ENDPOINT, [
-            'lat' => $lat,
-            'lon' => $lon,
-            'buffer' => $radius,
-            'CSVGasCatalogProductIds' => $category,
-            'OrderBy' => 'dist',
-        ]);
+        try {
+            $response = Http::withOptions(['verify' => $this->caBundle()])->timeout(20)->get(self::ENDPOINT, [
+                'lat' => $lat,
+                'lon' => $lon,
+                'buffer' => $radius,
+                'CSVGasCatalogProductIds' => $category,
+                'OrderBy' => 'dist',
+            ]);
+        } catch (ConnectionException $exception) {
+            // Callers handle RuntimeException as "price service unavailable"; a timeout is the same case.
+            throw new \RuntimeException('Monitorul Prețurilor is unavailable.', 0, $exception);
+        }
 
         $xml = $response->successful() ? $this->parse($response->body()) : null;
         if ($xml === null) {
@@ -316,29 +322,52 @@ class FuelPriceService
     }
 
     /** The host omits its intermediate certificate, so it is appended to the system CA bundle. */
-    private function caBundle(): string|bool
+    /** CA bundle path for the price host, or true (default verification) when one cannot be built. */
+    protected function caBundle(): string|bool
     {
-        $locations = openssl_get_cert_locations();
-        $system = collect([ini_get('curl.cainfo'), ini_get('openssl.cafile'), $locations['default_cert_file'] ?? null, '/etc/ssl/certs/ca-certificates.crt'])
-            ->first(fn ($path): bool => is_string($path) && $path !== '' && is_file($path));
+        $system = $this->systemCertificateFile();
         $configured = (string) config('services.petroleum.ca_certificate');
         $intermediate = preg_match('~^(/|[A-Za-z]:[\\\\/])~', $configured) ? $configured : base_path($configured);
         if (! $system || ! is_file($intermediate)) {
             return true;
         }
 
-        $bundle = storage_path('app/certs/fuel-prices-ca.pem');
-        if (! is_file($bundle) || filemtime($bundle) < max(filemtime($system), filemtime($intermediate))) {
-            $contents = file_get_contents($system) . PHP_EOL . file_get_contents($intermediate);
+        $sourcesChangedAt = max(filemtime($system), filemtime($intermediate));
+        $contents = null;
+
+        // Fixed file names only: the bundle is reused across requests instead of creating
+        // a new temp file on every call when storage/ is not writable.
+        foreach ($this->caBundleCandidates() as $bundle) {
+            if (is_file($bundle) && filemtime($bundle) >= $sourcesChangedAt) {
+                return $bundle;
+            }
+
+            $contents ??= file_get_contents($system) . PHP_EOL . file_get_contents($intermediate);
             $directory = dirname($bundle);
-            if ((! is_dir($directory) && ! @mkdir($directory, 0775, true) && ! is_dir($directory))
-                || @file_put_contents($bundle, $contents) === false) {
-                $bundle = tempnam(sys_get_temp_dir(), 'fuel-ca-');
-                file_put_contents($bundle, $contents);
+            if ((is_dir($directory) || @mkdir($directory, 0775, true) || is_dir($directory))
+                && @file_put_contents($bundle, $contents) !== false) {
+                return $bundle;
             }
         }
 
-        return $bundle;
+        return true;
+    }
+
+    /** @return list<string> */
+    protected function caBundleCandidates(): array
+    {
+        return [
+            storage_path('app/certs/fuel-prices-ca.pem'),
+            sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'symbiot-fuel-prices-ca.pem',
+        ];
+    }
+
+    protected function systemCertificateFile(): ?string
+    {
+        $locations = openssl_get_cert_locations();
+
+        return collect([ini_get('curl.cainfo'), ini_get('openssl.cafile'), $locations['default_cert_file'] ?? null, '/etc/ssl/certs/ca-certificates.crt'])
+            ->first(fn ($path): bool => is_string($path) && $path !== '' && is_file($path));
     }
 
     private function parse(string $body): ?\SimpleXMLElement

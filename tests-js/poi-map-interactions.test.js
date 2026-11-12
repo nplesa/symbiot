@@ -37,6 +37,42 @@ test('aborts a stalled POI request and reports a timeout', async () => {
     );
 });
 
+test('a superseded POI load cancels its HTTP request without reporting a timeout', async () => {
+    const caller = new AbortController();
+    let requestSignal;
+    const pending = fetchPoiJsonResponse('/api/poi/cafe', {
+        timeoutMs: 10_000,
+        signal: caller.signal,
+        fetchImpl: (_url, { signal }) => new Promise((_resolve, reject) => {
+            requestSignal = signal;
+            signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+        }),
+    });
+
+    caller.abort();
+
+    await assert.rejects(pending, (error) => error.name === 'AbortError');
+    assert.equal(requestSignal.aborted, true);
+});
+
+test('an already cancelled POI load never sends the request on its way', async () => {
+    const caller = new AbortController();
+    caller.abort();
+    let sentSignal;
+
+    await assert.rejects(
+        fetchPoiJsonResponse('/api/poi/cafe', {
+            signal: caller.signal,
+            fetchImpl: (_url, { signal }) => {
+                sentSignal = signal;
+                return Promise.reject(new DOMException('Aborted', 'AbortError'));
+            },
+        }),
+        (error) => error.name === 'AbortError'
+    );
+    assert.equal(sentSignal.aborted, true);
+});
+
 test('batches selected non-transit POI filters and adds Waze only for traffic filters', () => {
     const requests = buildPoiCategoryRequests([
         'police',

@@ -37,8 +37,9 @@ class Index extends Component
     {
         $routes = $this->ownedRoutes();
 
-        $selectedRoute = $this->selectedRouteId
-            ? $routes->firstWhere('id', $this->selectedRouteId)
+        // Only the selected route needs its (possibly 10k-point) geometry, for the map preview.
+        $selectedRoute = $this->selectedRouteId && $routes->contains('id', $this->selectedRouteId)
+            ? PlannedRoute::query()->where('user_id', auth()->id())->find($this->selectedRouteId)
             : null;
 
         if ($this->selectedRouteId !== null && $selectedRoute === null) {
@@ -234,7 +235,9 @@ class Index extends Component
     /** @return Collection<int, PlannedRoute> */
     private function ownedRoutes(): Collection
     {
+        // Everything the list shows, without geometry: it is re-rendered on every Livewire update.
         return PlannedRoute::query()
+            ->select(['id', 'user_id', 'name', 'format', 'distance', 'duration', 'created_at'])
             ->where('user_id', auth()->id())
             ->withCount('points')
             ->orderByDesc('created_at')

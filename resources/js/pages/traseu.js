@@ -11,8 +11,11 @@ import CircleStyle from 'ol/style/Circle';
 import Fill from 'ol/style/Fill';
 import Point from 'ol/geom/Point';
 import Feature from 'ol/Feature';
+import { MAP_ATTRIBUTION } from '../map-attribution.js';
 
 let routeMap = null;
+// Geometry currently drawn: Livewire morphs (typing, uploads...) must not rebuild an unchanged map.
+let drawnGeometryKey = null;
 let refreshTimer = null;
 let pendingGeometry = null;
 let initialized = false;
@@ -37,7 +40,7 @@ function getGeometryFromContainer() {
     const container = getContainer();
     return container ? parseJson(container.getAttribute('data-route-geometry')) : null;
 }
-function destroyMap() { if (routeMap) { routeMap.setTarget(null); routeMap = null; } }
+function destroyMap() { if (routeMap) { routeMap.setTarget(null); routeMap = null; } drawnGeometryKey = null; }
 function buildMap(target) {
     const source = new VectorSource();
     const vectorLayer = new VectorLayer({ source, style: new Style({ stroke: new Stroke({ color: '#0d6efd', width: 5 }) }) });
@@ -59,6 +62,7 @@ function buildMap(target) {
                 url: '/map/tiles/{z}/{x}/{y}',
                 crossOrigin: 'anonymous',
                 maxZoom: 20,
+                attributions: MAP_ATTRIBUTION,
             }) }),
             vectorLayer,
             markerLayer,
@@ -121,21 +125,21 @@ function refreshPreview() {
     const container = getContainer();
     const geometry = pendingGeometry ?? getGeometryFromContainer();
     pendingGeometry = null;
-    if (!container || !getTarget() || !geometry) { destroyMap(); return; }
+    const target = container ? getTarget() : null;
+    if (!container || !target || !geometry) { destroyMap(); return; }
+
+    const key = JSON.stringify(geometry);
+    if (routeMap && key === drawnGeometryKey && routeMap.getTargetElement() === target) {
+        routeMap.updateSize();
+        return;
+    }
+
     drawRoute(geometry);
+    drawnGeometryKey = key;
 }
 function scheduleRefresh(delay = 30) { window.clearTimeout(refreshTimer); refreshTimer = window.setTimeout(refreshPreview, delay); }
-function geometryFromRouteButton(button) { return button instanceof HTMLElement ? parseJson(button.getAttribute('data-route-geometry')) : null; }
-function bindRouteClicks() {
-    if (window.__traseuPreviewClicksBound) return;
-    window.__traseuPreviewClicksBound = true;
-    document.addEventListener('click', (event) => {
-        const button = event.target.closest('.trasee-item[data-route-geometry]');
-        if (!button) return;
-        pendingGeometry = geometryFromRouteButton(button);
-        scheduleRefresh(0);
-    });
-}
+// The route list no longer carries geometries; the preview comes from the
+// `route-selected` event and the selected-route container after the round trip.
 function bindLivewire() {
     if (!window.Livewire || window.__traseuPreviewLivewireBound) return;
     window.__traseuPreviewLivewireBound = true;
@@ -152,7 +156,6 @@ function bindLivewire() {
 }
 function initialize() {
     if (!document.querySelector('.trasee-page')) return;
-    bindRouteClicks();
     if (window.Livewire) bindLivewire();
     else document.addEventListener('livewire:init', bindLivewire, { once: true });
     scheduleRefresh(0);

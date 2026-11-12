@@ -71,6 +71,11 @@ return new class extends Migration
             $table->index(['tracking_session_id', 'sequence']);
         });
 
+        // Added in up(); the composite index above now covers the tracking_session_id foreign key.
+        Schema::table('trackings', function (Blueprint $table): void {
+            $table->dropIndex('trackings_tracking_session_id_index');
+        });
+
         Schema::table('tracking_sessions', function (Blueprint $table): void {
             $table->dropIndex('tracking_sessions_user_id_status_started_at_index');
         });

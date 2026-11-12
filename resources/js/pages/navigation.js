@@ -1,5 +1,7 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { shouldSendPoint } from '../navigation-tracking.js';
+import { MAP_ATTRIBUTION } from '../map-attribution.js';
 
 const page = document.getElementById('navigation-page');
 const status = document.getElementById('navigation-status');
@@ -15,6 +17,13 @@ let mapZooming = false;
 let followSimulation = true;
 let sessionId = null;
 let watchId = null;
+// Last point stored on the server and whether one is being sent (fixes arrive ~1/s).
+let lastSentPoint = null;
+let pointRequestBusy = false;
+// One toast per streak of GPS errors; reset by the next good fix.
+let gpsErrorNotified = false;
+// Set when pagehide ended the session; a page restored from the back/forward cache is then reloaded.
+let sessionStoppedByUnload = false;
 let currentMarker = null;
 let routeLayer = null;
 let simulationTimer = null;
@@ -338,24 +347,56 @@ function post(url, body = {}) {
 }
 
 function positionError(error) {
-    const messages = { 1: 'Permisiunea pentru localizare a fost refuzată.', 2: 'Poziția nu este disponibilă.', 3: 'Obținerea poziției a expirat.' };
+    // Timeouts are routine with a weak signal (tunnels): the watch keeps running, so only update the status.
+    if (error.code === 3) {
+        setStatus('Semnal GPS slab, aștept poziția…', 'text-warning');
+        return;
+    }
+
+    const messages = { 1: 'Permisiunea pentru localizare a fost refuzată.', 2: 'Poziția nu este disponibilă.' };
     const message = messages[error.code] || 'Nu am putut obține poziția GPS.';
     setStatus(message, 'text-danger');
-    showToast(message, 'error');
+    if (!gpsErrorNotified) {
+        gpsErrorNotified = true;
+        showToast(message, 'error');
+    }
 }
 
 async function savePosition(position) {
     updateCurrentPosition(position);
-    if (!sessionId) return;
-    await post('/tracking/point', {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-        speed: position.coords.speed,
-        heading: position.coords.heading,
-        altitude: position.coords.altitude,
-        tracked_at: new Date(position.timestamp).toISOString(),
-    });
+    gpsErrorNotified = false;
+    if (!sessionId || pointRequestBusy) return;
+
+    const now = Date.now();
+    if (!shouldSendPoint(lastSentPoint, position.coords, now)) return;
+
+    pointRequestBusy = true;
+    try {
+        await post('/tracking/point', {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            speed: position.coords.speed,
+            heading: position.coords.heading,
+            altitude: position.coords.altitude,
+            tracked_at: new Date(position.timestamp).toISOString(),
+        });
+        lastSentPoint = { lat: position.coords.latitude, lon: position.coords.longitude, at: now };
+    } finally {
+        pointRequestBusy = false;
+    }
+}
+
+/** Closing the tab must still end the server session; sendBeacon survives page unload. */
+function stopSessionOnUnload() {
+    if (!sessionId || !navigator.sendBeacon) return;
+
+    const data = new FormData();
+    data.append('_token', csrfToken || '');
+    if (navigator.sendBeacon('/tracking/stop', data)) {
+        sessionId = null;
+        sessionStoppedByUnload = true;
+    }
 }
 
 async function startNavigation() {
@@ -610,9 +651,11 @@ function initialize() {
         L.DomEvent.disableClickPropagation(element);
         L.DomEvent.disableScrollPropagation(element);
     });
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Same cached, rate-limited proxy as the other maps; the public OSM tile servers forbid app traffic.
+    L.tileLayer('/map/tiles/{z}/{x}/{y}', {
         maxZoom: 19,
-        attribution: '© OpenStreetMap contributors',
+        maxNativeZoom: 20,
+        attribution: MAP_ATTRIBUTION,
     }).addTo(map);
 
     poiLayers = {
@@ -637,7 +680,8 @@ function initialize() {
 
     map.fitBounds(routeBounds, { padding: [40, 40] });
     routeLayer.bringToFront();
-    L.control.attribution({ prefix: false }).addAttribution('© OpenStreetMap contributors').addTo(map);
+    // Picks up MAP_ATTRIBUTION from the tile layer (and TomTom when traffic is on).
+    L.control.attribution({ prefix: false }).addTo(map);
 
     bindControls();
     setupTraffic();
@@ -717,4 +761,11 @@ function setupTraffic() {
     window.addEventListener('pageshow', event => { if (event.persisted) apply(); });
 }
 
-if (page) initialize();
+if (page) {
+    initialize();
+    window.addEventListener('pagehide', stopSessionOnUnload);
+    // Back/forward cache restored a page whose session was already stopped: start from a clean state.
+    window.addEventListener('pageshow', event => {
+        if (event.persisted && sessionStoppedByUnload) window.location.reload();
+    });
+}

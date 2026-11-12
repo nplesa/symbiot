@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Exceptions\UserFacingException;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
 use RuntimeException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -59,7 +61,9 @@ class RouteImportService
         }
 
         $maxFiles = 100;
-        $maxUncompressed = 50 * 1024 * 1024;
+        // A 10k-point route (the import limit) is ~1-5 MB of KML; DOMDocument needs several
+        // times the XML size in memory, so larger archives are rejected up front.
+        $maxUncompressed = 20 * 1024 * 1024;
 
         if ($zip->numFiles > $maxFiles) {
             $zip->close();
@@ -684,22 +688,36 @@ class RouteImportService
         }
 
         try {
-            foreach (array_chunk($missingIndexes, 1000) as $indexes) {
-                $locations = array_map(
-                    fn (int $index) => [$points[$index]['longitude'], $points[$index]['latitude']],
-                    $indexes
-                );
-                $response = Http::acceptJson()
+            $chunks = array_chunk($missingIndexes, 1000);
+            $url = 'https://api.geoapify.com/v1/geodata/elevation?apiKey=' . urlencode(config('services.geoapify.key'));
+
+            // The import runs inside a Livewire request: send the chunks in parallel (5 at a
+            // time, Geoapify's free-plan rate) instead of up to 10 × 20 s one after another.
+            $responses = Http::pool(fn (Pool $pool) => array_map(
+                fn (array $indexes) => $pool->acceptJson()
                     ->asJson()
-                    ->timeout(20)
-                    ->post('https://api.geoapify.com/v1/geodata/elevation?apiKey=' . urlencode(config('services.geoapify.key')), [
+                    ->connectTimeout(3)
+                    ->timeout(10)
+                    ->post($url, [
                         'format' => 'json',
                         'units' => 'metric',
-                        'locations' => $locations,
-                    ]);
+                        'locations' => array_map(
+                            fn (int $index) => [$points[$index]['longitude'], $points[$index]['latitude']],
+                            $indexes
+                        ),
+                    ]),
+                $chunks
+            ), concurrency: 5);
 
-                if (! $response->successful()) {
-                    throw new RuntimeException('Geoapify Elevation API returned HTTP ' . $response->status());
+            foreach ($chunks as $chunk => $indexes) {
+                $response = $responses[$chunk] ?? null;
+                if ($response instanceof \Throwable) {
+                    throw $response;
+                }
+
+                if (! $response instanceof Response || ! $response->successful()) {
+                    throw new RuntimeException('Geoapify Elevation API returned '
+                        . ($response instanceof Response ? 'HTTP ' . $response->status() : 'no response') . '.');
                 }
 
                 $results = $response->json('results');

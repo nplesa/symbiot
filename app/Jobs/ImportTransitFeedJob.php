@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Transit\Exceptions\GtfsFeedInvalidException;
 use App\Transit\Models\TransitFeed;
 use App\Transit\Services\FeedProgress;
 use App\Transit\Services\ProviderRegistry;
@@ -14,11 +15,13 @@ class ImportTransitFeedJob implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 5;
+    public int $tries = 3;
 
+    /** Must stay below queue retry_after (1200 s), or the queue would re-run a job still in progress. */
     public int $timeout = 900;
 
-    public int $uniqueFor = 1800;
+    /** Longer than every attempt plus backoff (3 × 900 s + 150 s), so a feed is never imported twice at once. */
+    public int $uniqueFor = 3600;
 
     public function __construct(public int $feedId) {}
 
@@ -47,6 +50,11 @@ class ImportTransitFeedJob implements ShouldBeUnique, ShouldQueue
 
         try {
             $providers->for($feed)->importStatic($feed);
+        } catch (GtfsFeedInvalidException $exception) {
+            // Missing GTFS files or over the size limits: another attempt would fail the same way.
+            $this->fail($exception);
+
+            return;
         } catch (Throwable $exception) {
             if ($this->attempts() < $this->tries) {
                 $previous = app(FeedProgress::class)->get($feed);

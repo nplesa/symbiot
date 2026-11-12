@@ -9,4 +9,6 @@ import './swal-confirm';
 import './trasee/google-maps-import';
 import './trasee/file-import';
 
-import './pages/dashboard.js';
+// Sidebar and theme are needed on every page; GPS tracking and the map-first
+// dashboard (pages/dashboard.js) are loaded only by the home page.
+import './shell.js';

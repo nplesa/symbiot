@@ -22,6 +22,7 @@ import {
 } from "ol/style";
 
 import { fromLonLat } from "ol/proj";
+import { MAP_ATTRIBUTION } from "../map-attribution.js";
 
 /* =========================================================
    ELEMENTS
@@ -151,7 +152,8 @@ class TrackMap {
                 new TileLayer({
                     source: new XYZ({
                         url: "/map/tiles/{z}/{x}/{y}",
-                        maxZoom: 20
+                        maxZoom: 20,
+                        attributions: MAP_ATTRIBUTION
                     })
                 }),
 
@@ -195,13 +197,14 @@ class TrackMap {
    ========================================================= */
 
 class TrackLoader {
-    async sessions(date) {
+    async sessions(date, signal = undefined) {
         const response = await fetch(
             `${API.sessions}?date=${encodeURIComponent(date)}`,
             {
                 headers: {
                     Accept: "application/json"
-                }
+                },
+                signal
             }
         );
 
@@ -212,13 +215,14 @@ class TrackLoader {
         return response.json();
     }
 
-    async points(id) {
+    async points(id, signal = undefined) {
         const response = await fetch(
             `${API.points}/${encodeURIComponent(id)}/points`,
             {
                 headers: {
                     Accept: "application/json"
-                }
+                },
+                signal
             }
         );
 
@@ -637,7 +641,19 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
         }
     }
 
+    // A newer date or track selection aborts the previous request, so a slow
+    // response can never draw over what is currently selected.
+    let sessionsController = null;
+    let trackController = null;
+
+    const isAbort = error => error?.name === "AbortError";
+
     async function loadSessions(date) {
+        trackController?.abort();
+        sessionsController?.abort();
+        const controller = new AbortController();
+        sessionsController = controller;
+
         clearTrack();
 
         trackSelect.innerHTML = '<option value="">Loading tracks...</option>';
@@ -646,7 +662,8 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
         setStatus("Loading available tracks...", "loading");
 
         try {
-            const sessions = await loader.sessions(date);
+            const sessions = await loader.sessions(date, controller.signal);
+            if (controller !== sessionsController) return;
 
             trackSelect.innerHTML = "";
 
@@ -683,6 +700,8 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
                 "success"
             );
         } catch (error) {
+            if (isAbort(error) || controller !== sessionsController) return;
+
             console.error(error);
 
             trackSelect.innerHTML =
@@ -696,18 +715,25 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
     }
 
     async function loadTrack(id) {
+        trackController?.abort();
+        trackController = null;
+
         if (!id) {
             clearTrack();
             setStatus("Select a track to display its route.");
             return;
         }
 
+        const controller = new AbortController();
+        trackController = controller;
+
         clearTrack();
 
         setStatus("Loading GPS points...", "loading");
 
         try {
-            const points = await loader.points(id);
+            const points = await loader.points(id, controller.signal);
+            if (controller !== trackController) return;
 
             if (!points.length) {
                 setStatus(
@@ -737,6 +763,8 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
 
             trackMap.map.updateSize();
         } catch (error) {
+            if (isAbort(error) || controller !== trackController) return;
+
             console.error(error);
 
             clearTrack();
@@ -754,6 +782,8 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
         const date = event.target.value;
 
         if (!date) {
+            sessionsController?.abort();
+            trackController?.abort();
             clearTrack();
 
             trackSelect.innerHTML =

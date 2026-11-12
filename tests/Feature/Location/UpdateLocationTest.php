@@ -165,4 +165,26 @@ class UpdateLocationTest extends TestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors('active');
     }
+
+    public function test_turning_location_off_needs_no_coordinates_and_clears_the_last_position(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user)->postJson('/location/update', ['lat' => 45.0, 'lon' => 25.0, 'active' => true])->assertOk();
+
+        // Exactly what resetMap() in map.js sends.
+        $this->actingAs($user)
+            ->postJson('/location/update', ['active' => false])
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertNull(cache()->get("user_location_{$user->id}"));
+    }
+
+    public function test_coordinates_are_still_required_while_location_is_active(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->postJson('/location/update', ['active' => true])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['lat', 'lon']);
+    }
 }

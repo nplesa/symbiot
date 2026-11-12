@@ -2,8 +2,8 @@
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="lodgingDetailsModalTitle">Detalii cazare</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Închide"></button>
+                <h5 class="modal-title" id="lodgingDetailsModalTitle">{{ __('Lodging details') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
             </div>
             <div class="modal-body">
                 <dl class="lodging-details-list" id="lodgingDetailsList"></dl>
@@ -18,9 +18,9 @@
                     rel="noopener noreferrer"
                     hidden
                 >
-                    Deschide pe hartă
+                    {{ __('Open on the map') }}
                 </a>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Închide</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Close') }}</button>
             </div>
         </div>
     </div>

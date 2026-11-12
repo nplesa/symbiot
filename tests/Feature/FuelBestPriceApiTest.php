@@ -122,4 +122,15 @@ class FuelBestPriceApiTest extends TestCase
             ->getJson('/api/fuel/best?lat=44.43&lon=26.10&fuel=11')
             ->assertStatus(502);
     }
+
+    public function test_a_timeout_is_reported_as_unavailable_not_as_a_server_error(): void
+    {
+        Cache::flush();
+        Http::fake(['*' => fn () => throw new \Illuminate\Http\Client\ConnectionException('cURL error 28: Operation timed out')]);
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/fuel/best?lat=44.43&lon=26.10&fuel=11')
+            ->assertStatus(502)
+            ->assertExactJson(['message' => 'Serviciul de prețuri nu este disponibil acum.']);
+    }
 }

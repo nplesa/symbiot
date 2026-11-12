@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\GeoCacheKey;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -13,7 +14,7 @@ class FuelBrandAvailability
      */
     public function around(float $lat, float $lon, int $radius): ?array
     {
-        $key = sprintf('fuel_brands:v1:%.2f:%.2f:%d', $lat, $lon, intdiv($radius, 500));
+        $key = GeoCacheKey::around('fuel_brands:v2', $lat, $lon, $radius);
 
         return Cache::remember($key, now()->addHours(6), function () use ($lat, $lon, $radius): ?array {
             $tagSets = $this->localTags($lat, $lon, $radius);

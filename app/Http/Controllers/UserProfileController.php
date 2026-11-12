@@ -17,7 +17,8 @@ class UserProfileController extends Controller
     public function edit(Request $request): View
     {
         $user = $request->user();
-        $profile = $user->profile()->firstOrCreate([]);
+        // Read-only page: an unsaved empty profile is enough; update() creates the row on save.
+        $profile = $user->profile ?? new UserProfile;
 
         return view('profile.edit', compact('user', 'profile'));
     }
@@ -99,14 +100,20 @@ class UserProfileController extends Controller
 
         $user = $request->user();
         $profile = $user->profile()->firstOrCreate([]);
+        $previousAvatar = $profile->avatar;
 
-        if ($profile->avatar) {
-            Storage::disk('public')->delete($profile->avatar);
+        // Store and save the new picture first, so a failure never leaves the profile
+        // pointing at a deleted file.
+        $path = $request->file('avatar')->store('avatars', 'public');
+        if ($path === false) {
+            return back()->withErrors(['avatar' => 'Fotografia nu a putut fi salvată.']);
         }
 
-        $path = $request->file('avatar')->store('avatars', 'public');
-
         $profile->update(['avatar' => $path]);
+
+        if ($previousAvatar && $previousAvatar !== $path) {
+            Storage::disk('public')->delete($previousAvatar);
+        }
 
         return back()->with('success', 'Fotografia de profil a fost actualizată.');
     }

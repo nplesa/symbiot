@@ -3,7 +3,7 @@
 @section('content')
     <div class="container">
         <div class="card">
-            <div class="card-header">Administrare &middot; Utilizatori</div>
+            <div class="card-header">{{ __('Administration') }} &middot; {{ __('Users') }}</div>
             <div class="card-body">
                 <livewire:admin.users />
             </div>

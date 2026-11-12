@@ -2,6 +2,8 @@ import 'ol/ol.css';
 import { watchTransitCoverage } from './transit-coverage.js';
 import { createTransitLayer } from './transit-stops-layer.js';
 import { safeExternalUrl } from '../safe-url.js';
+import { fetchJson, HttpError } from '../http.js';
+import { MAP_ATTRIBUTION } from '../map-attribution.js';
 
 import Map from 'ol/Map.js';
 import View from 'ol/View.js';
@@ -202,9 +204,8 @@ dashboardCitywide?.addEventListener('change', async () => {
     try {
         const params = new URLSearchParams({ lat: String(center.lat), lon: String(center.lon) });
         if (center.placeId) params.set('id', center.placeId);
-        const response = await fetch(`/api/location/city-boundary?${params}`, { headers: { Accept: 'application/json' } });
-        const payload = await response.json();
-        if (!response.ok || !payload.feature?.geometry) throw new Error(payload.error || 'Nu am putut încărca limita orașului.');
+        const payload = await fetchJson(`/api/location/city-boundary?${params}`);
+        if (!payload?.feature?.geometry) throw new Error('Nu am putut încărca limita orașului.');
 
         cityBoundaryFeature = payload.feature;
         cityBoundaryRadiusMeters = 0;
@@ -280,6 +281,11 @@ const users = new globalThis.Map();
 const activePoiFilters = new Set();
 
 let poiRequestId = 0;
+// Aborts the HTTP requests of a superseded loadNearby() instead of only ignoring their results.
+let poiLoadController = null;
+// Rapid filter toggling waits for a short pause and then loads all changes at once.
+let poiLoadDebounce = null;
+const POI_FILTER_DEBOUNCE_MS = 400;
 let busStopLookupRun = 0;
 let poiLoadingTimer = null;
 let poiLoadingStartedAt = null;
@@ -581,7 +587,7 @@ const radiusStyle = new Style({
 
 const baseLayer = new TileLayer({
     // The tile proxy serves up to zoom 20; OpenLayers upscales those tiles beyond it.
-    source: new XYZ({ url: '/map/tiles/{z}/{x}/{y}', maxZoom: 20 })
+    source: new XYZ({ url: '/map/tiles/{z}/{x}/{y}', maxZoom: 20, attributions: MAP_ATTRIBUTION })
 });
 
 const clusterLayer = new VectorLayer({
@@ -939,12 +945,9 @@ async function loadBusStopRoutes(feature) {
         types: 'bus',
         include_routes: 'true',
     });
-    const response = await fetch(`/api/transport/bus?${params}`, {
-        headers: { Accept: 'application/json' },
-    });
-    const payload = await response.json();
-    if (!response.ok || !Array.isArray(payload)) {
-        throw new Error(payload?.error || `Cererea pentru liniile stației a eșuat (HTTP ${response.status}).`);
+    const payload = await fetchJson(`/api/transport/bus?${params}`);
+    if (!Array.isArray(payload)) {
+        throw new Error('Cererea pentru liniile stației a returnat un format neașteptat.');
     }
 
     const stopId = String(feature.get('id') ?? '');
@@ -1078,14 +1081,7 @@ function showPoiTooltip(feature, coordinate) {
             return;
         }
 
-        fetch(`/api/transport/airport/${encodeURIComponent(airportCode)}/flights`, {
-            headers: { Accept: 'application/json' },
-        })
-            .then(async (response) => {
-                const payload = await response.json();
-                if (!response.ok) throw new Error(payload.message || `HTTP ${response.status}`);
-                return payload;
-            })
+        fetchJson(`/api/transport/airport/${encodeURIComponent(airportCode)}/flights`)
             .then((airportFlights) => {
                 window.dispatchEvent(new CustomEvent('symbiot:osm-stop-routes', {
                     detail: { ...baseEvent, loading: false, airportFlights },
@@ -1356,13 +1352,7 @@ async function loadBusArrival(feature, group, statusElement) {
             lon: String(coordinates.lon),
             route_ref: routeRef,
         });
-        const response = await fetch(`/api/transit/stops/nearest-next-departure?${params}`, {
-            headers: { Accept: 'application/json' },
-        });
-        const result = await response.json();
-        if (!response.ok) {
-            throw new Error(result.message || `HTTP ${response.status}`);
-        }
+        const result = await fetchJson(`/api/transit/stops/nearest-next-departure?${params}`);
         if (statusElement.dataset.routeKey !== group.key) return;
         if (!result.departure) {
             statusElement.textContent = result.reason === 'no_upcoming_departure'
@@ -1420,9 +1410,7 @@ const formatMeters = (meters) => (meters < 1000 ? `${meters} m` : `${(meters / 1
 const mapsDirectionsUrl = (station) => `https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lon}&travelmode=driving`;
 
 async function requestBestFuel(params) {
-    const response = await fetch(`/api/fuel/best?${params}`, { headers: { Accept: 'application/json' } });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response.json();
+    return fetchJson(`/api/fuel/best?${params}`);
 }
 
 async function loadBestFuelPrice() {
@@ -1589,9 +1577,7 @@ async function showFuelPrices(feature) {
     const requestId = ++fuelPricesRequest;
     try {
         const params = new URLSearchParams({ lat: coordinates.lat, lon: coordinates.lon, brand: name });
-        const response = await fetch(`/api/fuel/prices?${params}`, { headers: { Accept: 'application/json' } });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
+        const data = await fetchJson(`/api/fuel/prices?${params}`);
         if (requestId !== fuelPricesRequest) return;
 
         if (!data.station) {
@@ -1887,14 +1873,15 @@ document.addEventListener('change', async event => {
                         if (!match) return [];
                         if (unavailableTransitRouteGeometry.has(route.id)) return [];
 
-                        const response = await fetch(`/api/transit-route/${match[1]}`);
-                        const data = await response.json();
-                        if (response.status === 404) {
-                            unavailableTransitRouteGeometry.add(route.id);
-                            return [];
-                        }
-                        if (!response.ok) {
-                            throw new Error(data.error || `HTTP ${response.status}`);
+                        let data;
+                        try {
+                            data = await fetchJson(`/api/transit-route/${match[1]}`);
+                        } catch (error) {
+                            if (error instanceof HttpError && error.status === 404) {
+                                unavailableTransitRouteGeometry.add(route.id);
+                                return [];
+                            }
+                            throw error;
                         }
 
                         const segments = Array.isArray(data.segments)
@@ -2242,8 +2229,15 @@ async function loadTourismPOI() {
     const url =
         `/api/transport-nearby?lat=${lat}&lon=${lon}&radius=${app_radius}&types=tourism`;
 
-    const res = await fetch(url);
-    const data = await res.json();
+    let data;
+    try {
+        data = await fetchJson(url);
+    } catch (error) {
+        console.error('Tourism POI request failed:', error);
+        hidePOIModal();
+        Swal.fire({ icon: 'error', title: 'Obiective turistice', text: error.message });
+        return;
+    }
 
     showResultData(data, lat, lon);
     addUserEvents();
@@ -2428,19 +2422,23 @@ document.getElementById('city-location-mode')?.addEventListener('change', async 
     poiSource.clear();
     clearVisibleTransitRoutes();
     hidePoiTooltip();
-    const response = await fetch('/location/toggle', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken,
-        },
-        body: JSON.stringify({ location: false }),
-    });
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-    }
-    document.getElementById('map_card')?.classList.add('d-none');
+    // The map stays visible (already cleared above) while a city is searched; the POI
+    // filters are hidden because they need a location.
     document.getElementById('mobility_card')?.classList.add('d-none');
+
+    try {
+        await fetchJson('/location/toggle', {
+            method: 'POST',
+            body: JSON.stringify({ location: false }),
+        });
+    } catch (error) {
+        console.error('Turning off device location failed:', error);
+        const status = document.getElementById('city-location-status');
+        if (status) {
+            status.textContent = `Nu am putut opri locația dispozitivului: ${error.message}`;
+            status.className = 'col-12 small text-warning';
+        }
+    }
 });
 
 document.getElementById('city-location-form')?.addEventListener('submit', async event => {
@@ -2493,11 +2491,7 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
     try {
         if (!result) {
             const params = new URLSearchParams({ city });
-            const response = await fetch(`/api/location/city?${params.toString()}`);
-            const payload = await response.json();
-            if (!response.ok) {
-                throw new Error(payload.error || `HTTP ${response.status}`);
-            }
+            const payload = await fetchJson(`/api/location/city?${params.toString()}`);
 
             const candidates = Array.isArray(payload.results)
                 ? payload.results.filter(candidate => Number.isFinite(Number(candidate.lat))
@@ -2600,7 +2594,6 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
             }
 
             mbc?.classList.remove('d-none');
-            document.getElementById('dashboard-poi-disclosure')?.classList.remove('d-none');
             if (selectedFilters.length > 0) {
                 await loadNearby({ lat: result.lat, lon: result.lon });
             }
@@ -3096,7 +3089,6 @@ document
                         }
                     }
 
-                    document.getElementById('dashboard-poi-disclosure')?.classList.remove('d-none');
                     syncDashboardRadius(app_radius, true);
                 },
                 Math.min(radiusMeters, 35000)
@@ -3126,6 +3118,8 @@ document
 
                 lastCoords = { lat, lon };
                 currentUserLocation = { lat, lon };
+                // Live vehicles follow the user (GPS mode only; this watch is cleared in city mode).
+                transitStops.moveVehicleCenter(lat, lon);
 
                 const currentCenter = fromLonLat([lon, lat]);
 
@@ -3197,12 +3191,8 @@ document
                 if (now - lastSent > 5000) {
                     lastSent = now;
 
-                    fetch('/location/update', {
+                    fetchJson('/location/update', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken
-                        },
                         body: JSON.stringify({
                             lat,
                             lon,
@@ -3296,21 +3286,13 @@ function resetMap() {
         duration: 500
     });
 
-    fetch('/location/update', {
-
+    fetchJson('/location/update', {
         method: 'POST',
-
-        headers: {
-            'Content-Type':
-                'application/json',
-
-            'X-CSRF-TOKEN':
-                csrfToken
-        },
-
         body: JSON.stringify({
             active: false
         })
+    }).catch(error => {
+        console.error('Location reset failed:', error);
     });
 }
 
@@ -3321,6 +3303,9 @@ function resetMap() {
 async function loadNearby(locationOverride = null) {
 
     const requestId = ++poiRequestId;
+    poiLoadController?.abort();
+    const loadController = new AbortController();
+    poiLoadController = loadController;
     let notification = null;
 
     try {
@@ -3353,7 +3338,7 @@ async function loadNearby(locationOverride = null) {
         activePoiFilters.clear();
         addUserEvents();
 
-        await updateSubcategoryAvailability(lat, lon);
+        await updateSubcategoryAvailability(lat, lon, loadController.signal);
         if (requestId !== poiRequestId) return;
 
         let selectedTypes = poiContainer ? selectedPoiFilterTokens(poiContainer) : [];
@@ -3421,7 +3406,8 @@ async function loadNearby(locationOverride = null) {
             Array.from(poiContainer.querySelectorAll('.poi-category-group'))
                 .map(group => [
                     group.dataset.type,
-                    group.querySelector('.location-category')?.nextElementSibling?.textContent?.trim()
+                    // The element right after the checkbox is the icon, not the visible name.
+                    group.querySelector('.poi-filter-name')?.textContent?.trim()
                         || group.dataset.type,
                 ])
         );
@@ -3442,7 +3428,7 @@ async function loadNearby(locationOverride = null) {
         });
 
         const responses = await Promise.allSettled(
-            requests.map(({ url }) => fetchPoiJsonResponse(url))
+            requests.map(({ url }) => fetchPoiJsonResponse(url, { signal: loadController.signal }))
         );
         if (requestId !== poiRequestId) return;
         const successfulResponses = responses
@@ -3599,16 +3585,27 @@ function setSubcategoryButtonsLoading(loading) {
 }
 
 // Subcategories are limited to the ones that actually have places around the chosen location.
-async function updateSubcategoryAvailability(lat, lon) {
+const SUBCATEGORY_TIMEOUT_MS = 10_000;
+
+async function updateSubcategoryAvailability(lat, lon, signal = null) {
     const key = `${lat.toFixed(2)}:${lon.toFixed(2)}:${app_radius}`;
     if (key === subcategoriesKey || key === subcategoriesPendingKey) return;
     subcategoriesPendingKey = key;
     setSubcategoryButtonsLoading(true);
 
+    // loadNearby() waits for this behind the loading modal: never let it hang.
+    const timeout = AbortSignal.timeout(SUBCATEGORY_TIMEOUT_MS);
+    const requestSignal = signal && typeof AbortSignal.any === 'function'
+        ? AbortSignal.any([signal, timeout])
+        : timeout;
+
     let available = null;
     try {
         const params = new URLSearchParams({ lat, lon, radius: Math.min(Math.round(Number(app_radius)) || 5000, 35000) });
-        const response = await fetch(`/api/poi/subcategories?${params}`, { headers: { Accept: 'application/json' } });
+        const response = await fetch(`/api/poi/subcategories?${params}`, {
+            headers: { Accept: 'application/json' },
+            signal: requestSignal,
+        });
         if (response.ok) {
             available = (await response.json()).subcategories;
         }
@@ -3770,6 +3767,8 @@ function addUserEvents () {
         transitStops.setVisible(selectedPoiFilterTokens(container).includes('bus'));
 
         if (selectedPoiFilterTokens(container).length === 0) {
+            clearTimeout(poiLoadDebounce);
+            poiLoadController?.abort();
             poiRequestId++;
             poiSource.clear();
             clearVisibleTransitRoutes();
@@ -3783,7 +3782,11 @@ function addUserEvents () {
         if (currentLocation && Number.isFinite(parseFloat(currentLocation.dataset.lat))
             && Number.isFinite(parseFloat(currentLocation.dataset.lon))) {
             clearVisibleTransitRoutes();
-            loadNearby();
+            clearTimeout(poiLoadDebounce);
+            poiLoadDebounce = setTimeout(() => {
+                poiLoadDebounce = null;
+                loadNearby();
+            }, POI_FILTER_DEBOUNCE_MS);
         }
     });
 
@@ -3885,6 +3888,14 @@ function getDistanceMeters(lat1, lon1, lat2, lon2) {
     );
 }
 
+/** "Cancel" in the loading modal: stops the running POI load; POIs already on the map stay. */
+function cancelPoiLoad() {
+    clearTimeout(poiLoadDebounce);
+    poiLoadController?.abort();
+    poiRequestId++;
+    hidePOIModal();
+}
+
 function showPOIModal() {
     const modalEl = document.getElementById('poiLoadingModal');
     if (!modalEl) return;
@@ -3906,6 +3917,7 @@ function showPOIModal() {
             stopPoiElapsedTimer();
             poiLoadingModalHidePromise = null;
         });
+        modalEl.querySelector('#poiLoadingCancel')?.addEventListener('click', cancelPoiLoad);
         poiLoadingModalEventsBound = true;
     }
 

@@ -1,4 +1,5 @@
 import { safeExternalUrl } from '../safe-url.js';
+import { notify } from '../notify.js';
 
 /* =========================================================
    SYMBIOT GPS TRACKING
@@ -37,19 +38,19 @@ function showError(error) {
     switch (error.code) {
 
         case error.PERMISSION_DENIED:
-            alert("Permisiunea pentru localizare a fost refuzată.");
+            notify("Permisiunea pentru localizare a fost refuzată.");
             break;
 
         case error.POSITION_UNAVAILABLE:
-            alert("Poziția nu este disponibilă.");
+            notify("Poziția nu este disponibilă.");
             break;
 
         case error.TIMEOUT:
-            alert("Obținerea poziției a expirat.");
+            notify("Obținerea poziției a expirat.");
             break;
 
         default:
-            alert("Eroare necunoscută.");
+            notify("Eroare necunoscută.");
     }
 
 }
@@ -209,7 +210,7 @@ async function startTracking() {
 
     if (!navigator.geolocation) {
 
-        alert("Geolocation nu este suportată.");
+        notify("Geolocation nu este suportată.");
 
         if (trackingSwitch) {
             trackingSwitch.checked = false;
@@ -379,7 +380,7 @@ trackingSwitch?.addEventListener('change', async function () {
 
     if (!navigator.geolocation) {
 
-        alert("Geolocation nu este suportată.");
+        notify("Geolocation nu este suportată.");
 
         this.checked = false;
 
@@ -408,7 +409,7 @@ trackingSwitch?.addEventListener('change', async function () {
 
         this.checked = !this.checked;
 
-        alert('Nu s-a putut modifica starea trackingului.');
+        notify('Nu s-a putut modifica starea trackingului.');
 
     }
 
@@ -428,308 +429,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 
-/* =========================================================
-   SYMBIOT NAVIGATION & THEME
-   ========================================================= */
-
-document.addEventListener('DOMContentLoaded', () => {
-
-    const shell = document.getElementById('symbiotShell');
-
-    if (!shell) return;
-
-    const sidebar = document.getElementById('symbiotSidebar');
-
-    const mobileButton = document.getElementById(
-        'sidebarMobileToggle'
-    );
-
-    const mobileClose = document.getElementById(
-        'sidebarMobileClose'
-    );
-
-    const overlay = document.getElementById(
-        'sidebarOverlay'
-    );
-
-    const collapseButton = document.getElementById(
-        'sidebarCollapse'
-    );
-
-    const themeButton = document.getElementById(
-        'themeToggle'
-    );
-
-
-    /* =====================================================
-       THEME
-       ===================================================== */
-
-    function applyTheme(theme) {
-
-        shell.dataset.theme = theme;
-
-        const icon = document.getElementById('themeIcon');
-
-        if (icon) {
-
-            icon.className = theme === 'dark'
-                ? 'fa-solid fa-sun'
-                : 'fa-solid fa-moon';
-
-        }
-
-    }
-
-    const savedTheme = localStorage.getItem('symbiot-theme');
-
-    const systemDark = window.matchMedia(
-        '(prefers-color-scheme: dark)'
-    ).matches;
-
-    applyTheme(
-        savedTheme || (systemDark ? 'dark' : 'light')
-    );
-
-    themeButton?.addEventListener('click', () => {
-
-        const nextTheme =
-            shell.dataset.theme === 'dark'
-                ? 'light'
-                : 'dark';
-
-        applyTheme(nextTheme);
-
-        localStorage.setItem(
-            'symbiot-theme',
-            nextTheme
-        );
-
-    });
-
-
-    /* =====================================================
-       DEVICE DETECTION
-       ===================================================== */
-
-    const isMobile = () => window.innerWidth < 768;
-
-    const isTablet = () =>
-        window.innerWidth >= 768 &&
-        window.innerWidth < 1200;
-
-    /* =====================================================
-       TRANSPORT ICONS
-       ===================================================== */
-
-
-        const getTransportIcon = (type) => {
-            switch (type) {
-                case 'airport': return '<i class="fas fa-plane text-primary"></i>';
-                case 'train': return '<i class="fas fa-train text-success"></i>';
-                case 'subway': return '<i class="fas fa-subway text-danger"></i>';
-                case 'bus': return '<i class="fas fa-bus text-warning"></i>';
-                default: return '<i class="fas fa-map-marker-alt text-secondary"></i>';
-            }
-        };
-
-
-    /* =====================================================
-       MOBILE MENU
-       ===================================================== */
-
-    function openMobileMenu() {
-
-        if (!isMobile()) return;
-
-        shell.classList.add('mobile-menu-open');
-
-        document.body.classList.add('symbiot-menu-active');
-
-        mobileButton?.setAttribute(
-            'aria-expanded',
-            'true'
-        );
-
-        overlay?.setAttribute(
-            'aria-hidden',
-            'false'
-        );
-
-    }
-
-    function closeMobileMenu() {
-
-        shell.classList.remove('mobile-menu-open');
-
-        document.body.classList.remove('symbiot-menu-active');
-
-        mobileButton?.setAttribute(
-            'aria-expanded',
-            'false'
-        );
-
-        overlay?.setAttribute(
-            'aria-hidden',
-            'true'
-        );
-
-    }
-
-
-    /* =====================================================
-       MOBILE EVENTS
-       ===================================================== */
-
-    mobileButton?.addEventListener(
-        'click',
-        openMobileMenu
-    );
-
-    mobileClose?.addEventListener(
-        'click',
-        closeMobileMenu
-    );
-
-    overlay?.addEventListener(
-        'click',
-        closeMobileMenu
-    );
-
-
-    /* Close menu after navigation */
-
-    sidebar?.querySelectorAll('a').forEach(link => {
-
-        link.addEventListener('click', () => {
-
-            if (isMobile()) {
-                closeMobileMenu();
-            }
-
-        });
-
-    });
-
-
-    /* =====================================================
-       DESKTOP / TABLET COLLAPSE
-       ===================================================== */
-
-    collapseButton?.addEventListener('click', () => {
-
-        if (isMobile()) return;
-
-        if (isTablet()) {
-
-            shell.classList.toggle('sidebar-expanded');
-
-            return;
-        }
-
-        const collapsed = shell.classList.toggle(
-            'sidebar-collapsed'
-        );
-
-        localStorage.setItem(
-            'symbiot-sidebar-collapsed',
-            String(collapsed)
-        );
-
-    });
-
-
-    /* =====================================================
-       RESTORE SIDEBAR STATE
-       ===================================================== */
-
-    function restoreSidebar() {
-
-        if (isMobile()) {
-
-            shell.classList.remove(
-                'sidebar-collapsed',
-                'sidebar-expanded',
-                'mobile-menu-open'
-            );
-
-            document.body.classList.remove(
-                'symbiot-menu-active'
-            );
-
-            mobileButton?.setAttribute(
-                'aria-expanded',
-                'false'
-            );
-
-            return;
-        }
-
-        closeMobileMenu();
-
-        if (isTablet()) {
-
-            shell.classList.remove(
-                'sidebar-collapsed',
-                'sidebar-expanded'
-            );
-
-            return;
-        }
-
-        const collapsed =
-            localStorage.getItem(
-                'symbiot-sidebar-collapsed'
-            ) === 'true';
-
-        shell.classList.toggle(
-            'sidebar-collapsed',
-            collapsed
-        );
-
-        shell.classList.remove('sidebar-expanded');
-
-    }
-
-    restoreSidebar();
-
-
-    /* =====================================================
-       WINDOW RESIZE
-       ===================================================== */
-
-    let resizeTimeout;
-
-    window.addEventListener('resize', () => {
-
-        clearTimeout(resizeTimeout);
-
-        resizeTimeout = setTimeout(() => {
-
-            restoreSidebar();
-
-        }, 100);
-
-    });
-
-
-    /* =====================================================
-       ESCAPE KEY
-       ===================================================== */
-
-    document.addEventListener('keydown', event => {
-
-        if (event.key === 'Escape') {
-
-            closeMobileMenu();
-
-            shell.classList.remove('sidebar-expanded');
-
-        }
-
-    });
-
-});
 
 /* =========================================================
    MAP-FIRST DASHBOARD
@@ -772,19 +471,13 @@ document.addEventListener('DOMContentLoaded', () => {
         setText('dashboard-stop-routes-count', '0 linii');
         routeDetails.hidden = true;
         routePanel.classList.remove('is-open', 'has-stop-selection');
-        poiAccordion?.classList.add('d-none');
         poiFiltersCard?.classList.add('d-none');
         routeEmpty.hidden = !changing;
-        byId('dashboard-poi-collapse')?.classList.add('show');
-        const poiAccordionButton = poiAccordion?.querySelector('.accordion-button');
-        poiAccordionButton?.classList.remove('collapsed');
-        poiAccordionButton?.setAttribute('aria-expanded', 'true');
         nearbyPois = [];
         nearbyStops = [];
         setText('dashboard-nearby-status', 'Alege categoriile POI pe care vrei să le vezi pe hartă.');
         byId('dashboard-nearby-list')?.replaceChildren();
         setText('dashboard-nearby-count', '0');
-        setText('dashboard-poi-count', '0 găsite');
     };
 
     const syncTrackButton = () => {
@@ -802,10 +495,8 @@ document.addEventListener('DOMContentLoaded', () => {
     trackingSwitch?.addEventListener('change', syncTrackButton);
     syncTrackButton();
 
-    const poiFiltersHost = byId('dashboard-poi-filters');
+    // The POI filter card lives in the right-hand panel (home.blade.php).
     const poiFiltersCard = byId('mobility_card');
-    const poiAccordion = byId('dashboard-poi-disclosure');
-    if (poiFiltersHost && poiFiltersCard) poiFiltersHost.append(poiFiltersCard);
 
     // The POI filter card sits above these sections in the side panel and no longer
     // collapses, so bring a newly shown stop/route section into view.
@@ -817,14 +508,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (wasHidden) {
             requestAnimationFrame(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }));
         }
-    };
-
-    const closePoiAccordion = () => {
-        const collapse = byId('dashboard-poi-collapse');
-        const button = poiAccordion?.querySelector('.accordion-button');
-        collapse?.classList.remove('show');
-        button?.classList.add('collapsed');
-        button?.setAttribute('aria-expanded', 'false');
     };
 
     const formatDistance = (meters) => meters < 1000
@@ -991,7 +674,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     window.addEventListener('symbiot:nearby-pois', (event) => {
         nearbyPois = event.detail?.pois ?? [];
-        setText('dashboard-poi-count', `${nearbyPois.length} găsite`);
         renderNearby();
     });
     window.addEventListener('symbiot:nearby-transit-stops', (event) => {
@@ -1004,14 +686,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('symbiot:nearby-loading', () => {
         setText('dashboard-nearby-status', 'Se încarcă rezultatele pentru categoriile selectate…');
         setText('dashboard-nearby-count', '…');
-        setText('dashboard-poi-count', '…');
     });
     window.addEventListener('symbiot:nearby-cleared', () => {
         nearbyPois = [];
         nearbyStops = [];
         byId('dashboard-nearby-list')?.replaceChildren();
         setText('dashboard-nearby-count', '0');
-        setText('dashboard-poi-count', '0 găsite');
         setText('dashboard-nearby-status', 'Alege categoriile POI pe care vrei să le vezi pe hartă.');
     });
 
@@ -1042,7 +722,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('symbiot:transit-stop-routes', (event) => {
         const { feed, stopId, stopName, routes = [], error = false, loading = false } = event.detail ?? {};
         if (!stopRoutesPanel || !stopRoutesList) return;
-        closePoiAccordion();
         routeEmpty.hidden = true;
         revealPanelSection(stopRoutesPanel);
         routePanel.classList.add('has-stop-selection');
@@ -1115,7 +794,6 @@ document.addEventListener('DOMContentLoaded', () => {
             isAirport = false,
             airportFlights = null,
         } = event.detail ?? {};
-        closePoiAccordion();
         routeDetails.hidden = true;
         routeEmpty.hidden = true;
         revealPanelSection(stopRoutesPanel);
@@ -1338,7 +1016,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('symbiot:poi-selected', (event) => {
-        closePoiAccordion();
         if (['bus', 'train', 'subway', 'airport'].includes(event.detail?.type)) return;
         stopRoutesPanel.hidden = true;
         routeDetails.hidden = true;

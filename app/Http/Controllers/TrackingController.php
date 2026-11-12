@@ -136,19 +136,6 @@ class TrackingController extends Controller
         ]);
     }
 
-    public function status(Request $request): JsonResponse
-    {
-        $session = TrackingSession::where('user_id', $request->user()->id)
-            ->whereNull('ended_at')
-            ->latest('started_at')
-            ->first();
-
-        return response()->json([
-            'active' => (bool) $session,
-            'session' => $session,
-        ]);
-    }
-
     public function sessions(Request $request): JsonResponse
     {
         $request->validate([
