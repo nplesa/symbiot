@@ -1,6 +1,6 @@
 # Symbiot
 
-GPS tracking and navigation web app for Romania, built with Laravel 13, Livewire and OpenLayers/Leaflet:
+GPS tracking and navigation web app for Romania, built with Laravel 13, Livewire and OpenLayers:
 live position, recorded tracks, planned routes, points of interest (fuel prices, parking, police, cameras),
 public transport stops, timetables and real-time vehicles, flights and trains. UI in English, Romanian and Italian.
 

@@ -1,5 +1,21 @@
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import Map from 'ol/Map.js';
+import View from 'ol/View.js';
+import Overlay from 'ol/Overlay.js';
+import { defaults as defaultControls } from 'ol/control/defaults.js';
+import TileLayer from 'ol/layer/Tile.js';
+import VectorLayer from 'ol/layer/Vector.js';
+import XYZ from 'ol/source/XYZ.js';
+import VectorSource from 'ol/source/Vector.js';
+import Feature from 'ol/Feature.js';
+import Point from 'ol/geom/Point.js';
+import LineString from 'ol/geom/LineString.js';
+import { fromLonLat, toLonLat } from 'ol/proj.js';
+import Style from 'ol/style/Style.js';
+import Fill from 'ol/style/Fill.js';
+import Stroke from 'ol/style/Stroke.js';
+import CircleStyle from 'ol/style/Circle.js';
+import Text from 'ol/style/Text.js';
+import 'ol/ol.css';
 import { shouldSendPoint } from '../navigation-tracking.js';
 import { MAP_ATTRIBUTION } from '../map-attribution.js';
 import { t, intlLocale } from '../i18n.js';
@@ -15,6 +31,7 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 let map = null;
 let routeBounds = null;
 let mapZooming = false;
+let mapZoomingTimer = null;
 let followSimulation = true;
 let sessionId = null;
 let watchId = null;
@@ -31,6 +48,11 @@ let simulationTimer = null;
 let simulationStep = 0;
 let simulatedMarker = null;
 let poiLayers = {};
+let poiSources = {};
+let routeSource = null;
+let currentPositionSource = null;
+let simulationSource = null;
+let poiPopup = null;
 const poiCategories = JSON.parse(page?.dataset.poiCategories || '{}');
 const amenityIcons = Object.fromEntries(Object.entries(poiCategories).filter(([, category]) => category.icon).map(([type, category]) => [type, category.icon]));
 let poiFilters = new Set(Object.keys(poiCategories).filter(type => poiCategories[type].default));
@@ -42,7 +64,7 @@ const SIMULATION_TICK_MS = 800;
 const SIMULATION_SPEED_KMH = 50;
 
 function keepRouteInFront() {
-    routeLayer?.bringToFront();
+    routeLayer?.setZIndex(10);
 }
 
 function distanceMeters(first, second) {
@@ -77,10 +99,8 @@ function setArrowHeading(start, end) {
     if (longitudeDelta === 0 && latitudeDelta === 0) return;
 
     const bearing = Math.atan2(longitudeDelta, latitudeDelta) * 180 / Math.PI;
-    const icon = simulatedMarker.getElement()?.querySelector('span');
-    if (icon) {
-        icon.style.transform = `rotate(${bearing}deg)`;
-    }
+    simulatedMarker.set('heading', bearing);
+    simulatedMarker.changed();
 }
 
 function poiLabel(type) {
@@ -175,8 +195,7 @@ function setupPoiFilterButtons() {
             const type = input.dataset.poiFilter;
             input.checked = poiFilters.has(type);
             if (!poiLayers[type]) return;
-            if (input.checked) map.addLayer(poiLayers[type]);
-            else map.removeLayer(poiLayers[type]);
+            poiLayers[type].setVisible(input.checked);
         });
         document.getElementById('navigation-poi-count').textContent = `(${poiFilters.size})`;
         renderAlertPanel();
@@ -241,20 +260,36 @@ function getRoutePoints(lines) {
         .map(point => [Number(point[1]), Number(point[0])]);
 }
 
-function markerStyle(type) {
-    return {
-        radius: type === 'locality' ? 5 : 7,
-        color: '#fff',
-        weight: 2,
-        fillColor: {
-            police: '#1d4ed8',
-            speed_camera: '#f59e0b',
-            vignette_control: '#7c3aed',
-            control: '#111827',
-            locality: '#172554',
-        }[type] || '#2563eb',
-        fillOpacity: 0.95,
-    };
+const poiColors = {
+    police: '#1d4ed8', speed_camera: '#f59e0b', vignette_control: '#7c3aed',
+    control: '#111827', locality: '#172554',
+};
+
+function pointStyle(color, radius = 7, text = '') {
+    return new Style({
+        image: new CircleStyle({ radius, fill: new Fill({ color }), stroke: new Stroke({ color: '#fff', width: 2 }) }),
+        text: text ? new Text({ text, font: '700 13px sans-serif', fill: new Fill({ color: '#172554' }), stroke: new Stroke({ color: '#fff', width: 3 }), offsetY: -14 }) : undefined,
+    });
+}
+
+function getPoiLayer(type) {
+    if (!poiLayers[type]) {
+        poiSources[type] = new VectorSource();
+        poiLayers[type] = new VectorLayer({ source: poiSources[type], visible: poiFilters.has(type), style: feature => {
+            const featureType = feature.get('poiType');
+            if (featureType === 'locality') {
+                return new Style({ text: new Text({ text: feature.get('name') || t('Locality'), font: '700 14px sans-serif', fill: new Fill({ color: '#172554' }), stroke: new Stroke({ color: '#fff', width: 4 }) }) });
+            }
+            const icon = feature.get('icon');
+            if (icon) return new Style({
+                image: new CircleStyle({ radius: 13, fill: new Fill({ color: '#fff' }), stroke: new Stroke({ color: '#2563eb', width: 2 }) }),
+                text: new Text({ text: icon, font: '700 17px sans-serif', fill: new Fill({ color: '#1d4ed8' }) }),
+            });
+            return pointStyle(poiColors[featureType] || '#2563eb', 7);
+        }});
+        map.addLayer(poiLayers[type]);
+    }
+    return poiSources[type];
 }
 
 function addPoi(poi) {
@@ -263,48 +298,8 @@ function addPoi(poi) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
 
     const type = poi.type || 'control';
-    if (!poiLayers[type]) {
-        poiLayers[type] = L.layerGroup();
-        if (poiFilters.has(type)) poiLayers[type].addTo(map);
-    }
-
-
-    if (poi.type === 'locality') {
-        L.marker([lat, lon], {
-            icon: L.divIcon({
-                className: 'navigation-locality-label',
-                html: `<span>${escapeHtml(poi.name || t('Locality'))}</span>`,
-                iconSize: [0, 0],
-                iconAnchor: [0, 0],
-            }),
-            interactive: false,
-        }).addTo(poiLayers[type]);
-        return;
-    }
-
-    if (amenityIcons[type]) {
-        L.marker([lat, lon], {
-            icon: L.divIcon({
-                className: 'navigation-poi-marker',
-                html: `<span>${amenityIcons[type]}</span>`,
-                iconSize: [30, 30],
-                iconAnchor: [15, 15],
-            }),
-        }).bindTooltip(escapeHtml(poi.name || poiLabel(type)))
-            .bindPopup(`<strong>${escapeHtml(poi.name || poiLabel(type))}</strong><br>${escapeHtml(poiLabel(type))}`)
-            .addTo(poiLayers[type]);
-        return;
-    }
-
-    L.circleMarker([lat, lon], markerStyle(poi.type))
-        .bindTooltip(escapeHtml(poi.name || t('POI')))
-        .addTo(poiLayers[type]);
-}
-
-function escapeHtml(value) {
-    const element = document.createElement('div');
-    element.textContent = value;
-    return element.innerHTML;
+    const feature = new Feature({ geometry: new Point(fromLonLat([lon, lat])), poiType: type, poi, name: poi.name || poiLabel(type), icon: amenityIcons[type] || '' });
+    getPoiLayer(type).addFeature(feature);
 }
 
 async function loadPois() {
@@ -321,17 +316,12 @@ async function loadPois() {
 }
 
 function updateCurrentPosition(position) {
-    const point = [position.coords.latitude, position.coords.longitude];
+    const coordinate = fromLonLat([position.coords.longitude, position.coords.latitude]);
     if (!currentMarker) {
-        currentMarker = L.circleMarker(point, {
-            radius: 9,
-            color: '#fff',
-            weight: 3,
-            fillColor: '#f97316',
-            fillOpacity: 1,
-        }).addTo(map).bindTooltip(t('My position'));
+        currentMarker = new Feature({ geometry: new Point(coordinate) });
+        currentPositionSource.addFeature(currentMarker);
     } else {
-        currentMarker.setLatLng(point);
+        currentMarker.getGeometry().setCoordinates(coordinate);
     }
 }
 
@@ -464,20 +454,13 @@ function startSimulation(points) {
     const metersPerTick = SIMULATION_SPEED_KMH * 1000 / 3600 * (SIMULATION_TICK_MS / 1000);
 
     if (!simulatedMarker) {
-        simulatedMarker = L.marker(routePoints[0], {
-            icon: L.divIcon({
-                className: 'navigation-direction-marker',
-                html: '<span class="navigation-direction-arrow" role="img" aria-label="' + t('Direction of travel') + '"><svg viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3 L29 29 L17 23 L5 29 Z" fill="#2563eb" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></svg></span>',
-                iconSize: [34, 34],
-                iconAnchor: [17, 17],
-            }),
-            zIndexOffset: 1000,
-        }).addTo(map).bindTooltip(t('Direction of travel - simulated navigation'));
+        simulatedMarker = new Feature({ geometry: new Point(fromLonLat([routePoints[0][1], routePoints[0][0]])), heading: 0 });
+        simulationSource.addFeature(simulatedMarker);
     }
 
     setArrowHeading(routePoints[0], routePoints[1]);
-    simulatedMarker.setLatLng(routePoints[0]);
-    map.setView(routePoints[0], 14, { animate: true });
+    simulatedMarker.getGeometry().setCoordinates(fromLonLat([routePoints[0][1], routePoints[0][0]]));
+    map.getView().animate({ center: fromLonLat([routePoints[0][1], routePoints[0][0]]), zoom: 14, duration: 500 });
     if (simulationSpeed) {
         simulationSpeed.hidden = false;
         simulationSpeed.textContent = t('Speed: :speed km/h', { speed: SIMULATION_SPEED_KMH });
@@ -488,7 +471,8 @@ function startSimulation(points) {
     simulationTimer = setInterval(() => {
         let remainingMeters = metersPerTick;
         let reachedSegmentEnd = false;
-        const previousPoint = simulatedMarker.getLatLng();
+        const previousLonLat = toLonLat(simulatedMarker.getGeometry().getCoordinates());
+        const previousPoint = [previousLonLat[1], previousLonLat[0]];
 
         while (remainingMeters > 0 && segmentIndex < routePoints.length - 1) {
             const segmentStart = routePoints[segmentIndex];
@@ -520,7 +504,7 @@ function startSimulation(points) {
             if (simulateButton) simulateButton.textContent = t('Simulate route');
             if (simulationSpeed) simulationSpeed.hidden = true;
             setStatus(t('Simulation finished.'), 'text-muted');
-            simulatedMarker.setLatLng(routePoints[routePoints.length - 1]);
+            simulatedMarker.getGeometry().setCoordinates(fromLonLat([routePoints.at(-1)[1], routePoints.at(-1)[0]]));
             showToast(t('The simulation reached the end of the route.'), 'info');
             return;
         }
@@ -532,9 +516,9 @@ function startSimulation(points) {
             segmentStart[0] + (segmentEnd[0] - segmentStart[0]) * segmentProgress,
             segmentStart[1] + (segmentEnd[1] - segmentStart[1]) * segmentProgress,
         ];
-        simulatedMarker.setLatLng(point);
+        simulatedMarker.getGeometry().setCoordinates(fromLonLat([point[1], point[0]]));
         if (followSimulation && !mapZooming) {
-            map.panTo(point, { animate: false });
+            map.getView().setCenter(fromLonLat([point[1], point[0]]));
         }
         if (simulationSpeed) {
             simulationSpeed.textContent = t('Speed: :speed km/h', { speed: SIMULATION_SPEED_KMH });
@@ -555,10 +539,10 @@ function bindControls() {
                 const points = getRoutePoints(getLines(JSON.parse(page.dataset.routeGeometry)));
                 simulationStep = 0;
                 if (points.length >= 2) {
-                    simulatedMarker.setLatLng(points[0]);
+                    simulatedMarker.getGeometry().setCoordinates(fromLonLat([points[0][1], points[0][0]]));
                     setArrowHeading(points[0], points[1]);
-                    map.stop();
-                    map.setView(points[0], map.getZoom(), { animate: false });
+                    map.getView().cancelAnimations();
+                    map.getView().setCenter(fromLonLat([points[0][1], points[0][0]]));
                 }
                 announcedPoiIds.clear();
                 announcedPoiKeys.clear();
@@ -590,9 +574,10 @@ function bindControls() {
 
     const changeZoom = delta => {
         if (!map) return;
-        map.stop();
-        const nextZoom = Math.max(map.getMinZoom(), Math.min(map.getMaxZoom(), map.getZoom() + delta));
-        map.setZoom(nextZoom, { animate: false });
+        const view = map.getView();
+        view.cancelAnimations();
+        const nextZoom = Math.max(view.getMinZoom(), Math.min(view.getMaxZoom(), view.getZoom() + delta));
+        view.setZoom(nextZoom);
     };
 
     document.getElementById('navigation-zoom-in')?.addEventListener('click', () => changeZoom(1));
@@ -601,8 +586,8 @@ function bindControls() {
     document.getElementById('navigation-fit')?.addEventListener('click', () => {
         if (routeBounds) {
             followSimulation = false;
-            map.stop();
-            map.fitBounds(routeBounds, { padding: [40, 40], animate: true });
+            map.getView().cancelAnimations();
+            map.getView().fit(routeBounds, { padding: [40, 40], duration: 500 });
             keepRouteInFront();
             showToast(t('The route is centred on the map.'), 'info');
         }
@@ -611,8 +596,8 @@ function bindControls() {
     document.getElementById('navigation-locate')?.addEventListener('click', () => {
         if (page.dataset.simulate === '1' && simulatedMarker) {
             followSimulation = true;
-            map.stop();
-            map.setView(simulatedMarker.getLatLng(), map.getZoom(), { animate: false });
+            map.getView().cancelAnimations();
+            map.getView().setCenter(simulatedMarker.getGeometry().getCoordinates());
             return;
         }
         if (!navigator.geolocation) {
@@ -623,7 +608,7 @@ function bindControls() {
 
         navigator.geolocation.getCurrentPosition(position => {
             updateCurrentPosition(position);
-            map.setView([position.coords.latitude, position.coords.longitude], 17, { animate: true });
+            map.getView().animate({ center: fromLonLat([position.coords.longitude, position.coords.latitude]), zoom: 17, duration: 500 });
             keepRouteInFront();
             setStatus(t('Current position updated.'), 'text-success');
             showToast(t('Current position updated.'), 'success');
@@ -644,45 +629,82 @@ function initialize() {
     const points = getRoutePoints(lines);
     if (points.length < 2) return;
 
-    map = L.map('navigation-map', { zoomControl: false, attributionControl: false, minZoom: 2, maxZoom: 19 });
-    map.on('zoomstart', () => { mapZooming = true; });
-    map.on('zoomend', () => { mapZooming = false; });
-    map.on('dragstart', () => { followSimulation = false; });
-    document.querySelectorAll('.navigation-map-tools, .navigation-map-filters, .navigation-alert-panel').forEach(element => {
-        L.DomEvent.disableClickPropagation(element);
-        L.DomEvent.disableScrollPropagation(element);
+    const routeCoordinates = points.map(([lat, lon]) => fromLonLat([lon, lat]));
+    routeSource = new VectorSource();
+    currentPositionSource = new VectorSource();
+    simulationSource = new VectorSource();
+    const routeLineFeature = new Feature({ geometry: new LineString(routeCoordinates), featureType: 'route' });
+    const startFeature = new Feature({ geometry: new Point(routeCoordinates[0]), featureType: 'start' });
+    const endFeature = new Feature({ geometry: new Point(routeCoordinates.at(-1)), featureType: 'end' });
+    routeSource.addFeatures([routeLineFeature, startFeature, endFeature]);
+    routeLayer = new VectorLayer({
+        source: routeSource,
+        style: feature => {
+            const type = feature.get('featureType');
+            if (type === 'route') return new Style({ stroke: new Stroke({ color: '#2563eb', width: 7, lineCap: 'round', lineJoin: 'round' }) });
+            return pointStyle(type === 'start' ? '#198754' : '#2563eb', 9);
+        },
+        zIndex: 10,
     });
-    // Same cached, rate-limited proxy as the other maps; the public OSM tile servers forbid app traffic.
-    L.tileLayer('/map/tiles/{z}/{x}/{y}', {
-        maxZoom: 19,
-        maxNativeZoom: 20,
-        attribution: MAP_ATTRIBUTION,
-    }).addTo(map);
+    const currentLayer = new VectorLayer({ source: currentPositionSource, style: pointStyle('#f97316', 9), zIndex: 15 });
+    const simulationLayer = new VectorLayer({
+        source: simulationSource,
+        style: feature => new Style({
+            text: new Text({ text: '▲', font: '700 30px sans-serif', fill: new Fill({ color: '#2563eb' }), stroke: new Stroke({ color: '#fff', width: 3 }), rotateWithView: true, rotation: (Number(feature.get('heading')) || 0) * Math.PI / 180 }),
+        }),
+        zIndex: 20,
+    });
+    map = new Map({
+        target: 'navigation-map',
+        controls: defaultControls({ zoom: false, rotate: false }),
+        layers: [new TileLayer({ source: new XYZ({ url: '/map/tiles/{z}/{x}/{y}', maxZoom: 20, attributions: MAP_ATTRIBUTION }) }), routeLayer, currentLayer, simulationLayer],
+        view: new View({ center: routeCoordinates[0], zoom: 10, minZoom: 2, maxZoom: 19 }),
+    });
+    document.querySelectorAll('.navigation-map-tools, .navigation-map-filters, .navigation-alert-panel').forEach(element => {
+        ['pointerdown', 'click', 'dblclick', 'wheel'].forEach(type => element.addEventListener(type, event => event.stopPropagation()));
+    });
+    map.on('pointerdrag', () => { followSimulation = false; });
+    map.getView().on('change:resolution', () => {
+        mapZooming = true;
+        window.clearTimeout(mapZoomingTimer);
+        mapZoomingTimer = window.setTimeout(() => { mapZooming = false; }, 200);
+    });
+    const popupElement = document.createElement('div');
+    popupElement.className = 'navigation-poi-popup';
+    poiPopup = new Overlay({ element: popupElement, offset: [0, -14], positioning: 'bottom-center', stopEvent: true, autoPan: { animation: { duration: 200 } } });
+    map.addOverlay(poiPopup);
+    map.on('click', event => {
+        if (document.getElementById('navigation-poi-menu')) document.getElementById('navigation-poi-menu').open = false;
+        const feature = map.forEachFeatureAtPixel(event.pixel, candidate => candidate, {
+            hitTolerance: 5,
+            layerFilter: layer => Object.values(poiLayers).includes(layer),
+        });
+        const poi = feature?.get('poi');
+        if (!poi) {
+            poiPopup.setPosition(undefined);
+            return;
+        }
+        popupElement.replaceChildren();
+        const title = document.createElement('strong');
+        title.textContent = poi.name || poiLabel(poi.type);
+        const category = document.createElement('div');
+        category.textContent = poiLabel(poi.type);
+        popupElement.append(title, category);
+        poiPopup.setPosition(event.coordinate);
+    });
 
-    poiLayers = {
-        police: L.layerGroup().addTo(map),
-        speed_camera: L.layerGroup().addTo(map),
-        vignette_control: L.layerGroup().addTo(map),
-        control: L.layerGroup().addTo(map),
-        locality: L.layerGroup().addTo(map),
-    };
+    poiLayers = {};
+    poiSources = {};
 
     setupPoiFilterButtons();
 
-    const routeLine = L.polyline(points, { color: '#2563eb', weight: 7, opacity: 1, interactive: false }).addTo(map);
-    routeLayer = routeLine;
-    routeBounds = routeLine.getBounds();
-    L.circleMarker(points[0], { radius: 9, color: '#fff', weight: 3, fillColor: '#198754', fillOpacity: 1 }).addTo(map);
-    L.circleMarker(points[points.length - 1], { radius: 9, color: '#fff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 }).addTo(map);
+    routeBounds = routeLineFeature.getGeometry().getExtent();
 
     if (page.dataset.simulate === '1') {
         showToast(t('The simulation shows signs and obstacles along the route.'), 'info');
     }
 
-    map.fitBounds(routeBounds, { padding: [40, 40] });
-    routeLayer.bringToFront();
-    // Picks up MAP_ATTRIBUTION from the tile layer (and TomTom when traffic is on).
-    L.control.attribution({ prefix: false }).addTo(map);
+    map.getView().fit(routeBounds, { padding: [40, 40] });
 
     bindControls();
     setupTraffic();
@@ -705,34 +727,30 @@ function setupTraffic() {
     let layer = null;
     let timer = null;
     let failed = false;
-    map.createPane('traffic');
-    map.getPane('traffic').style.zIndex = '450';
-    map.getPane('traffic').style.pointerEvents = 'none';
-
     const removeLayer = () => {
         if (layer) {
-            layer.off();
+            layer.getSource().un('tileloaderror', onTileError);
+            layer.getSource().un('tileloadend', onTileLoad);
             map.removeLayer(layer);
             layer = null;
         }
+    };
+    const onTileError = () => {
+        failed = true;
+        message.textContent = t('Traffic unavailable or incomplete. Retrying automatically in one minute.');
+    };
+    const onTileLoad = () => {
+        if (!failed) message.textContent = t('Traffic loaded at :time. Refreshes every 60 s.', { time: new Date().toLocaleTimeString(intlLocale) });
     };
     const refresh = () => {
         if (!toggle.checked || document.hidden) return;
         removeLayer();
         failed = false;
         message.textContent = t('Loading TomTom traffic...');
-        layer = L.tileLayer(`${page.dataset.trafficUrl}?refresh=${Date.now()}`, {
-            pane: 'traffic', maxZoom: 19, updateWhenIdle: true, keepBuffer: 0,
-            attribution: t('Traffic © TomTom'),
-        });
-        layer.on('tileerror', () => {
-            failed = true;
-            message.textContent = t('Traffic unavailable or incomplete. Retrying automatically in one minute.');
-        });
-        layer.on('load', () => {
-            if (!failed) message.textContent = t('Traffic loaded at :time. Refreshes every 60 s.', { time: new Date().toLocaleTimeString(intlLocale) });
-        });
-        layer.addTo(map);
+        layer = new TileLayer({ source: new XYZ({ url: `${page.dataset.trafficUrl}?refresh=${Date.now()}`, maxZoom: 19, attributions: t('Traffic © TomTom') }), zIndex: 5, preload: 0 });
+        layer.getSource().on('tileloaderror', onTileError);
+        layer.getSource().on('tileloadend', onTileLoad);
+        map.addLayer(layer);
     };
     const apply = () => {
         window.clearInterval(timer);

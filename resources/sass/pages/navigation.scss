@@ -5,6 +5,20 @@
     min-height: 65vh;
 }
 
+.navigation-poi-popup {
+    min-width: 9rem;
+    max-width: min(18rem, calc(100vw - 2rem));
+    padding: 0.55rem 0.7rem;
+    border: 1px solid rgba(15, 23, 42, 0.14);
+    border-radius: 0.55rem;
+    background: #fff;
+    color: #172554;
+    font-size: 0.8rem;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+}
+
+.navigation-poi-popup > div { color: #64748b; }
+
 .navigation-traffic-controls {
     display: flex;
     flex-wrap: wrap;

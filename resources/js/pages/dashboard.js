@@ -735,6 +735,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return { publicName, secondaryName };
     };
+    const routeBadgeLabel = (label) => {
+        const value = String(label ?? '').trim();
+        if (value.length <= 5) return value;
+
+        const lineCode = value.match(/^([a-z]{1,4})\s*-?\s*(\d{1,4})$/i);
+        if (lineCode) return `${lineCode[1]}${lineCode[2]}`;
+
+        const words = value.split(/\s+/).filter(Boolean);
+        const number = words.find(word => /^\d+[a-z]?$/i.test(word));
+        if (number && words.length > 1) return `${words.filter(word => word !== number).map(word => word[0]).join('')}${number}`.slice(0, 5);
+
+        return `${value.slice(0, 4)}…`;
+    };
 
     window.addEventListener('symbiot:transit-stop-routes', (event) => {
         const { feed, stopId, stopName, routes = [], error = false, loading = false } = event.detail ?? {};
@@ -1082,7 +1095,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const presentation = routePresentation(route);
         const label = presentation.publicName;
         const badge = byId('dashboard-route-badge');
-        badge.textContent = label;
+        badge.textContent = routeBadgeLabel(label);
+        badge.title = label;
+        badge.setAttribute('aria-label', t('Route :route', { route: label }));
         badge.style.backgroundColor = detail.color || gtfsColor(route.color, '#1769e0');
         badge.style.color = gtfsColor(route.text_color, '#ffffff');
         setText('dashboard-route-mode', routeModeLabel(Number(route.route_type)));
