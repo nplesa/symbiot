@@ -521,6 +521,10 @@ const clusterSource = new Cluster({
     source: userSource,
 });
 
+const updatePoiClusterDistance = () => {
+    clusterSource.setDistance((map?.getView?.().getZoom?.() ?? 0) >= 16 ? 0 : 40);
+};
+
 
 
 
@@ -599,6 +603,7 @@ const clusterLayer = new VectorLayer({
     style: (feature) => {
 
         const size = feature.get('features').length;
+        const showIndividualPoints = (map.getView().getZoom() ?? 0) >= 16;
 
         const type = feature.get('type');
 
@@ -615,7 +620,7 @@ const clusterLayer = new VectorLayer({
 
             image: new CircleStyle({
 
-                radius: Math.min(10 + size, 25),
+                radius: showIndividualPoints ? 6 : Math.min(10 + size, 25),
 
                 fill: new Fill({
                     color: 'rgba(0,150,255,0.7)'
@@ -627,14 +632,10 @@ const clusterLayer = new VectorLayer({
                 })
             }),
 
-            text: new Text({
-
+            text: !showIndividualPoints && size > 1 ? new Text({
                 text: size.toString(),
-
-                fill: new Fill({
-                    color: '#fff'
-                })
-            })
+                fill: new Fill({ color: '#fff' }),
+            }) : undefined,
         });
     }
 });
@@ -742,6 +743,32 @@ const map = new Map({
         center: fromLonLat([25.6, 45.65]),
         zoom: 12
     })
+});
+
+map.getView().on('change:resolution', updatePoiClusterDistance);
+updatePoiClusterDistance();
+
+const updateMapSizeWhenVisible = () => {
+    const target = map.getTargetElement();
+    if (!target?.isConnected) return false;
+
+    const { width, height } = target.getBoundingClientRect();
+    if (width <= 0 || height <= 0) return false;
+
+    map.updateSize();
+    return true;
+};
+
+const scheduleMapSizeUpdate = () => {
+    requestAnimationFrame(() => requestAnimationFrame(updateMapSizeWhenVisible));
+};
+
+const mapCardResizeObserver = new ResizeObserver(updateMapSizeWhenVisible);
+const mapCardElement = document.getElementById('map_card');
+if (mapCardElement) mapCardResizeObserver.observe(mapCardElement);
+
+window.addEventListener('symbiot:dashboard-panel-toggled', () => {
+    scheduleMapSizeUpdate();
 });
 
 const transitStops = createTransitLayer(map);
@@ -2594,7 +2621,7 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
             },
         }));
         syncDashboardRadius(app_radius, true);
-        setTimeout(() => map.updateSize(), 100);
+        setTimeout(scheduleMapSizeUpdate, 100);
 
         mbc?.classList.add('d-none');
         watchTransitCoverage(result.lat, result.lon, status, async () => {
@@ -2753,7 +2780,7 @@ document
             status.className = 'col-12 small text-muted';
         }
 
-        setTimeout(() => map.updateSize(), 100);
+        setTimeout(scheduleMapSizeUpdate, 100);
 
         // Înregistrează activarea locației pe server.
         try {
@@ -2821,7 +2848,7 @@ document
             }));
             syncDashboardRadius(app_radius, true);
 
-            setTimeout(() => map.updateSize(), 100);
+            setTimeout(scheduleMapSizeUpdate, 100);
 
             document.getElementById('shareLocation')?.classList.remove('d-none');
             document.getElementById('turismLocations')?.classList.remove('d-none');

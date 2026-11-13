@@ -27,6 +27,12 @@ function fetchJson(url) {
 export function createTransitLayer(map) {
     const stopSource = new VectorSource();
     const stopClusterSource = new Cluster({ distance: 36, minDistance: 12, source: stopSource });
+    const updateStopClusterDistance = () => {
+        const individualStopsZoom = (map.getView().getZoom() ?? 0) >= 16;
+        stopClusterSource.setDistance(individualStopsZoom ? 0 : 36);
+        stopClusterSource.setMinDistance(individualStopsZoom ? 0 : 12);
+    };
+    map.getView().on('change:resolution', updateStopClusterDistance);
     const shapeSource = new VectorSource();
 
     const shapeLayer = new VectorLayer({
@@ -42,13 +48,14 @@ export function createTransitLayer(map) {
         style: (feature) => {
             const stops = feature.get('features') || [];
             const count = stops.length;
+            const showIndividualStops = (map.getView().getZoom() ?? 0) >= 16;
             return new Style({
                 image: new CircleStyle({
-                    radius: count > 1 ? Math.min(18, 9 + Math.log2(count)) : 5,
+                    radius: showIndividualStops ? 5 : count > 1 ? Math.min(18, 9 + Math.log2(count)) : 5,
                     fill: new Fill({ color: count > 1 ? '#0759c7' : '#0d6efd' }),
                     stroke: new Stroke({ color: '#fff', width: count > 1 ? 2 : 1.5 }),
                 }),
-                text: count > 1 ? new Text({
+                text: count > 1 && !showIndividualStops ? new Text({
                     text: String(count),
                     font: 'bold 11px sans-serif',
                     fill: new Fill({ color: '#fff' }),
@@ -392,6 +399,11 @@ export function createTransitLayer(map) {
 
                 return feature;
             }));
+
+            updateStopClusterDistance();
+            if (data.stops.length > 0 && (map.getView().getZoom() ?? 0) < 16) {
+                map.getView().animate({ zoom: 16, duration: 450 });
+            }
 
             window.dispatchEvent(new CustomEvent('symbiot:nearby-transit-stops', {
                 detail: { stops: data.stops, lat, lon },

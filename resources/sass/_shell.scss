@@ -191,6 +191,10 @@
     border-top: 1px solid #344155;
 }
 
+.dashboard-sidebar-language-links { gap: .5rem; }
+.dashboard-language-link { display: inline-grid; place-items: center; line-height: 1; }
+.dashboard-language-flag { display: block; flex: 0 0 auto; }
+
 .symbiot-user {
     display: flex;
     align-items: center;
@@ -295,6 +299,8 @@
     .symbiot-shell.sidebar-collapsed {
         .symbiot-sidebar { width: 76px; }
 
+        .symbiot-sidebar { padding-inline: .5rem; }
+
         .symbiot-main {
             width: calc(100% - 76px);
             margin-left: 76px;
@@ -310,6 +316,13 @@
             justify-content: center;
             padding-inline: .5rem;
         }
+
+        .dashboard-sidebar-language-group { margin: 0 !important; padding: .45rem 0 !important; border-top: 0 !important; }
+        .dashboard-sidebar-language-wrap { margin: 0 !important; }
+        .dashboard-sidebar-language-label { display: none !important; }
+        .dashboard-sidebar-language-links { flex-direction: column; gap: .15rem !important; }
+        .dashboard-language-link { width: auto; height: auto; padding: .25rem !important; }
+        .dashboard-language-flag { width: 26px !important; height: 16px !important; }
 
         .symbiot-sidebar-toggle i { transform: rotate(180deg); }
     }
@@ -338,6 +351,14 @@
             justify-content: center;
             padding-inline: .5rem;
         }
+
+        .dashboard-sidebar { padding-inline: .5rem; }
+        .dashboard-sidebar-language-group { margin: 0 !important; padding: .45rem 0 !important; border-top: 0 !important; }
+        .dashboard-sidebar-language-wrap { margin: 0 !important; }
+        .dashboard-sidebar-language-label { display: none !important; }
+        .dashboard-sidebar-language-links { flex-direction: column; gap: .15rem !important; }
+        .dashboard-language-link { width: auto; height: auto; padding: .25rem !important; }
+        .dashboard-language-flag { width: 26px !important; height: 16px !important; }
     }
 
     .symbiot-shell.sidebar-expanded {

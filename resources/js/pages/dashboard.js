@@ -423,6 +423,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const routeEmpty = document.getElementById('dashboard-route-empty');
     const routeDetails = document.getElementById('dashboard-route-details');
     const routePanel = document.getElementById('dashboard-route-panel');
+    const routePanelToggle = document.getElementById('dashboard-panel-toggle');
+    const mobilePanelBackdrop = document.getElementById('dashboard-mobile-panel-backdrop');
+    const mobilePanelOpen = document.getElementById('dashboard-mobile-panel-open');
     const stopRoutesPanel = document.getElementById('dashboard-stop-routes');
     const stopRoutesList = document.getElementById('dashboard-stop-routes-list');
     const trackButton = document.getElementById('dashboard-track-me');
@@ -435,6 +438,43 @@ document.addEventListener('DOMContentLoaded', () => {
         const element = byId(id);
         if (element) element.textContent = value ?? '';
     };
+
+    const routePanelMedia = window.matchMedia('(max-width: 767.98px)');
+    const syncRoutePanelCollapse = (collapsed) => {
+        if (!routePanelToggle) return;
+        page.classList.toggle('right-panel-collapsed', collapsed);
+        routePanelToggle.setAttribute('aria-expanded', String(!collapsed));
+        const label = collapsed ? t('Expand right panel') : t('Collapse right panel');
+        routePanelToggle.setAttribute('aria-label', label);
+        routePanelToggle.title = label;
+        routePanel?.setAttribute('aria-modal', String(routePanelMedia.matches && !collapsed));
+        if (mobilePanelBackdrop) mobilePanelBackdrop.hidden = !routePanelMedia.matches || collapsed;
+        if (mobilePanelOpen) mobilePanelOpen.setAttribute('aria-expanded', String(routePanelMedia.matches && !collapsed));
+        requestAnimationFrame(() => window.dispatchEvent(new CustomEvent('symbiot:dashboard-panel-toggled', { detail: { collapsed } })));
+    };
+
+    const storedPanelState = localStorage.getItem('symbiot-route-panel-collapsed');
+    syncRoutePanelCollapse(routePanelMedia.matches && storedPanelState === 'true');
+    const setRoutePanelCollapsed = (collapsed) => {
+        localStorage.setItem('symbiot-route-panel-collapsed', String(collapsed));
+        syncRoutePanelCollapse(collapsed);
+    };
+    routePanelToggle?.addEventListener('click', () => {
+        const collapsed = !page.classList.contains('right-panel-collapsed');
+        setRoutePanelCollapsed(collapsed);
+        if (collapsed && routePanelMedia.matches) mobilePanelOpen?.focus();
+    });
+    mobilePanelOpen?.addEventListener('click', () => {
+        setRoutePanelCollapsed(false);
+        routePanelToggle?.focus();
+    });
+    mobilePanelBackdrop?.addEventListener('click', () => {
+        setRoutePanelCollapsed(true);
+        mobilePanelOpen?.focus();
+    });
+    routePanelMedia.addEventListener('change', () => {
+        syncRoutePanelCollapse(routePanelMedia.matches && localStorage.getItem('symbiot-route-panel-collapsed') === 'true');
+    });
 
     const resetDashboardLocationState = (changing = false) => {
         searchResults.hidden = true;
@@ -704,6 +744,7 @@ document.addEventListener('DOMContentLoaded', () => {
         revealPanelSection(stopRoutesPanel);
         routePanel.classList.add('has-stop-selection');
         routePanel.classList.add('is-open');
+        if (routePanelMedia.matches) setRoutePanelCollapsed(false);
         setText('dashboard-stop-routes-title', t('Lines at stop'));
         setText('dashboard-stop-routes-stop', stopName || t('Stop selected on the map'));
         setText('dashboard-stop-routes-count', loading ? t(':count lines', { count: '…' }) : (routes.length === 1 ? t('1 line') : t(':count lines', { count: routes.length })));
@@ -736,6 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
             badge.className = 'dashboard-stop-route-badge';
             const presentation = routePresentation(route);
             badge.textContent = presentation.publicName;
+            badge.title = presentation.publicName;
             badge.style.backgroundColor = gtfsColor(route.color, '#1769e0');
             badge.style.color = gtfsColor(route.text_color, '#ffffff');
             const copy = document.createElement('span');
@@ -777,6 +819,7 @@ document.addEventListener('DOMContentLoaded', () => {
         routeEmpty.hidden = true;
         revealPanelSection(stopRoutesPanel);
         routePanel.classList.add('has-stop-selection', 'is-open');
+        if (routePanelMedia.matches) setRoutePanelCollapsed(false);
         setText('dashboard-stop-routes-title', isAirport ? t('Flights at the airport') : t('Lines at stop'));
         setText('dashboard-stop-routes-stop', stopName || (isAirport ? t('Airport selected on the map') : t('Stop selected on the map')));
         const flightCount = (airportFlights?.arrivals?.length ?? 0) + (airportFlights?.departures?.length ?? 0);
@@ -1030,6 +1073,7 @@ document.addEventListener('DOMContentLoaded', () => {
         routeEmpty.hidden = true;
         revealPanelSection(routeDetails);
         routePanel.classList.add('is-open');
+        if (routePanelMedia.matches) setRoutePanelCollapsed(false);
         stopRoutesList?.querySelectorAll('.dashboard-stop-route-option').forEach((button) => {
             button.classList.toggle('is-selected', button.dataset.routeId === String(detail.route?.route_id));
         });

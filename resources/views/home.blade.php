@@ -224,18 +224,26 @@
         </div>
     </div>
     
-    <aside class="dashboard-route-panel" id="dashboard-route-panel" aria-live="polite">
+    <button type="button" class="dashboard-mobile-panel-backdrop" id="dashboard-mobile-panel-backdrop" aria-label="{{ __('Close') }}" hidden></button>
+    <button type="button" class="dashboard-mobile-panel-open" id="dashboard-mobile-panel-open" aria-controls="dashboard-route-panel" aria-expanded="false">
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i><span>{{ __('Explore') }}</span>
+    </button>
+    <aside class="dashboard-route-panel" id="dashboard-route-panel" role="dialog" aria-modal="false" aria-live="polite" aria-labelledby="dashboard-panel-title">
         <div class="dashboard-panel-toolbar">
             <div class="dashboard-panel-heading">
                 <div class="dashboard-panel-heading-top">
+                    <button type="button" class="dashboard-panel-toggle" id="dashboard-panel-toggle" aria-label="{{ __('Collapse right panel') }}" aria-expanded="true" aria-controls="dashboard-route-panel" title="{{ __('Collapse right panel') }}">
+                        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                        <i class="fa-solid fa-xmark dashboard-panel-mobile-x" aria-hidden="true"></i>
+                    </button>
                     <span class="dashboard-panel-icon"><i class="fa-solid fa-route" aria-hidden="true"></i></span>
                     <div class="middle-heading">
                         <span class="dashboard-eyebrow mx-auto">{{ __('SYMBIOT · MAP') }}</span>
-                        <h1 class="mx-auto">{{ __('Explore') }}</h1>
+                        <h1 class="mx-auto" id="dashboard-panel-title">{{ __('Explore') }}</h1>
                     </div>
                     <span class="dashboard-live-poi-count" id="dashboard-panel-poi-count">0 POI</span>
                 </div>
-                <div class="dashboard-panel-heading-bottom mt-2 d-none">
+                <div class="dashboard-panel-heading-bottom visually-hidden">
                      <div class="dashboard-search-status text-center" id="dashboard-search-status" role="status" aria-live="polite"></div>    
                 </div>
             </div>
