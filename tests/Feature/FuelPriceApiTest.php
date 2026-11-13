@@ -34,9 +34,9 @@ class FuelPriceApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('station.id', 'R1')
             ->assertJsonPath('station.services', ['Magazin'])
-            ->assertJsonPath('prices.0.label', 'Benzină standard')
+            ->assertJsonPath('prices.0.label', 'Standard petrol')
             ->assertJsonPath('prices.0.price', 10.05)
-            ->assertJsonPath('prices.1.label', 'Motorină standard');
+            ->assertJsonPath('prices.1.label', 'Standard diesel');
     }
 
     public function test_station_of_another_brand_is_not_matched(): void

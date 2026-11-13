@@ -3,7 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build && del public\\hot",
+        "build": "vite build && node -e \"require('node:fs').rmSync('public/hot', { force: true })\"",
         "dev": "vite",
         "test": "node --test \"tests-js/**/*.test.js\""
     },

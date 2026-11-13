@@ -15,7 +15,7 @@ import {
     poiFeatureAtPixel,
     readPoiJsonResponse,
     splitTransitRouteDirections,
-} from '../resources/js/pages/poi-map-interactions.js';
+} from '../resources/js/map/poi-map-interactions.js';
 
 test('uses the police marker for all Police subcategories and a distinct Waze traffic marker', () => {
     for (const type of ['police', 'speed_limit', 'control', 'traffic_sign', 'locality', 'speed_camera', 'vignette_control']) {
@@ -33,7 +33,7 @@ test('aborts a stalled POI request and reports a timeout', async () => {
                 signal.addEventListener('abort', () => reject(signal.reason), { once: true });
             }),
         }),
-        /Cererea POI a expirat la limita de 1 secunde/
+        /POI request timed out after 1 seconds/
     );
 });
 
@@ -103,7 +103,7 @@ test('batches selected non-transit POI filters and adds Waze only for traffic fi
     ]);
     const wazeUrl = new URL(requests[1].url, 'https://symbiot.local');
     assert.equal(wazeUrl.pathname, '/api/poi/waze-traffic');
-    assert.equal(requests[1].label, 'Filtre în trafic (Waze)');
+    assert.equal(requests[1].label, 'Traffic checks (Waze)');
 });
 
 test('keeps transit requests separate from the batched POI request', () => {
@@ -275,7 +275,7 @@ test('reports an expired login session when a category request redirects to logi
 
     await assert.rejects(
         readPoiJsonResponse(response),
-        /Sesiunea a expirat/
+        /Your session has expired/
     );
 });
 
@@ -293,7 +293,7 @@ test('surfaces JSON API errors and rejects unexpected payload shapes', async () 
             status: 200,
             headers: { 'content-type': 'application/json' },
         })),
-        /format neașteptat/
+        /unexpected format/
     );
 
     await assert.rejects(

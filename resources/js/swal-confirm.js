@@ -1,3 +1,5 @@
+import { t } from './i18n.js';
+
 document.addEventListener('click', (event) => {
     const button = event.target.closest('[data-swal-confirm]');
 
@@ -8,12 +10,12 @@ document.addEventListener('click', (event) => {
     event.preventDefault();
 
     window.Swal.fire({
-        title: button.dataset.swalTitle || 'Ești sigur?',
-        text: button.dataset.swalText || 'Această acțiune nu poate fi anulată.',
+        title: button.dataset.swalTitle || t('Are you sure?'),
+        text: button.dataset.swalText || t('This action cannot be undone.'),
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: button.dataset.swalConfirmText || 'Șterge',
-        cancelButtonText: 'Anulează',
+        confirmButtonText: button.dataset.swalConfirmText || t('Delete'),
+        cancelButtonText: t('Cancel'),
         confirmButtonColor: '#dc3545',
         reverseButtons: true,
     }).then((result) => {

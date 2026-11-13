@@ -4,10 +4,25 @@ namespace App\Services;
 
 class PoiCatalog
 {
-    /** @return array<string, array{label: string, icon: ?string, default: bool, group: string, distance: int, geoapify: list<string>, osm: list<array<string, ?string>>}> */
+    /** Display names for the stable `group` ids used in config/poi.php (and in view logic). */
+    private const GROUP_LABELS = [
+        'services' => 'Services and stops',
+        'police' => 'Police',
+    ];
+
+    /**
+     * Labels in config/poi.php are English translation keys; they are translated here once,
+     * for the current locale, so every view, API response and JS consumer gets the same text.
+     *
+     * @return array<string, array{label: string, group_label: string, icon: ?string, default: bool, group: string, distance: int, geoapify: list<string>, osm: list<array<string, ?string>>}>
+     */
     public function categories(): array
     {
-        return config('poi.categories', []);
+        return array_map(fn (array $category): array => [
+            ...$category,
+            'label' => __($category['label']),
+            'group_label' => __(self::GROUP_LABELS[$category['group']] ?? $category['group']),
+        ], config('poi.categories', []));
     }
 
     /** @return array<string, array{type: string, label: string, geoapify: list<string>, osm: list<array<string, ?string>>}> */
@@ -60,7 +75,8 @@ class PoiCatalog
             $children[] = [
                 'id' => 'subcategory:' . $type . ':' . $subcategory['id'],
                 'type' => $subcategory['type'] ?? $type,
-                'label' => $subcategory['label'],
+                // Brand names (Petrom, OMV...) have no translation and are returned unchanged.
+                'label' => __($subcategory['label']),
                 'geoapify' => [],
                 'osm' => $subcategory['osm'],
             ];
@@ -69,7 +85,7 @@ class PoiCatalog
         if ($children === []) {
             $children[] = [
                 'id' => 'subcategory:' . $type . ':all',
-                'label' => 'Toate',
+                'label' => __('All'),
                 'geoapify' => $category['geoapify'],
                 'osm' => $category['osm'],
             ];

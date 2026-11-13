@@ -14,12 +14,13 @@ class FuelPriceService
 {
     private const ENDPOINT = 'https://monitorulpreturilor.info/pmonsvc/Gas/GetGasItemsByLatLon';
 
+    /** Product ids of the price service => English translation keys (see categories()). */
     private const PRODUCTS = [
-        '11' => 'Benzină standard',
-        '12' => 'Benzină premium',
-        '21' => 'Motorină standard',
-        '22' => 'Motorină premium',
-        '31' => 'GPL',
+        '11' => 'Standard petrol',
+        '12' => 'Premium petrol',
+        '21' => 'Standard diesel',
+        '22' => 'Premium diesel',
+        '31' => 'LPG',
     ];
 
     private const MATCH_METERS = 250;
@@ -52,7 +53,16 @@ class FuelPriceService
     {
         $key = sprintf('fuel_prices:v2:%.4f:%.4f:%s', $lat, $lon, mb_strtolower((string) $brand));
 
-        return Cache::remember($key, now()->addMinutes(15), fn (): array => $this->fetch($lat, $lon, $brand));
+        $result = Cache::remember($key, now()->addMinutes(15), fn (): array => $this->fetch($lat, $lon, $brand));
+
+        // The cached result is shared by all users: label the fuels in the current locale.
+        $labels = self::categories();
+        $result['prices'] = array_map(
+            fn (array $price): array => ['label' => $labels[$price['category'] ?? ''] ?? $price['label']] + $price,
+            $result['prices'] ?? []
+        );
+
+        return $result;
     }
 
     /** @return array{station: ?array<string, mixed>, prices: list<array<string, mixed>>, source: string} */
@@ -316,9 +326,10 @@ class FuelPriceService
         return null;
     }
 
+    /** @return array<string, string> product id => label in the current locale */
     public static function categories(): array
     {
-        return self::PRODUCTS;
+        return array_map(fn (string $label): string => __($label), self::PRODUCTS);
     }
 
     /** The host omits its intermediate certificate, so it is appended to the system CA bundle. */

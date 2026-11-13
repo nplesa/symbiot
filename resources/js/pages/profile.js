@@ -1,4 +1,5 @@
 import { notify } from '../notify.js';
+import { t } from '../i18n.js';
 
 document.addEventListener('DOMContentLoaded', function () {
     const input = document.getElementById('avatarInput');
@@ -20,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const file = input.files && input.files[0];
 
         if (!file) {
-            fileName.textContent = 'No photo selected';
+            fileName.textContent = t('No photo selected');
             upload.disabled = true;
             return;
         }
@@ -32,17 +33,17 @@ document.addEventListener('DOMContentLoaded', function () {
         ];
 
         if (!allowedTypes.includes(file.type)) {
-            notify('Format invalid. Folosește JPG, PNG sau WEBP.');
+            notify(t('Invalid format. Use JPG, PNG or WEBP.'));
             input.value = '';
-            fileName.textContent = 'No photo selected';
+            fileName.textContent = t('No photo selected');
             upload.disabled = true;
             return;
         }
 
         if (file.size > 4 * 1024 * 1024) {
-            notify('Imaginea nu poate depăși 4 MB.');
+            notify(t('The image cannot exceed 4 MB.'));
             input.value = '';
-            fileName.textContent = 'No photo selected';
+            fileName.textContent = t('No photo selected');
             upload.disabled = true;
             return;
         }
@@ -58,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 const img = document.createElement('img');
                 img.src = event.target.result;
-                img.alt = 'Profile photo preview';
+                img.alt = t('Profile photo preview');
 
                 preview.appendChild(img);
             };
@@ -70,11 +71,11 @@ document.addEventListener('DOMContentLoaded', function () {
     form.addEventListener('submit', function (event) {
         if (!input.files || !input.files.length) {
             event.preventDefault();
-            notify('Selectează mai întâi o fotografie.');
+            notify(t('Select a photo first.'));
             return;
         }
 
         upload.disabled = true;
-        upload.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Uploading...';
+        upload.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>' + t('Uploading...');
     });
 });

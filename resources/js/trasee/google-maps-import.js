@@ -1,3 +1,5 @@
+import { t } from '../i18n.js';
+
 (() => {
     if (window.__googleMapsKmlBackendBoundV1) return;
     window.__googleMapsKmlBackendBoundV1 = true;
@@ -20,7 +22,7 @@
         const rawUrl = String(input?.value ?? '').trim();
 
         if (!rawUrl) {
-            setStatus('Lipește mai întâi linkul copiat din Google Maps.', 'danger');
+            setStatus(t('First paste the link copied from Google Maps.'), 'danger');
             return;
         }
 
@@ -29,7 +31,7 @@
             submit.classList.add('disabled');
         }
 
-        setStatus('Se convertește linkul Google Maps în KML...', 'secondary');
+        setStatus(t('Converting the Google Maps link to KML...'), 'secondary');
 
         try {
             const response = await fetch('/api/trasee/google-maps-kml', {
@@ -48,7 +50,7 @@
 
             if (!response.ok) {
                 const data = await response.json().catch(() => null);
-                throw new Error(data?.message || 'Nu am putut converti linkul Google Maps în KML.');
+                throw new Error(data?.message || t('Could not convert the Google Maps link to KML.'));
             }
 
             const blob = await response.blob();
@@ -65,12 +67,12 @@
             window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 
             setStatus(
-                'KML-ul a fost generat și descărcat. Îl poți încărca acum în formularul „Importă fișier GPS”.',
+                t('The KML was generated and downloaded. You can now upload it with "Import route".'),
                 'success'
             );
         } catch (error) {
             console.error('[trasee] Google Maps → KML', error);
-            setStatus(error?.message || 'Conversia Google Maps → KML a eșuat.', 'danger');
+            setStatus(error?.message || t('Google Maps → KML conversion failed.'), 'danger');
         } finally {
             if (submit) {
                 submit.disabled = false;
@@ -103,11 +105,11 @@
                     input.dispatchEvent(new Event('input', { bubbles: true }));
                     input.dispatchEvent(new Event('change', { bubbles: true }));
                     input.focus();
-                    setStatus('Linkul Google Maps a fost lipit.', 'success');
+                    setStatus(t('Google Maps link pasted.'), 'success');
                 } catch (error) {
                     console.error('[trasee] clipboard paste', error);
                     input.focus();
-                    setStatus('Nu pot citi clipboardul. Folosește Ctrl+V în câmpul de mai sus.', 'warning');
+                    setStatus(t('Cannot read the clipboard. Use Ctrl+V in the field above.'), 'warning');
                 }
             });
         }

@@ -15,6 +15,7 @@ import { Style, Fill, Stroke, Circle as CircleStyle } from 'ol/style.js';
 import { fromCircle } from 'ol/geom/Polygon.js';
 import { fetchJson } from '../http.js';
 import { MAP_ATTRIBUTION } from '../map-attribution.js';
+import { intlLocale, t } from '../i18n.js';
 
 const mapElement = document.getElementById('currentPositionMap');
 
@@ -108,7 +109,7 @@ if (mapElement) {
         }
     };
 
-    const resetAddress = (message = 'Address not available') => {
+    const resetAddress = (message = t('Address not available')) => {
         setAddressField('positionFullAddress', message);
         setAddressField('positionStreet', '--');
         setAddressField('positionHouseNumber', '--');
@@ -121,7 +122,7 @@ if (mapElement) {
 
     const updateAddress = (address) => {
         if (!address) {
-            resetAddress('No address found for this location.');
+            resetAddress(t('No address found for this location.'));
             return;
         }
 
@@ -140,7 +141,7 @@ if (mapElement) {
     };
 
     const fetchAddress = async (latitude, longitude) => {
-        resetAddress('Retrieving address...');
+        resetAddress(t('Retrieving address...'));
 
         try {
             const params = new URLSearchParams({
@@ -155,7 +156,7 @@ if (mapElement) {
         } catch (error) {
             console.error('Reverse geocoding error:', error);
 
-            resetAddress('Unable to retrieve address.');
+            resetAddress(t('Unable to retrieve address.'));
         }
     };
 
@@ -200,20 +201,20 @@ if (mapElement) {
         document.getElementById('positionAltitude').textContent =
             coords.altitude !== null
                 ? `${formatValue(coords.altitude, 1)} m`
-                : 'Unavailable';
+                : t('Unavailable');
 
         document.getElementById('positionSpeed').textContent =
             coords.speed !== null
                 ? `${formatValue(coords.speed * 3.6, 1)} km/h`
-                : 'Unavailable';
+                : t('Unavailable');
 
         document.getElementById('positionHeading').textContent =
             coords.heading !== null
                 ? `${formatValue(coords.heading, 0)}°`
-                : 'Unavailable';
+                : t('Unavailable');
 
         document.getElementById('positionUpdated').textContent =
-            new Date(position.timestamp).toLocaleString('ro-RO', {
+            new Date(position.timestamp).toLocaleString(intlLocale, {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',
@@ -224,7 +225,7 @@ if (mapElement) {
             });
 
         setStatus(
-            'Your current position was successfully retrieved.',
+            t('Your current position was successfully retrieved.'),
             'success'
         );
 
@@ -233,13 +234,13 @@ if (mapElement) {
 
     const showError = (error) => {
         const messages = {
-            1: 'Location permission was denied. Please allow location access.',
-            2: 'Your current position is unavailable.',
-            3: 'Location request timed out. Please try again.'
+            1: t('Location permission was denied. Please allow location access.'),
+            2: t('Your current position is unavailable.'),
+            3: t('Location request timed out. Please try again.')
         };
 
         setStatus(
-            messages[error.code] || 'An unexpected location error occurred.',
+            messages[error.code] || t('An unexpected location error occurred.'),
             'error'
         );
     };
@@ -247,7 +248,7 @@ if (mapElement) {
     locateButton?.addEventListener('click', () => {
         if (!navigator.geolocation) {
             setStatus(
-                'Geolocation is not supported by this browser.',
+                t('Geolocation is not supported by this browser.'),
                 'error'
             );
             return;
@@ -258,7 +259,7 @@ if (mapElement) {
         locating = true;
         locateButton.disabled = true;
 
-        setStatus('Getting your current GPS position...', 'loading');
+        setStatus(t('Getting your current GPS position...'), 'loading');
 
         navigator.geolocation.getCurrentPosition(
             async (position) => {

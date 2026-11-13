@@ -1,3 +1,5 @@
+import { intlLocale, t } from '../i18n.js';
+
 export function groupTransitRoutes(routes) {
     const groups = new Map();
 
@@ -117,7 +119,7 @@ export function buildPoiCategoryRequests(selectedTypes, {
         });
         requests.push({
             category: 'waze-traffic',
-            label: 'Filtre în trafic (Waze)',
+            label: t('Traffic checks (Waze)'),
             url: `${wazeEndpoint}?${params.toString()}`,
         });
     }
@@ -153,7 +155,7 @@ export async function fetchPoiJsonResponse(url, {
         return await readPoiJsonResponse(response);
     } catch (error) {
         if (timedOut) {
-            throw new Error(`Cererea POI a expirat la limita de ${Math.ceil(timeoutMs / 1000)} secunde.`);
+            throw new Error(t('POI request timed out after :seconds seconds.', { seconds: Math.ceil(timeoutMs / 1000) }));
         }
 
         throw error;
@@ -166,14 +168,14 @@ export async function fetchPoiJsonResponse(url, {
 export async function readPoiJsonResponse(response) {
     const responseUrl = response.url ? new URL(response.url, 'http://localhost') : null;
     if (response.redirected && responseUrl?.pathname.endsWith('/login')) {
-        throw new Error('Sesiunea a expirat. Autentifică-te din nou și reîncarcă categoriile.');
+        throw new Error(t('Your session has expired. Log in again and reload the categories.'));
     }
 
     const contentType = response.headers.get('content-type') || '';
     if (!/\bapplication\/(?:[\w.+-]*\+)?json\b/i.test(contentType)) {
-        const endpoint = responseUrl?.pathname || 'endpoint-ul POI';
+        const endpoint = responseUrl?.pathname || t('the POI endpoint');
         throw new Error(
-            `Serverul a returnat un răspuns non-JSON pentru ${endpoint} (HTTP ${response.status}). Verifică autentificarea sau configurația rutei API.`
+            t('The server returned a non-JSON response for :endpoint (HTTP :status). Check the login or the API route configuration.', { endpoint, status: response.status })
         );
     }
 
@@ -181,7 +183,7 @@ export async function readPoiJsonResponse(response) {
     try {
         payload = await response.json();
     } catch {
-        throw new Error('Serverul a returnat JSON invalid pentru categoria POI solicitată.');
+        throw new Error(t('The server returned invalid JSON for the requested POI category.'));
     }
 
     if (!response.ok) {
@@ -190,11 +192,11 @@ export async function readPoiJsonResponse(response) {
             payload?.error
             || validationErrors[0]
             || payload?.message
-            || `Cererea API a eșuat (HTTP ${response.status}).`
+            || t('The API request failed (HTTP :status).', { status: response.status })
         );
     }
     if (!Array.isArray(payload)) {
-        throw new Error('Serverul a returnat un format neașteptat pentru lista de puncte de interes.');
+        throw new Error(t('The server returned an unexpected format for the list of points of interest.'));
     }
 
     return payload;
@@ -307,7 +309,7 @@ export function getGoogleMapsPlaceUrl(name, coordinates) {
 }
 
 export function getMetroArrivalWindow(now = new Date(), intervalMinutes = 5) {
-    const formatTime = date => new Intl.DateTimeFormat('ro-RO', {
+    const formatTime = date => new Intl.DateTimeFormat(intlLocale, {
         hour: '2-digit',
         minute: '2-digit',
         timeZone: 'Europe/Bucharest',

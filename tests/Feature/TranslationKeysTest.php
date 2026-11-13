@@ -9,16 +9,6 @@ class TranslationKeysTest extends TestCase
 {
     private const LOCALES = ['en', 'ro', 'it'];
 
-    /**
-     * Keys of the hidden Phone/Wifi/Camera/iDrone cards in home.blade.php, which have no JS
-     * and are due for removal (probleme.txt, point 70). Drop this list together with the cards.
-     */
-    private const PENDING_REMOVAL = [
-        'Phone', 'Activate target', 'Configure', 'Approach', 'Listen', 'Record', 'Wifi', 'Activate Wifi',
-        'Connect', 'Disconnect', 'Check', 'Camera', 'Detect Cameras', 'Acquire', 'Remove', 'iDrone System',
-        'Activate', 'Set Target', 'Control', 'Destroy', 'Download Data',
-    ];
-
     /** @return array<string, list<string>> key => views using it */
     private function viewKeys(): array
     {
@@ -59,9 +49,6 @@ class TranslationKeysTest extends TestCase
         $missing = [];
 
         foreach ($this->viewKeys() as $key => $views) {
-            if (in_array($key, self::PENDING_REMOVAL, true)) {
-                continue;
-            }
             foreach ($dictionaries as $locale => $dictionary) {
                 if (! array_key_exists($key, $dictionary)) {
                     $missing[] = "{$locale}: \"{$key}\" (" . implode(', ', array_unique($views)) . ')';
@@ -70,6 +57,65 @@ class TranslationKeysTest extends TestCase
         }
 
         $this->assertSame([], $missing);
+    }
+
+    /** @return array<string, list<string>> key => scripts using it, for t('...') in resources/js */
+    private function scriptKeys(): array
+    {
+        $keys = [];
+        foreach (File::allFiles(resource_path('js')) as $file) {
+            if ($file->getExtension() !== 'js') {
+                continue;
+            }
+            $source = $file->getContents();
+            preg_match_all("/(?<![\\w.])t\\(\\s*'((?:[^'\\\\]|\\\\.)*)'/", $source, $single);
+            preg_match_all('/(?<![\\w.])t\\(\\s*"((?:[^"\\\\]|\\\\.)*)"/', $source, $double);
+            foreach ([...$single[1], ...$double[1]] as $key) {
+                $keys[stripslashes($key)][] = $file->getRelativePathname();
+            }
+        }
+
+        return $keys;
+    }
+
+    public function test_every_translated_script_string_exists_in_every_language(): void
+    {
+        $dictionaries = $this->dictionaries();
+        $keys = $this->scriptKeys();
+        $this->assertNotEmpty($keys);
+        $missing = [];
+
+        foreach ($keys as $key => $scripts) {
+            foreach ($dictionaries as $locale => $dictionary) {
+                if (! array_key_exists($key, $dictionary)) {
+                    $missing[] = "{$locale}: \"{$key}\" (" . implode(', ', array_unique($scripts)) . ')';
+                }
+            }
+        }
+
+        $this->assertSame([], $missing);
+    }
+
+    public function test_translations_keep_the_placeholders_of_their_key(): void
+    {
+        $dictionaries = $this->dictionaries();
+        $broken = [];
+
+        foreach ($dictionaries['en'] as $key => $value) {
+            preg_match_all('/:[a-z_]+/i', $key, $expected);
+            $expected = array_unique($expected[0]);
+            sort($expected);
+            foreach ($dictionaries as $locale => $dictionary) {
+                preg_match_all('/:[a-z_]+/i', $dictionary[$key] ?? '', $actual);
+                $actual = array_unique($actual[0]);
+                sort($actual);
+                if ($actual !== $expected) {
+                    $broken[] = "{$locale}: \"{$key}\"";
+                }
+            }
+        }
+
+        $this->assertSame([], $broken);
     }
 
     public function test_all_language_files_have_the_same_keys(): void

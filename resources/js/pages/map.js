@@ -1,9 +1,10 @@
 import 'ol/ol.css';
-import { watchTransitCoverage } from './transit-coverage.js';
-import { createTransitLayer } from './transit-stops-layer.js';
+import { watchTransitCoverage } from '../map/transit-coverage.js';
+import { createTransitLayer } from '../map/transit-stops-layer.js';
 import { safeExternalUrl } from '../safe-url.js';
 import { fetchJson, HttpError } from '../http.js';
 import { MAP_ATTRIBUTION } from '../map-attribution.js';
+import { t, intlLocale, formatNumber } from '../i18n.js';
 
 import Map from 'ol/Map.js';
 import View from 'ol/View.js';
@@ -50,7 +51,7 @@ import {
     getTransitRouteColor,
     poiFeatureAtPixel,
     splitTransitRouteDirections,
-} from './poi-map-interactions.js';
+} from '../map/poi-map-interactions.js';
 
 
 let tracking = false;
@@ -99,8 +100,8 @@ const dashboardCitywideWrap = document.getElementById('dashboard-citywide-wrap')
 
 function formatSearchRadius(meters) {
     return meters >= 1000
-        ? `${(meters / 1000).toLocaleString('ro-RO', { maximumFractionDigits: 1 })} km`
-        : `${meters.toLocaleString('ro-RO')} m`;
+        ? `${(meters / 1000).toLocaleString(intlLocale, { maximumFractionDigits: 1 })} km`
+        : `${meters.toLocaleString(intlLocale)} m`;
 }
 
 function syncDashboardRadius(meters, visible = true) {
@@ -108,7 +109,7 @@ function syncDashboardRadius(meters, visible = true) {
         dashboardRadiusInput.value = String(meters);
         dashboardRadiusInput.disabled = citywideSearch;
     }
-    if (dashboardRadiusOutput) dashboardRadiusOutput.value = citywideSearch ? 'Tot orașul' : formatSearchRadius(meters);
+    if (dashboardRadiusOutput) dashboardRadiusOutput.value = citywideSearch ? t('Whole city') : formatSearchRadius(meters);
     const legacyRadiusInput = document.getElementById('city-location-radius');
     if (legacyRadiusInput) {
         legacyRadiusInput.value = String(meters);
@@ -142,7 +143,7 @@ dashboardRadiusInput?.addEventListener('input', () => {
             );
         }
     }
-    if (dashboardRadiusOutput) dashboardRadiusOutput.value = citywideSearch ? 'Tot orașul' : formatSearchRadius(radiusMeters);
+    if (dashboardRadiusOutput) dashboardRadiusOutput.value = citywideSearch ? t('Whole city') : formatSearchRadius(radiusMeters);
     const legacyRadiusInput = document.getElementById('city-location-radius');
     if (legacyRadiusInput) legacyRadiusInput.value = String(radiusMeters);
 });
@@ -205,7 +206,7 @@ dashboardCitywide?.addEventListener('change', async () => {
         const params = new URLSearchParams({ lat: String(center.lat), lon: String(center.lon) });
         if (center.placeId) params.set('id', center.placeId);
         const payload = await fetchJson(`/api/location/city-boundary?${params}`);
-        if (!payload?.feature?.geometry) throw new Error('Nu am putut încărca limita orașului.');
+        if (!payload?.feature?.geometry) throw new Error(t('Could not load the city boundary.'));
 
         cityBoundaryFeature = payload.feature;
         cityBoundaryRadiusMeters = 0;
@@ -234,7 +235,7 @@ dashboardCitywide?.addEventListener('change', async () => {
                 toast: true,
                 position: 'top-end',
                 icon: 'info',
-                title: 'Tot orașul este deja cuprins în viewport.',
+                title: t('The whole city is already within the viewport.'),
                 showConfirmButton: false,
                 timer: 2800,
                 timerProgressBar: true,
@@ -258,7 +259,7 @@ dashboardCitywide?.addEventListener('change', async () => {
     } catch (error) {
         dashboardCitywide.checked = false;
         citywideSearch = false;
-        if (radiusStatus) radiusStatus.textContent = error.message || 'Nu am putut încărca limita orașului.';
+        if (radiusStatus) radiusStatus.textContent = error.message || t('Could not load the city boundary.');
         const status = document.getElementById('city-location-status');
         if (status) {
             status.textContent = error.message;
@@ -780,10 +781,10 @@ function renderMapTileProgress() {
 
     mapTileProgress.classList.remove('d-none');
     mapTileProgressLabel.textContent = isLoading
-        ? 'Se încarcă harta...'
+        ? t('Loading map...')
         : failed > 0
-            ? `Harta s-a încărcat; ${failed} tile-uri nu au putut fi preluate.`
-            : 'Harta s-a încărcat.';
+            ? t('Map loaded; :count tiles could not be fetched.', { count: failed })
+            : t('Map loaded');
     mapTileProgressCount.textContent = `${completed} / ${total} (${percent}%)`;
     mapTileProgressBar.style.width = `${percent}%`;
     mapTileProgressBar.parentElement.setAttribute('aria-valuenow', String(percent));
@@ -839,7 +840,7 @@ poiTooltipName.className = 'poi-map-tooltip-name';
 const poiTooltipClose = document.createElement('button');
 poiTooltipClose.type = 'button';
 poiTooltipClose.className = 'poi-map-tooltip-close';
-poiTooltipClose.setAttribute('aria-label', 'Închide');
+poiTooltipClose.setAttribute('aria-label', t('Close'));
 poiTooltipClose.textContent = '×';
 poiTooltipClose.addEventListener('click', hidePoiTooltip);
 poiTooltipHeader.append(poiTooltipName, poiTooltipClose);
@@ -860,30 +861,30 @@ const poiTooltip = new Overlay({
 map.addOverlay(poiTooltip);
 
 const poiTypeLabels = {
-    fuel: 'Benzinărie',
-    parking: 'Parcare',
-    restaurant: 'Restaurant',
-    cafe: 'Cafenea',
-    lodging: 'Cazare',
-    supermarket: 'Supermarket',
-    airport: 'Aeroport',
-    bus: 'Stație de autobuz',
-    subway: 'Metrou',
-    train: 'Gară',
-    taxi: 'Taxi',
-    hospital: 'Spital',
-    pharmacy: 'Farmacie',
-    fire: 'Pompieri',
-    tourism: 'Obiectiv turistic',
-    charging_station: 'Stație de încărcare',
-    police: 'Poliție',
-    speed_camera: 'Cameră de viteză',
-    speed_limit: 'Limită de viteză',
-    traffic_sign: 'Indicator rutier',
-    vignette_control: 'Control rovinietă',
-    control: 'Punct de control',
-    locality: 'Localitate',
-    transport: 'Punct de interes',
+    fuel: t('Fuel stations'),
+    parking: t('Parking'),
+    restaurant: t('Restaurants'),
+    cafe: t('Cafés'),
+    lodging: t('Lodging'),
+    supermarket: t('Supermarkets'),
+    airport: t('Airports'),
+    bus: t('Bus stops'),
+    subway: t('Metro'),
+    train: t('Train stations'),
+    taxi: t('Taxi'),
+    hospital: t('Hospitals'),
+    pharmacy: t('Pharmacies'),
+    fire: t('Fire stations'),
+    tourism: t('Tourist attractions'),
+    charging_station: t('EV charging'),
+    police: t('Police'),
+    speed_camera: t('Speed cameras'),
+    speed_limit: t('Speed limits'),
+    traffic_sign: t('Traffic signs'),
+    vignette_control: t('Vignette check'),
+    control: t('Checkpoints'),
+    locality: t('Localities'),
+    transport: t('Point of interest'),
 };
 
 async function loadBusStopRoutes(feature) {
@@ -925,7 +926,7 @@ async function loadBusStopRoutes(feature) {
                             source: 'gtfs',
                             feed: Number(stop.feed_id),
                             stopId: String(stop.stop_id),
-                            stopName: stop.name || feature.get('name') || 'Stație de autobuz',
+                            stopName: stop.name || feature.get('name') || t('Bus stop'),
                             routes: routesPayload.routes,
                         };
                     }
@@ -991,7 +992,7 @@ function showPoiTooltip(feature, coordinate) {
     if (featureType === 'bus') {
         hidePoiTooltip();
         const lookupRun = ++busStopLookupRun;
-        const stopName = feature.get('name') || 'Stație de autobuz';
+        const stopName = feature.get('name') || t('Bus stop');
         const showStopRoutes = (routes, routesAvailable) => {
             const busRouteGroups = groupTransitRoutes(routes);
             assignTransitRouteColors(busRouteGroups, transitRouteColors, manuallySelectedTransitRouteColors);
@@ -1052,7 +1053,7 @@ function showPoiTooltip(feature, coordinate) {
 
     if (featureType === 'airport') {
         hidePoiTooltip();
-        const airportName = feature.get('name') || 'Aeroport selectat';
+        const airportName = feature.get('name') || t('Selected airport');
         const details = feature.get('details') || {};
         const airportCode = String(details.icao || details.iata || '').trim().toUpperCase();
         const baseEvent = {
@@ -1072,7 +1073,7 @@ function showPoiTooltip(feature, coordinate) {
                     airportFlights: {
                         available: false,
                         reason: 'missing_airport_code',
-                        message: 'Aeroportul nu are un cod IATA/ICAO asociat în datele hărții.',
+                        message: t('The airport has no IATA/ICAO code in the map data.'),
                         arrivals: [],
                         departures: [],
                     },
@@ -1096,7 +1097,7 @@ function showPoiTooltip(feature, coordinate) {
                         airportFlights: {
                             available: false,
                             reason: 'request_failed',
-                            message: 'Nu am putut încărca zborurile acestui aeroport.',
+                            message: t('Could not load the flights for this airport.'),
                             arrivals: [],
                             departures: [],
                         },
@@ -1116,8 +1117,8 @@ function showPoiTooltip(feature, coordinate) {
         const metroEstimate = document.getElementById('metroArrivalEstimate');
         const trainLiveInfo = document.getElementById('trainStatusLiveInfo');
         const sourceInfo = document.getElementById('transitLinesSource');
-        const stationName = feature.get('name') || 'Punct de transport';
-        const typeLabel = poiTypeLabels[featureType] || 'Transport';
+        const stationName = feature.get('name') || t('Transport point');
+        const typeLabel = poiTypeLabels[featureType] || t('Transport');
 
         if (!modalElement || !modalTitle || !modalLink || !checkedAt
             || !routeList || !emptyMessage || !metroEstimate || !trainLiveInfo || !sourceInfo) {
@@ -1131,14 +1132,14 @@ function showPoiTooltip(feature, coordinate) {
         routeList.replaceChildren();
         activeTransitRoutes.clear();
         emptyMessage.hidden = routeGroups.length > 0;
-        emptyMessage.textContent = 'Nu există linii asociate acestei stații în OpenStreetMap.';
-        sourceInfo.textContent = 'Linii și trasee din OpenStreetMap; statutul în teren poate fi diferit.';
+        emptyMessage.textContent = t('There are no lines linked to this station in OpenStreetMap.');
+        sourceInfo.textContent = t('Lines and routes from OpenStreetMap; the actual status may differ.');
         if (feature.get('routes_available') === false) {
-            sourceInfo.textContent += ' Încărcarea automată a eșuat; încearcă din nou mai târziu.';
+            sourceInfo.textContent += ` ${t('Automatic loading failed; try again later.')}`;
         }
         trainLiveInfo.hidden = featureType !== 'train';
         metroEstimate.hidden = featureType !== 'subway' || routeGroups.length === 0;
-        metroEstimate.textContent = 'Selectează exact o magistrală pentru estimarea următorului tren.';
+        metroEstimate.textContent = t('Select exactly one metro line to estimate the next train.');
         assignTransitRouteColors(routeGroups, transitRouteColors, manuallySelectedTransitRouteColors);
 
         routeGroups.forEach((group, index) => {
@@ -1153,10 +1154,10 @@ function showPoiTooltip(feature, coordinate) {
             checkbox.dataset.routeKey = group.key;
             checkbox.checked = visibleTransitRoutes.has(group.key);
             checkbox.disabled = !hasRelation;
-            checkbox.setAttribute('aria-label', `Afișează traseul ${group.label}`);
-            checkbox.title = `Afișează traseul ${group.label}`;
+            checkbox.setAttribute('aria-label', t('Show route :route', { route: group.label }));
+            checkbox.title = t('Show route :route', { route: group.label });
             if (!hasRelation) {
-                checkbox.title = 'Relația traseului nu are un identificator OSM valid.';
+                checkbox.title = t('The route relation has no valid OSM identifier.');
             }
 
             const colorPicker = document.createElement('input');
@@ -1164,7 +1165,7 @@ function showPoiTooltip(feature, coordinate) {
             colorPicker.className = 'poi-route-color';
             colorPicker.dataset.routeKey = group.key;
             colorPicker.value = getTransitRouteColor(group.key, transitRouteColors);
-            colorPicker.setAttribute('aria-label', `Culoare traseu ${group.label}`);
+            colorPicker.setAttribute('aria-label', t('Route colour :route', { route: group.label }));
 
             const directions = [...new Set(group.routes.map(route => route.direction).filter(Boolean))];
             const latestUpdate = group.routes
@@ -1174,10 +1175,10 @@ function showPoiTooltip(feature, coordinate) {
                 .at(-1);
             const inactive = group.routes.some(route => route.status === 'possibly_inactive');
             const status = inactive
-                ? 'Marcată ca posibil inactivă în OSM'
+                ? t('Marked as possibly inactive in OSM')
                 : latestUpdate
-                    ? `OSM · ${new Intl.DateTimeFormat('ro-RO', { dateStyle: 'medium' }).format(new Date(latestUpdate))}`
-                    : 'Listată în OSM; statutul real nu este confirmat';
+                    ? `OSM · ${new Intl.DateTimeFormat(intlLocale, { dateStyle: 'medium' }).format(new Date(latestUpdate))}`
+                    : t('Listed in OSM; the actual status is not confirmed');
             const labelText = document.createElement('label');
             labelText.className = 'poi-route-text';
             labelText.htmlFor = checkbox.id = `transit-route-${index}`;
@@ -1196,11 +1197,13 @@ function showPoiTooltip(feature, coordinate) {
 
         if (featureType === 'train') {
             modalLink.href = getInfoferStationUrl(stationName);
-            checkedAt.textContent = `Link pregătit la ${new Intl.DateTimeFormat('ro-RO', {
-                dateStyle: 'short',
-                timeStyle: 'short',
-                timeZone: 'Europe/Bucharest',
-            }).format(new Date())}. Informațiile operative sunt afișate pe site-ul oficial Infofer.`;
+            checkedAt.textContent = t('Link prepared at :time. Operational information is shown on the official Infofer website.', {
+                time: new Intl.DateTimeFormat(intlLocale, {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                    timeZone: 'Europe/Bucharest',
+                }).format(new Date()),
+            });
         }
 
         bootstrap.Modal.getOrCreateInstance(modalElement).show();
@@ -1211,8 +1214,8 @@ function showPoiTooltip(feature, coordinate) {
     const addressText = address.formatted
         || [address.city, address.county, address.country].filter(Boolean).join(', ');
 
-    poiTooltipName.textContent = feature.get('name') || 'Necunoscut';
-    poiTooltipType.textContent = poiTypeLabels[feature.get('type')] || 'Punct de interes';
+    poiTooltipName.textContent = feature.get('name') || t('Unknown');
+    poiTooltipType.textContent = poiTypeLabels[feature.get('type')] || t('Point of interest');
     poiTooltipType.hidden = false;
     poiTooltipElement.classList.remove('poi-bus-tooltip');
     const featureTrainServices = feature.get('train_services');
@@ -1222,7 +1225,7 @@ function showPoiTooltip(feature, coordinate) {
     activeTransitRoutes.clear();
     if (routeGroups.length > 0) {
         const heading = document.createElement('div');
-        heading.textContent = 'Linii / rute deservite:';
+        heading.textContent = t('Lines / routes served:');
         poiTooltipRoutes.appendChild(heading);
 
         routeGroups.forEach(group => {
@@ -1241,9 +1244,9 @@ function showPoiTooltip(feature, coordinate) {
             routeCheckbox.dataset.routeKey = group.key;
             routeCheckbox.checked = visibleTransitRoutes.has(group.key);
             routeCheckbox.disabled = !hasRelation;
-            routeCheckbox.setAttribute('aria-label', `Afișează traseul ${group.label}`);
+            routeCheckbox.setAttribute('aria-label', t('Show route :route', { route: group.label }));
             if (routeCheckbox.disabled) {
-                routeCheckbox.title = 'Relația traseului nu are un identificator OSM valid.';
+                routeCheckbox.title = t('The route relation has no valid OSM identifier.');
             }
 
             const colorPicker = document.createElement('input');
@@ -1251,7 +1254,7 @@ function showPoiTooltip(feature, coordinate) {
             colorPicker.className = 'poi-route-color';
             colorPicker.dataset.routeKey = group.key;
             colorPicker.value = color;
-            colorPicker.setAttribute('aria-label', `Culoare traseu ${group.label}`);
+            colorPicker.setAttribute('aria-label', t('Route colour :route', { route: group.label }));
 
             const routeName = document.createElement('span');
             routeName.textContent = group.label;
@@ -1265,12 +1268,12 @@ function showPoiTooltip(feature, coordinate) {
                 .sort()
                 .at(-1);
             const statusText = inactive
-                ? 'Marcată ca posibil inactivă în OSM'
+                ? t('Marked as possibly inactive in OSM')
                 : latestUpdate
-                    ? `OSM · ${new Intl.DateTimeFormat('ro-RO', { dateStyle: 'medium' }).format(new Date(latestUpdate))}`
-                    : 'Listată în OSM; statutul real nu este confirmat';
+                    ? `OSM · ${new Intl.DateTimeFormat(intlLocale, { dateStyle: 'medium' }).format(new Date(latestUpdate))}`
+                    : t('Listed in OSM; the actual status is not confirmed');
             routeInfo.textContent = [...directions, statusText].join(' · ');
-            routeInfo.title = 'Date OpenStreetMap; acestea nu confirmă orarul actual al operatorului.';
+            routeInfo.title = t('OpenStreetMap data; it does not confirm the operator\'s current timetable.');
             const routeText = document.createElement('span');
             routeText.className = 'poi-route-text';
             routeText.append(routeName, routeInfo);
@@ -1281,20 +1284,20 @@ function showPoiTooltip(feature, coordinate) {
 
     if (trainServices.length > 0) {
         const heading = document.createElement('div');
-        heading.textContent = 'Trenuri în mersul anual publicat:';
+        heading.textContent = t('Trains in the published annual timetable:');
         poiTooltipRoutes.appendChild(heading);
 
         trainServices.forEach(service => {
             const serviceInfo = document.createElement('div');
             serviceInfo.className = 'poi-route-info';
             const details = [
-                service.departure ? `plecare ${service.departure}` : null,
-                service.direction ? `spre ${service.direction}` : null,
+                service.departure ? t('departure :time', { time: service.departure }) : null,
+                service.direction ? t('towards :destination', { destination: service.direction }) : null,
                 service.operator || null,
                 service.service_days || null,
             ].filter(Boolean);
             serviceInfo.textContent = [
-                `${service.category || 'Tren'} ${service.number}`,
+                `${service.category || t('Train')} ${service.number}`,
                 ...details,
             ].join(' · ');
             poiTooltipRoutes.appendChild(serviceInfo);
@@ -1304,11 +1307,11 @@ function showPoiTooltip(feature, coordinate) {
         sourceInfo.className = 'poi-route-info';
         const validUntil = feature.get('train_timetable_valid_until');
         const availabilityNote = feature.get('train_services_available') === false
-            ? 'Unele surse de orar nu au putut fi încărcate.'
+            ? t('Some timetable sources could not be loaded.')
             : '';
         sourceInfo.textContent = [
-            `Sursa: ${feature.get('train_timetable_source') || 'data.gov.ro'} · orar anual, nu date în timp real; pot exista modificări/excepții.`,
-            validUntil ? `Valabil până la ${validUntil}.` : '',
+            t('Source: :source · annual timetable, not real-time data; changes/exceptions may occur.', { source: feature.get('train_timetable_source') || 'data.gov.ro' }),
+            validUntil ? t('Valid until :date.', { date: validUntil }) : '',
             availabilityNote,
         ].filter(Boolean).join(' ');
         poiTooltipRoutes.appendChild(sourceInfo);
@@ -1316,11 +1319,11 @@ function showPoiTooltip(feature, coordinate) {
         const emptyRoutes = document.createElement('div');
         emptyRoutes.className = 'poi-route-info';
         if (feature.get('type') === 'train' && feature.get('train_services_available') === false) {
-            emptyRoutes.textContent = 'Orarele feroviare nu au putut fi încărcate din data.gov.ro.';
+            emptyRoutes.textContent = t('Railway timetables could not be loaded from data.gov.ro.');
         } else {
-            emptyRoutes.textContent = 'Nu există linii asociate stației în OpenStreetMap.';
+            emptyRoutes.textContent = t('There are no lines linked to this station in OpenStreetMap.');
             if (feature.get('routes_available') === false) {
-                emptyRoutes.textContent += ' Încărcarea automată a eșuat; încearcă din nou mai târziu.';
+                emptyRoutes.textContent += ` ${t('Automatic loading failed; try again later.')}`;
             }
         }
         poiTooltipRoutes.appendChild(emptyRoutes);
@@ -1329,7 +1332,7 @@ function showPoiTooltip(feature, coordinate) {
         const metroEstimate = document.createElement('div');
         metroEstimate.className = 'poi-route-info metro-arrival-estimate';
         metroEstimate.setAttribute('aria-live', 'polite');
-        metroEstimate.textContent = 'Selectează exact o magistrală pentru estimarea următorului tren.';
+        metroEstimate.textContent = t('Select exactly one metro line to estimate the next train.');
         poiTooltipRoutes.appendChild(metroEstimate);
     }
     poiTooltipRoutes.hidden = routeGroups.length === 0 && !transitTypes.has(feature.get('type'));
@@ -1342,7 +1345,7 @@ function showPoiTooltip(feature, coordinate) {
 async function loadBusArrival(feature, group, statusElement) {
     const coordinates = feature.get('coordinates') || {};
     const routeRef = group.label.replace(/^(Autobuz|Troleibuz)\s+/i, '').trim();
-    statusElement.textContent = 'Se caută următoarea plecare…';
+    statusElement.textContent = t('Searching for the next departure…');
     statusElement.dataset.routeKey = group.key;
     statusElement.hidden = false;
 
@@ -1356,23 +1359,25 @@ async function loadBusArrival(feature, group, statusElement) {
         if (statusElement.dataset.routeKey !== group.key) return;
         if (!result.departure) {
             statusElement.textContent = result.reason === 'no_upcoming_departure'
-                ? 'Nu există plecări programate în următoarele zile.'
+                ? t('There are no departures scheduled in the next few days.')
                 : result.reason === 'feed_importing'
-                    ? 'Orarul orașului se pregătește. Reîncearcă în câteva momente.'
+                    ? t('The city timetable is being prepared. Try again in a few moments.')
                 : result.reason === 'feed_import_failed'
-                    ? 'Descărcarea orarului pentru orașul selectat a eșuat. Reîncearcă mai târziu.'
+                    ? t('Downloading the timetable for the selected city failed. Try again later.')
                     : result.reason === 'no_schedule_feed'
-                        ? 'Nu există un orar GTFS disponibil pentru această zonă.'
-                        : 'Nu am găsit un orar pentru linia aceasta la stația selectată.';
+                        ? t('There is no GTFS timetable available for this area.')
+                        : t('No timetable found for this line at the selected stop.');
             return;
         }
 
         const departure = result.departure;
-        const countdown = departure.minutes_until === 0 ? 'acum' : `în ${departure.minutes_until} min`;
-        statusElement.textContent = `Următorul autobuz pentru ${routeRef}: ${departure.time} (${countdown})${departure.headsign ? ` spre ${departure.headsign}` : ''} · orar GTFS`;
+        const countdown = departure.minutes_until === 0 ? t('now') : t('in :minutes min', { minutes: departure.minutes_until });
+        statusElement.textContent = departure.headsign
+            ? t('Next bus for :route: :time (:countdown) towards :headsign · GTFS timetable', { route: routeRef, time: departure.time, countdown, headsign: departure.headsign })
+            : t('Next bus for :route: :time (:countdown) · GTFS timetable', { route: routeRef, time: departure.time, countdown });
     } catch {
         if (statusElement.dataset.routeKey === group.key) {
-            statusElement.textContent = 'Orarul nu a putut fi încărcat.';
+            statusElement.textContent = t('The timetable could not be loaded.');
         }
     }
 }
@@ -1423,7 +1428,7 @@ async function loadBestFuelPrice() {
     [refs.result, refs.countrySection, refs.countryResult, refs.source, refs.navigate, refs.countryNavigate]
         .forEach((node) => { node.hidden = true; });
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-        refs.status.textContent = 'Alege mai întâi o locație.';
+        refs.status.textContent = t('Choose a location first.');
         refs.countryStatus.textContent = '';
         return;
     }
@@ -1432,13 +1437,13 @@ async function loadBestFuelPrice() {
     const fuel = refs.select.value;
     const isInRomania = lat >= 43.5 && lat <= 48.4 && lon >= 20 && lon <= 30;
     if (!isInRomania) {
-        refs.status.textContent = 'Datele despre prețurile carburantului sunt disponibile doar pentru România.';
+        refs.status.textContent = t('Fuel price data is only available for Romania.');
         refs.countryStatus.textContent = '';
         return;
     }
 
-    refs.status.textContent = 'Se caută cele mai bune prețuri în zona ta...';
-    refs.countryStatus.textContent = 'Se caută cel mai bun preț din țară...';
+    refs.status.textContent = t('Searching for the best prices in your area...');
+    refs.countryStatus.textContent = t('Searching for the best price in the country...');
     const base = { lat, lon, fuel };
     const brands = fuelBrandIds();
     const localParams = new URLSearchParams({
@@ -1452,18 +1457,24 @@ async function loadBestFuelPrice() {
             const data = await requestBestFuel(localParams);
             if (requestId !== fuelBestRequest) return null;
             if (!Array.isArray(data.chains) || data.chains.length === 0) {
-                refs.status.textContent = `Nu există prețuri raportate pentru ${data.fuel.toLowerCase()} la lanțurile din subcategorii, în zona ta.`;
+                refs.status.textContent = t('No prices reported for :fuel at the subcategory chains in your area.', { fuel: data.fuel.toLowerCase() });
                 return null;
             }
 
             const best = data.chains[0];
-            const radiusKm = (data.radius / 1000).toLocaleString('ro-RO', { maximumFractionDigits: 1 });
-            refs.status.textContent = `Raza de căutare: ${radiusKm} km, ${data.fuel.toLowerCase()}.`;
+            const radiusKm = (data.radius / 1000).toLocaleString(intlLocale, { maximumFractionDigits: 1 });
+            refs.status.textContent = t('Search radius: :radius km, :fuel.', { radius: radiusKm, fuel: data.fuel.toLowerCase() });
             refs.chain.textContent = best.name;
             refs.price.textContent = `${best.average_price.toFixed(2)} lei/l`;
-            refs.meta.textContent = `preț mediu, ${best.stations} ${best.stations === 1 ? 'stație' : 'stații'}`;
+            refs.meta.textContent = best.stations === 1
+                ? t('average price, :count station', { count: best.stations })
+                : t('average price, :count stations', { count: best.stations });
             const nearest = best.nearest;
-            refs.station.textContent = `Cea mai apropiată: ${[nearest.name, nearest.address].filter(Boolean).join(', ')} (${formatMeters(nearest.meters)}, ${nearest.price.toFixed(2)} lei/l)`;
+            refs.station.textContent = t('Nearest: :station (:distance, :price lei/l)', {
+                station: [nearest.name, nearest.address].filter(Boolean).join(', '),
+                distance: formatMeters(nearest.meters),
+                price: nearest.price.toFixed(2),
+            });
             refs.ranking.replaceChildren();
             data.chains.forEach((chain) => {
                 const item = document.createElement('li');
@@ -1473,13 +1484,13 @@ async function loadBestFuelPrice() {
             refs.navigate.href = mapsDirectionsUrl(nearest);
             refs.navigate.hidden = false;
             refs.result.hidden = false;
-            refs.source.textContent = `Sursa: ${data.source}. Prețurile sunt informative; clasamentul folosește prețul mediu al lanțului.`;
+            refs.source.textContent = t('Source: :source. Prices are indicative; the ranking uses the chain\'s average price.', { source: data.source });
             refs.source.hidden = false;
             return best;
         } catch (error) {
             if (requestId !== fuelBestRequest) return null;
             console.error('Best fuel price request failed.', error);
-            refs.status.textContent = 'Prețurile nu au putut fi încărcate acum. Încearcă din nou.';
+            refs.status.textContent = t('Prices could not be loaded right now. Try again.');
             return null;
         }
     };
@@ -1491,7 +1502,7 @@ async function loadBestFuelPrice() {
             const data = await requestBestFuel(new URLSearchParams({ ...base, scope: 'country' }));
             if (requestId !== fuelBestRequest) return;
             if (!Array.isArray(data.chains) || data.chains.length === 0) {
-                refs.countryStatus.textContent = 'Nu există date pentru țară.';
+                refs.countryStatus.textContent = t('No data for the country.');
                 return;
             }
 
@@ -1500,19 +1511,22 @@ async function loadBestFuelPrice() {
             if (requestId !== fuelBestRequest || !localBest || best.average_price >= localBest.average_price) return;
 
             refs.countrySection.hidden = false;
-            refs.countryStatus.textContent = `Calculat din ${data.cities} orașe reședință de județ.`;
+            refs.countryStatus.textContent = t('Calculated from :count county seat cities.', { count: data.cities });
             refs.countryChain.textContent = best.name;
             refs.countryPrice.textContent = `${best.average_price.toFixed(2)} lei/l`;
-            refs.countryMeta.textContent = `preț mediu, ${best.stations} stații`;
+            refs.countryMeta.textContent = t('average price, :count stations', { count: best.stations });
             const cheapest = best.nearest;
-            refs.countryStation.textContent = `Cea mai ieftină stație: ${[cheapest.name, cheapest.address, cheapest.city].filter(Boolean).join(', ')} (${cheapest.price.toFixed(2)} lei/l)`;
+            refs.countryStation.textContent = t('Cheapest station: :station (:price lei/l)', {
+                station: [cheapest.name, cheapest.address, cheapest.city].filter(Boolean).join(', '),
+                price: cheapest.price.toFixed(2),
+            });
             refs.countryNavigate.href = mapsDirectionsUrl(cheapest);
             refs.countryNavigate.hidden = false;
             refs.countryResult.hidden = false;
         } catch (error) {
             if (requestId !== fuelBestRequest) return;
             console.error('National best fuel price request failed.', error);
-            refs.countryStatus.textContent = 'Prețurile din țară nu au putut fi încărcate acum.';
+            refs.countryStatus.textContent = t('Country prices could not be loaded right now.');
         }
     };
 
@@ -1560,12 +1574,14 @@ async function showFuelPrices(feature) {
     }
 
     hidePoiTooltip();
+    // The untranslated fallback is still sent to the API as the brand, as before.
     const name = feature.get('name') || 'Benzinărie';
+    const displayName = feature.get('name') || t('Fuel station');
     const osmAddress = feature.get('address')?.formatted ?? '';
-    refs.title.textContent = name;
-    refs.brand.textContent = name;
-    refs.station.textContent = osmAddress || 'Adresă indisponibilă';
-    refs.status.textContent = 'Se încarcă prețurile...';
+    refs.title.textContent = displayName;
+    refs.brand.textContent = displayName;
+    refs.station.textContent = osmAddress || t('Address not available');
+    refs.status.textContent = t('Loading prices...');
     [refs.fuelsHeading, refs.table, refs.servicesHeading, refs.services, refs.servicesNote, refs.source]
         .forEach((node) => { node.hidden = true; });
     refs.body.replaceChildren();
@@ -1581,12 +1597,12 @@ async function showFuelPrices(feature) {
         if (requestId !== fuelPricesRequest) return;
 
         if (!data.station) {
-            refs.status.textContent = 'Stația nu are date de prețuri și servicii în Monitorul Prețurilor.';
+            refs.status.textContent = t('The station has no price or service data in Monitorul Prețurilor.');
             return;
         }
 
-        refs.brand.textContent = data.station.network || name;
-        refs.station.textContent = data.station.address || osmAddress || 'Adresă indisponibilă';
+        refs.brand.textContent = data.station.network || displayName;
+        refs.station.textContent = data.station.address || osmAddress || t('Address not available');
         refs.status.textContent = '';
 
         if (Array.isArray(data.prices) && data.prices.length > 0) {
@@ -1609,7 +1625,7 @@ async function showFuelPrices(feature) {
             refs.fuelsHeading.hidden = false;
             refs.table.hidden = false;
         } else {
-            refs.status.textContent = 'Nu există prețuri raportate pentru această stație.';
+            refs.status.textContent = t('No prices reported for this station.');
         }
 
         if (Array.isArray(data.station.services) && data.station.services.length > 0) {
@@ -1624,12 +1640,15 @@ async function showFuelPrices(feature) {
             refs.servicesNote.hidden = false;
         }
 
-        refs.source.textContent = `Sursa: ${data.source}. Actualizat: ${data.station.updated_at || 'necunoscut'}. Prețurile sunt informative.`;
+        refs.source.textContent = t('Source: :source. Updated: :date. Prices are indicative.', {
+            source: data.source,
+            date: data.station.updated_at || t('unknown'),
+        });
         refs.source.hidden = false;
     } catch (error) {
         if (requestId !== fuelPricesRequest) return;
         console.error('Fuel prices request failed.', error);
-        refs.status.textContent = 'Prețurile nu au putut fi încărcate acum. Încearcă din nou.';
+        refs.status.textContent = t('Prices could not be loaded right now. Try again.');
     }
 }
 function showLodgingDetails(feature) {
@@ -1638,26 +1657,26 @@ function showLodgingDetails(feature) {
     const detailsList = document.getElementById('lodgingDetailsList');
     const emptyMessage = document.getElementById('lodgingDetailsEmpty');
     const mapLink = document.getElementById('lodgingDetailsMapLink');
-    const name = feature.get('name') || 'Unitate de cazare';
+    const name = feature.get('name') || t('Lodging unit');
     const address = feature.get('address') ?? {};
     const details = feature.get('details') ?? {};
     const labels = {
-        address: 'Adresă',
-        accommodation_type: 'Tip cazare',
-        phone: 'Telefon',
-        email: 'Email',
-        website: 'Website',
-        opening_hours: 'Program',
-        operator: 'Operator',
-        brand: 'Brand',
-        stars: 'Clasificare',
-        rooms: 'Camere',
-        beds: 'Paturi',
-        check_in: 'Check-in',
-        check_out: 'Check-out',
-        wheelchair: 'Accesibilitate',
-        internet_access: 'Internet',
-        description: 'Descriere',
+        address: t('Address'),
+        accommodation_type: t('Accommodation type'),
+        phone: t('Phone'),
+        email: t('Email'),
+        website: t('Website'),
+        opening_hours: t('Opening hours'),
+        operator: t('Operator'),
+        brand: t('Brand'),
+        stars: t('Rating'),
+        rooms: t('Rooms'),
+        beds: t('Beds'),
+        check_in: t('Check-in'),
+        check_out: t('Check-out'),
+        wheelchair: t('Accessibility'),
+        internet_access: t('Internet'),
+        description: t('Description'),
     };
 
     if (!modalElement || !modalTitle || !detailsList || !emptyMessage || !mapLink) {
@@ -1712,7 +1731,7 @@ function showLodgingDetails(feature) {
     });
 
     emptyMessage.hidden = detailsList.childElementCount > 0;
-    emptyMessage.textContent = 'Nu sunt disponibile alte detalii pentru această unitate. Informațiile depind de datele furnizate de Geoapify sau OpenStreetMap.';
+    emptyMessage.textContent = t('No other details are available for this property. The information depends on the data provided by Geoapify or OpenStreetMap.');
     const coordinates = feature.get('coordinates');
     const mapUrl = getGoogleMapsPlaceUrl(name, coordinates);
     if (mapUrl) {
@@ -1903,7 +1922,7 @@ document.addEventListener('change', async event => {
                 if (geometryRun !== transitRouteGeometryRun || !checkbox.checked) return;
 
                 if (lineCoordinates.length === 0) {
-                    throw new Error('OpenStreetMap nu a returnat geometria traseului.');
+                    throw new Error(t('OpenStreetMap did not return the route geometry.'));
                 }
 
                 routeFeature = new Feature({
@@ -1919,12 +1938,12 @@ document.addEventListener('change', async event => {
                 checkbox.checked = false;
                 if (checkbox._routeButton) {
                     checkbox.dataset.geometryUnavailable = 'true';
-                    checkbox._routeButton.title = 'Orarul se poate consulta; geometria traseului nu este disponibilă în OpenStreetMap.';
+                    checkbox._routeButton.title = t('The timetable can be viewed; the route geometry is not available in OpenStreetMap.');
                     checkbox._dashboardRouteButton?.classList.remove('is-selected');
                     if (checkbox._dashboardRouteButton) {
                         const status = checkbox._dashboardRouteButton.parentElement?.querySelector('.dashboard-stop-route-status');
                         if (status) {
-                            status.textContent = 'Geometria traseului nu este disponibilă în OpenStreetMap.';
+                            status.textContent = t('The route geometry is not available in OpenStreetMap.');
                             status.hidden = false;
                         }
                     }
@@ -1932,7 +1951,7 @@ document.addEventListener('change', async event => {
                     console.error('Transit route geometry could not be loaded:', error);
                     Swal.fire({
                         icon: 'error',
-                        title: 'Traseul nu a putut fi încărcat',
+                        title: t('The route could not be loaded'),
                         text: error.message,
                     });
                 }
@@ -1973,7 +1992,7 @@ window.addEventListener('symbiot:osm-route-toggle', (event) => {
     button.querySelector('.dashboard-stop-route-badge')?.style.setProperty('--transit-route-color', getTransitRouteColor(group.key, transitRouteColors));
     button.querySelector('.dashboard-stop-route-badge')?.style.setProperty('background-color', getTransitRouteColor(group.key, transitRouteColors));
     checkbox.checked = true;
-    status.textContent = 'Se încarcă traseul…';
+    status.textContent = t('Loading route…');
     status.hidden = false;
     window.dispatchEvent(new CustomEvent('symbiot:osm-route-state', {
         detail: { routeKey: group.key, selected: true, color: getTransitRouteColor(group.key, transitRouteColors) },
@@ -1988,12 +2007,12 @@ function updateMetroArrivalEstimate() {
 
     const selectedLines = document.querySelectorAll('#transitLinesList .poi-route-checkbox:checked');
     if (selectedLines.length !== 1) {
-        estimateElement.textContent = 'Selectează exact o magistrală pentru estimarea următorului tren.';
+        estimateElement.textContent = t('Select exactly one metro line to estimate the next train.');
         return;
     }
 
     const { from, until } = getMetroArrivalWindow();
-    estimateElement.textContent = `Următorul tren: estimativ între ${from} și ${until} (interval generic ~5 min; nu este informație live și nu confirmă circulația).`;
+    estimateElement.textContent = t('Next train: estimated between :from and :until (generic ~5 min interval; this is not live information and does not confirm service).', { from, until });
 }
 
 function hidePoiTooltip() {
@@ -2235,7 +2254,7 @@ async function loadTourismPOI() {
     } catch (error) {
         console.error('Tourism POI request failed:', error);
         hidePOIModal();
-        Swal.fire({ icon: 'error', title: 'Obiective turistice', text: error.message });
+        Swal.fire({ icon: 'error', title: t('Tourist attractions'), text: error.message });
         return;
     }
 
@@ -2264,8 +2283,8 @@ async function shareLocationWhatsApp() {
     if (!googleMapsUrl) {
 
         Swal.fire({
-            title: 'GPS inactive',
-            text: 'Activate location first',
+            title: t('GPS inactive'),
+            text: t('Activate location first'),
             icon: 'warning'
         });
 
@@ -2287,7 +2306,7 @@ async function shareLocationWhatsApp() {
     }
 
     const text = encodeURIComponent(
-        `📍 My current location:\n${googleMapsUrl}`
+        `📍 ${t('My current location')}:\n${googleMapsUrl}`
     );
 
     const whatsappUrl =
@@ -2308,8 +2327,8 @@ async function shareLocation() {
     if (!currentUserLocation) {
 
         Swal.fire({
-            title: 'GPS inactive',
-            text: 'Activate location first',
+            title: t('GPS inactive'),
+            text: t('Activate location first'),
             icon: 'warning'
         });
 
@@ -2328,9 +2347,9 @@ async function shareLocation() {
 
             await navigator.share({
 
-                title: 'My Location',
+                title: t('My Location'),
 
-                text: '📍 My current location',
+                text: `📍 ${t('My current location')}`,
 
                 url: googleMapsUrl
             });
@@ -2345,7 +2364,7 @@ async function shareLocation() {
 
 
     const text = encodeURIComponent(
-        `📍 My current location:\n${googleMapsUrl}`
+        `📍 ${t('My current location')}:\n${googleMapsUrl}`
     );
 
     const whatsappUrl =
@@ -2435,7 +2454,7 @@ document.getElementById('city-location-mode')?.addEventListener('change', async 
         console.error('Turning off device location failed:', error);
         const status = document.getElementById('city-location-status');
         if (status) {
-            status.textContent = `Nu am putut opri locația dispozitivului: ${error.message}`;
+            status.textContent = t('Could not turn off the device location: :error', { error: error.message });
             status.className = 'col-12 small text-warning';
         }
     }
@@ -2458,12 +2477,12 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
     const city = input.value.trim();
     const radiusMeters = Number(radiusInput.value);
     if (city.length < 2) {
-        status.textContent = 'Enter the name of a city or locality.';
+        status.textContent = t('Enter the name of a city or locality.');
         status.className = 'col-12 small text-danger';
         return;
     }
     if (!Number.isInteger(radiusMeters) || radiusMeters < 100 || radiusMeters > 35000) {
-        status.textContent = 'Radius must be between 100 and 35,000 meters.';
+        status.textContent = t('Radius must be between :min and :max metres.', { min: formatNumber(100), max: formatNumber(35000) });
         status.className = 'col-12 small text-danger';
         radiusInput.focus();
         return;
@@ -2473,7 +2492,7 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
     if (pendingCityResults.length > 0) {
         const selectedIndex = Number(resultsSelect.value);
         if (resultsSelect.value === '' || !pendingCityResults[selectedIndex]) {
-            status.textContent = 'Select the correct city from the list.';
+            status.textContent = t('Select the correct city from the list.');
             status.className = 'col-12 small text-danger';
             resultsSelect.focus();
             return;
@@ -2485,7 +2504,7 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
     window.dispatchEvent(new CustomEvent('symbiot:location-changing', { detail: { mode: 'city' } }));
     resetPOIs();
     button.disabled = true;
-    status.textContent = result ? 'Setting location...' : 'Searching for the city...';
+    status.textContent = result ? t('Setting location...') : t('Searching for the city...');
     status.className = 'col-12 small text-muted';
 
     try {
@@ -2502,18 +2521,18 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
                     && Number(candidate.lon) <= 180)
                 : [];
             if (candidates.length === 0) {
-                throw new Error('City not found. Try adding the country as well.');
+                throw new Error(t('City not found. Try adding the country as well.'));
             }
             if (candidates.length > 1) {
                 pendingCityResults = candidates;
-                resultsSelect.replaceChildren(new Option('Select a city', ''));
+                resultsSelect.replaceChildren(new Option(t('Select a city'), ''));
                 candidates.forEach((candidate, index) => {
                     resultsSelect.add(new Option(candidate.label || candidate.name || city, String(index)));
                 });
                 resultsSelect.value = '';
                 resultsSelect.disabled = false;
                 resultsContainer.classList.remove('d-none');
-                status.textContent = `Found ${candidates.length} results. Select the city and country, then set the location.`;
+                status.textContent = t('Found :count results. Select the city and country, then set the location.', { count: candidates.length });
                 status.className = 'col-12 small text-primary';
                 window.dispatchEvent(new CustomEvent('symbiot:location-candidates', {
                     detail: { candidates: candidates.map((candidate, index) => ({
@@ -2562,7 +2581,10 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
         map.getView().setZoom(13);
         document.getElementById('map_card')?.classList.remove('d-none');
 
-        status.textContent = `Location has been set to ${result.label || result.name}, with a radius of ${cityRadiusMeters.toLocaleString('ro-RO')} m.`;
+        status.textContent = t('Location has been set to :place, with a radius of :radius m.', {
+            place: result.label || result.name,
+            radius: cityRadiusMeters.toLocaleString(intlLocale),
+        });
         status.className = 'col-12 small text-success';
         window.dispatchEvent(new CustomEvent('symbiot:location-set', {
             detail: {
@@ -2614,14 +2636,14 @@ document.getElementById('city-location-input')?.addEventListener('input', () => 
     const resultsContainer = document.getElementById('city-location-results-container');
     const resultsSelect = document.getElementById('city-location-results');
     resultsSelect.disabled = true;
-    resultsSelect.replaceChildren(new Option('Selectează o localitate', ''));
+    resultsSelect.replaceChildren(new Option(t('Choose locality'), ''));
     resultsContainer.classList.add('d-none');
 });
 
 document.getElementById('city-location-results')?.addEventListener('change', event => {
     const status = document.getElementById('city-location-status');
     if (event.target.value !== '') {
-        status.textContent = 'Apasă „Fixează locația” pentru a confirma alegerea.';
+        status.textContent = t('Press "Set Location" to confirm your choice.');
         status.className = 'col-12 small text-muted';
     }
 });
@@ -2630,7 +2652,7 @@ document.getElementById('city-location-radius')?.addEventListener('change', even
     const radiusMeters = Number(event.target.value);
     const status = document.getElementById('city-location-status');
     if (!Number.isInteger(radiusMeters) || radiusMeters < 100 || radiusMeters > 35000) {
-        status.textContent = 'Raza trebuie să fie între 100 și 35.000 de metri.';
+        status.textContent = t('Radius must be between :min and :max metres.', { min: formatNumber(100), max: formatNumber(35000) });
         status.className = 'col-12 small text-danger';
         return;
     }
@@ -2646,7 +2668,7 @@ document.getElementById('city-location-radius')?.addEventListener('change', even
                 64
             ).transform('EPSG:4326', 'EPSG:3857')
         );
-        status.textContent = `Raza de căutare: ${cityRadiusMeters.toLocaleString('ro-RO')} m.`;
+        status.textContent = t('Search radius: :radius m.', { radius: cityRadiusMeters.toLocaleString(intlLocale) });
         status.className = 'col-12 small text-success';
         if (selectedPoiFilterTokens(document.getElementById('mobility_card')).length > 0) {
             loadNearby(fixedCityLocation);
@@ -2929,8 +2951,8 @@ document
 
             await Swal.fire({
                 icon: 'error',
-                title: 'GPS indisponibil',
-                text: 'Browserul nu suportă geolocația.'
+                title: t('GPS unavailable'),
+                text: t('The browser does not support geolocation.')
             });
 
             return;
@@ -2975,7 +2997,7 @@ document
         const currentLocation = document.getElementById('current_location');
 
         if (status) {
-            status.textContent = 'Se determină poziția GPS...';
+            status.textContent = t('Determining the GPS position...');
             status.className = 'col-12 small text-muted';
         }
 
@@ -3009,7 +3031,7 @@ document
 
             if (!Number.isFinite(radiusMeters) || radiusMeters <= 0) {
                 initialized = false;
-                throw new Error('Raza GPS configurată nu este validă.');
+                throw new Error(t('The configured GPS radius is not valid.'));
             }
 
             // Salvează coordonatele GPS reale.
@@ -3044,7 +3066,7 @@ document
             mapCard?.classList.remove('d-none');
             mobilityCard?.classList.remove('d-none');
             window.dispatchEvent(new CustomEvent('symbiot:location-set', {
-                detail: { label: 'locația GPS' },
+                detail: { label: t('GPS location') },
             }));
             syncDashboardRadius(app_radius, true);
 
@@ -3055,7 +3077,7 @@ document
 
             if (status) {
                 status.textContent =
-                    `Locație GPS activată. Raza: ${radiusMeters.toLocaleString('ro-RO')} m.`;
+                    t('GPS location enabled. Radius: :radius m.', { radius: radiusMeters.toLocaleString(intlLocale) });
                 status.className = 'col-12 small text-success';
             }
 
@@ -3213,10 +3235,10 @@ document
                 if (status) {
                     status.textContent =
                         error.code === 1
-                            ? 'Accesul la locație a fost refuzat.'
+                            ? t('Location access was denied.')
                             : error.code === 2
-                                ? 'Poziția GPS nu este disponibilă.'
-                                : 'Determinarea poziției GPS a expirat.';
+                                ? t('The GPS position is not available.')
+                                : t('Determining the GPS position timed out.');
                     status.className = 'col-12 small text-danger';
                 }
 
@@ -3435,7 +3457,7 @@ async function loadNearby(locationOverride = null) {
             .filter(result => result.status === 'fulfilled');
         const failedRequests = responses
             .flatMap((result, index) => result.status === 'rejected'
-                ? [`${requests[index].label} (${result.reason?.message || 'cerere eșuată'})`]
+                ? [`${requests[index].label} (${result.reason?.message || t('request failed')})`]
                 : []);
 
         responses.forEach((result, index) => {
@@ -3471,8 +3493,8 @@ async function loadNearby(locationOverride = null) {
         showResultData(data, lat, lon);
         if (failedRequests.length > 0) {
             notification = {
-                title: 'Rezultate parțiale',
-                text: `Nu s-au putut încărca toate filtrele: ${failedRequests.join('; ')}`,
+                title: t('Partial results'),
+                text: t('Not all filters could be loaded: :errors', { errors: failedRequests.join('; ') }),
                 icon: 'warning'
             };
         }
@@ -3482,10 +3504,10 @@ async function loadNearby(locationOverride = null) {
         
         console.error(error.message);
         window.dispatchEvent(new CustomEvent('symbiot:nearby-error', {
-            detail: { message: 'Nu am putut încărca punctele. Verifică conexiunea și filtrele selectate.' },
+            detail: { message: t('Could not load the points. Check your connection and the selected filters.') },
         }));
         notification = {
-            title: 'Eroare la încărcarea categoriilor',
+            title: t('Error loading the categories'),
             text: error.message,
             icon: 'error',
         };
@@ -3574,11 +3596,11 @@ function setSubcategoryButtonsLoading(loading) {
     document.querySelectorAll('.poi-subcategory-toggle').forEach(button => {
         if (loading) {
             button.dataset.label ??= button.textContent.trim();
-            button.textContent = 'Se încarcă…';
+            button.textContent = t('Loading…');
             button.disabled = true;
             document.querySelector(button.dataset.bsTarget)?.classList.remove('show');
         } else {
-            button.textContent = button.dataset.label ?? 'Subcategorii';
+            button.textContent = button.dataset.label ?? t('Subcategories');
             button.disabled = false;
         }
     });
@@ -3728,7 +3750,7 @@ function showResultData(data, lat, lon) {
         detail: {
             pois: enriched.map(poi => ({
                 id: poi.id ?? null,
-                name: poi.name || poi.label || 'Punct fără nume',
+                name: poi.name || poi.label || t('Unnamed point'),
                 type: poi.type || 'other',
                 distance: poi.distance?.meters ?? null,
                 distanceLabel: poi.distance?.formatted || '',
@@ -3947,7 +3969,7 @@ function startPoiElapsedTimer() {
         const seconds = Math.floor((performance.now() - poiLoadingStartedAt) / 1000);
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
-        elapsedElement.textContent = `Timp scurs: ${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        elapsedElement.textContent = t('Elapsed time: :time', { time: `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}` });
     };
 
     updateElapsed();

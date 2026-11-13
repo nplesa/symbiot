@@ -2,6 +2,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { shouldSendPoint } from '../navigation-tracking.js';
 import { MAP_ATTRIBUTION } from '../map-attribution.js';
+import { t, intlLocale } from '../i18n.js';
 
 const page = document.getElementById('navigation-page');
 const status = document.getElementById('navigation-status');
@@ -83,7 +84,7 @@ function setArrowHeading(start, end) {
 }
 
 function poiLabel(type) {
-    return poiCategories[type]?.label || 'POI';
+    return poiCategories[type]?.label || t('POI');
 }
 
 function renderAlertPanel() {
@@ -98,7 +99,7 @@ function renderAlertPanel() {
     if (!visiblePois.length) {
         const empty = document.createElement('div');
         empty.className = 'navigation-alert-empty';
-        empty.textContent = 'Niciun indicator întâlnit încă.';
+        empty.textContent = t('No signs passed yet.');
         alertList.appendChild(empty);
         return;
     }
@@ -146,8 +147,8 @@ function announcePoisOnSegment(start, end) {
         renderAlertPanel();
         const label = poiLabel(poi.type);
         const name = poi.name && poi.name !== label ? `: ${poi.name}` : '';
-        showToast(`Atenție, urmează ${label}${name}.`, poi.type === 'police' ? 'error' : 'info');
-        setStatus(`În apropiere: ${label}${name}`, poi.type === 'police' ? 'text-danger' : 'text-warning');
+        showToast(t('Watch out, :sign ahead.', { sign: `${label}${name}` }), poi.type === 'police' ? 'error' : 'info');
+        setStatus(t('Nearby: :sign', { sign: `${label}${name}` }), poi.type === 'police' ? 'text-danger' : 'text-warning');
     });
 }
 
@@ -272,7 +273,7 @@ function addPoi(poi) {
         L.marker([lat, lon], {
             icon: L.divIcon({
                 className: 'navigation-locality-label',
-                html: `<span>${escapeHtml(poi.name || 'Localitate')}</span>`,
+                html: `<span>${escapeHtml(poi.name || t('Locality'))}</span>`,
                 iconSize: [0, 0],
                 iconAnchor: [0, 0],
             }),
@@ -296,7 +297,7 @@ function addPoi(poi) {
     }
 
     L.circleMarker([lat, lon], markerStyle(poi.type))
-        .bindTooltip(escapeHtml(poi.name || 'POI'))
+        .bindTooltip(escapeHtml(poi.name || t('POI')))
         .addTo(poiLayers[type]);
 }
 
@@ -328,7 +329,7 @@ function updateCurrentPosition(position) {
             weight: 3,
             fillColor: '#f97316',
             fillOpacity: 1,
-        }).addTo(map).bindTooltip('Poziția mea');
+        }).addTo(map).bindTooltip(t('My position'));
     } else {
         currentMarker.setLatLng(point);
     }
@@ -341,7 +342,7 @@ function post(url, body = {}) {
         body: JSON.stringify(body),
     }).then(async response => {
         const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(payload.message || 'Cererea nu a putut fi procesată.');
+        if (!response.ok) throw new Error(payload.message || t('The request could not be processed.'));
         return payload;
     });
 }
@@ -349,12 +350,12 @@ function post(url, body = {}) {
 function positionError(error) {
     // Timeouts are routine with a weak signal (tunnels): the watch keeps running, so only update the status.
     if (error.code === 3) {
-        setStatus('Semnal GPS slab, aștept poziția…', 'text-warning');
+        setStatus(t('Weak GPS signal, waiting for position…'), 'text-warning');
         return;
     }
 
-    const messages = { 1: 'Permisiunea pentru localizare a fost refuzată.', 2: 'Poziția nu este disponibilă.' };
-    const message = messages[error.code] || 'Nu am putut obține poziția GPS.';
+    const messages = { 1: t('Location permission was denied.'), 2: t('Position is not available.') };
+    const message = messages[error.code] || t('Could not get the GPS position.');
     setStatus(message, 'text-danger');
     if (!gpsErrorNotified) {
         gpsErrorNotified = true;
@@ -401,20 +402,20 @@ function stopSessionOnUnload() {
 
 async function startNavigation() {
     if (!navigator.geolocation) {
-        setStatus('Acest dispozitiv nu suportă localizarea.', 'text-danger');
-        showToast('Localizarea nu este disponibilă pe acest dispozitiv.', 'error');
+        setStatus(t('This device does not support location.'), 'text-danger');
+        showToast(t('Location is not available on this device.'), 'error');
         return;
     }
 
     try {
         const response = await post('/tracking/start');
         sessionId = response.session.id;
-        setStatus('Navigația este activă. Aștept poziția GPS...', 'text-success');
-        showToast('Navigația a fost pornită.', 'success');
+        setStatus(t('Navigation is active. Waiting for GPS position...'), 'text-success');
+        showToast(t('Navigation started.'), 'success');
         watchId = navigator.geolocation.watchPosition(async position => {
             try {
                 await savePosition(position);
-                setStatus('Navigația este activă.', 'text-success');
+                setStatus(t('Navigation is active.'), 'text-success');
             } catch (error) {
                 setStatus(error.message, 'text-danger');
             }
@@ -439,7 +440,7 @@ async function stopNavigation() {
         });
     }
     sessionId = null;
-    showToast('Navigația s-a oprit.', 'info');
+    showToast(t('Navigation stopped.'), 'info');
     window.location.assign(page.dataset.routesUrl);
 }
 
@@ -447,7 +448,7 @@ function startSimulation(points) {
     if (!points.length) return;
 
     if (simulateButton) {
-        simulateButton.textContent = 'Oprește Simularea';
+        simulateButton.textContent = t('Stop simulation');
         simulateButton.disabled = false;
     }
 
@@ -466,12 +467,12 @@ function startSimulation(points) {
         simulatedMarker = L.marker(routePoints[0], {
             icon: L.divIcon({
                 className: 'navigation-direction-marker',
-                html: '<span class="navigation-direction-arrow" role="img" aria-label="Direcția de mers"><svg viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3 L29 29 L17 23 L5 29 Z" fill="#2563eb" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></svg></span>',
+                html: '<span class="navigation-direction-arrow" role="img" aria-label="' + t('Direction of travel') + '"><svg viewBox="0 0 34 34" aria-hidden="true"><path d="M17 3 L29 29 L17 23 L5 29 Z" fill="#2563eb" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></svg></span>',
                 iconSize: [34, 34],
                 iconAnchor: [17, 17],
             }),
             zIndexOffset: 1000,
-        }).addTo(map).bindTooltip('Direcția de mers - navigare simulată');
+        }).addTo(map).bindTooltip(t('Direction of travel - simulated navigation'));
     }
 
     setArrowHeading(routePoints[0], routePoints[1]);
@@ -479,10 +480,10 @@ function startSimulation(points) {
     map.setView(routePoints[0], 14, { animate: true });
     if (simulationSpeed) {
         simulationSpeed.hidden = false;
-        simulationSpeed.textContent = `Viteză: ${SIMULATION_SPEED_KMH} km/h`;
+        simulationSpeed.textContent = t('Speed: :speed km/h', { speed: SIMULATION_SPEED_KMH });
     }
-    setStatus('Navigație simulată activă.', 'text-success');
-    showToast('Navigația simulată a pornit.', 'success');
+    setStatus(t('Simulated navigation active.'), 'text-success');
+    showToast(t('Simulated navigation started.'), 'success');
 
     simulationTimer = setInterval(() => {
         let remainingMeters = metersPerTick;
@@ -516,11 +517,11 @@ function startSimulation(points) {
         if (segmentIndex >= routePoints.length - 1) {
             clearInterval(simulationTimer);
             simulationTimer = null;
-            if (simulateButton) simulateButton.textContent = 'Simulare Traseu';
+            if (simulateButton) simulateButton.textContent = t('Simulate route');
             if (simulationSpeed) simulationSpeed.hidden = true;
-            setStatus('Simularea s-a încheiat.', 'text-muted');
+            setStatus(t('Simulation finished.'), 'text-muted');
             simulatedMarker.setLatLng(routePoints[routePoints.length - 1]);
-            showToast('Simularea a ajuns la finalul traseului.', 'info');
+            showToast(t('The simulation reached the end of the route.'), 'info');
             return;
         }
 
@@ -536,7 +537,7 @@ function startSimulation(points) {
             map.panTo(point, { animate: false });
         }
         if (simulationSpeed) {
-            simulationSpeed.textContent = `Viteză: ${SIMULATION_SPEED_KMH} km/h`;
+            simulationSpeed.textContent = t('Speed: :speed km/h', { speed: SIMULATION_SPEED_KMH });
         }
         if (reachedSegmentEnd) {
             announcePoisOnSegment(previousPoint, routePoints[segmentIndex]);
@@ -563,10 +564,10 @@ function bindControls() {
                 announcedPoiKeys.clear();
                 latestReachedPoiId = null;
                 renderAlertPanel();
-                simulateButton.textContent = 'Simulare Traseu';
+                simulateButton.textContent = t('Simulate route');
                 if (simulationSpeed) simulationSpeed.hidden = true;
-                setStatus('Simularea este oprită.', 'text-muted');
-                showToast('Simularea s-a oprit. Ai revenit la începutul traseului.', 'info');
+                setStatus(t('Simulation is stopped.'), 'text-muted');
+                showToast(t('Simulation stopped. You are back at the start of the route.'), 'info');
             } else {
                 startSimulation(getRoutePoints(getLines(JSON.parse(page.dataset.routeGeometry))));
             }
@@ -603,7 +604,7 @@ function bindControls() {
             map.stop();
             map.fitBounds(routeBounds, { padding: [40, 40], animate: true });
             keepRouteInFront();
-            showToast('Traseul este centrat pe hartă.', 'info');
+            showToast(t('The route is centred on the map.'), 'info');
         }
     });
 
@@ -615,8 +616,8 @@ function bindControls() {
             return;
         }
         if (!navigator.geolocation) {
-            setStatus('Acest dispozitiv nu suportă localizarea.', 'text-danger');
-            showToast('Localizarea nu este disponibilă pe acest dispozitiv.', 'error');
+            setStatus(t('This device does not support location.'), 'text-danger');
+            showToast(t('Location is not available on this device.'), 'error');
             return;
         }
 
@@ -624,15 +625,15 @@ function bindControls() {
             updateCurrentPosition(position);
             map.setView([position.coords.latitude, position.coords.longitude], 17, { animate: true });
             keepRouteInFront();
-            setStatus('Poziția curentă a fost actualizată.', 'text-success');
-            showToast('Poziția curentă a fost actualizată.', 'success');
+            setStatus(t('Current position updated.'), 'text-success');
+            showToast(t('Current position updated.'), 'success');
         }, error => {
             positionError(error);
         }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 });
     });
 
     stopButton?.addEventListener('click', () => {
-        showToast('Se oprește navigația.', 'info');
+        showToast(t('Stopping navigation.'), 'info');
         stopNavigation();
     });
 }
@@ -675,7 +676,7 @@ function initialize() {
     L.circleMarker(points[points.length - 1], { radius: 9, color: '#fff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 }).addTo(map);
 
     if (page.dataset.simulate === '1') {
-        showToast('Simularea afișează indicatoare și obstacole de pe traseu.', 'info');
+        showToast(t('The simulation shows signs and obstacles along the route.'), 'info');
     }
 
     map.fitBounds(routeBounds, { padding: [40, 40] });
@@ -719,17 +720,17 @@ function setupTraffic() {
         if (!toggle.checked || document.hidden) return;
         removeLayer();
         failed = false;
-        message.textContent = 'Se încarcă traficul TomTom...';
+        message.textContent = t('Loading TomTom traffic...');
         layer = L.tileLayer(`${page.dataset.trafficUrl}?refresh=${Date.now()}`, {
             pane: 'traffic', maxZoom: 19, updateWhenIdle: true, keepBuffer: 0,
-            attribution: 'Trafic © TomTom',
+            attribution: t('Traffic © TomTom'),
         });
         layer.on('tileerror', () => {
             failed = true;
-            message.textContent = 'Trafic indisponibil sau incomplet. Reîncercare automată într-un minut.';
+            message.textContent = t('Traffic unavailable or incomplete. Retrying automatically in one minute.');
         });
         layer.on('load', () => {
-            if (!failed) message.textContent = `Trafic încărcat la ${new Date().toLocaleTimeString('ro-RO')}. Actualizare la 60 s.`;
+            if (!failed) message.textContent = t('Traffic loaded at :time. Refreshes every 60 s.', { time: new Date().toLocaleTimeString(intlLocale) });
         });
         layer.addTo(map);
     };
@@ -739,14 +740,14 @@ function setupTraffic() {
         removeLayer();
         if (toggle.checked && page.dataset.trafficConfigured !== '1') {
             toggle.checked = false;
-            message.textContent = 'Trafic indisponibil: cheia TomTom nu este configurată pe server.';
+            message.textContent = t('Traffic unavailable: the TomTom key is not configured on the server.');
         } else if (toggle.checked) {
             refresh();
             timer = window.setInterval(refresh, 60000);
         } else {
-            message.textContent = 'Trafic TomTom oprit.';
+            message.textContent = t('TomTom traffic is off.');
         }
-        state.textContent = toggle.checked ? 'On' : 'Off';
+        state.textContent = toggle.checked ? t('On') : t('Off');
         legend.hidden = !toggle.checked;
     };
     toggle.addEventListener('change', apply);

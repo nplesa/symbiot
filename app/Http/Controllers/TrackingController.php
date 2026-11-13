@@ -12,7 +12,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -244,26 +243,6 @@ class TrackingController extends Controller
         ]);
     }
 
-    public function location(Request $request): JsonResponse
-    {
-        $data = $request->validate([
-            'tracking_session_id' => ['required', 'integer', 'exists:tracking_sessions,id'],
-            'latitude' => ['required', 'numeric', 'between:-90,90'],
-            'longitude' => ['required', 'numeric', 'between:-180,180'],
-            'accuracy' => ['nullable', 'numeric', 'min:0'],
-            'speed' => ['nullable', 'numeric', 'min:0'],
-            'heading' => ['nullable', 'numeric', 'between:0,360'],
-            'altitude' => ['nullable', 'numeric'],
-            'battery' => ['nullable', 'integer', 'min:0', 'max:100'],
-            'tracked_at' => ['nullable', 'date'],
-        ]);
-
-        $session = TrackingSession::query()->findOrFail($data['tracking_session_id']);
-        $tracking = $this->trackingSessions->addPoint($request->user(), $session, $data);
-
-        return response()->json($tracking, 201);
-    }
-
     public function stop(Request $request): JsonResponse
     {
         $session = $this->trackingSessions->stop($request->user());
@@ -279,28 +258,6 @@ class TrackingController extends Controller
         return response()->json([
             'success' => true,
             'session' => $session,
-        ]);
-    }
-
-    public function destroy(
-        Request $request,
-        TrackingSession $session
-    ): JsonResponse {
-        $this->authorizeSession($request, $session);
-
-        DB::transaction(function () use ($session) {
-
-            $session
-                ->trackings()
-                ->delete();
-
-            $session
-                ->delete();
-
-        });
-
-        return response()->json([
-            'success' => true,
         ]);
     }
 

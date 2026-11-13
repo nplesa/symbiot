@@ -11,6 +11,7 @@ import Style from 'ol/style/Style.js';
 import Text from 'ol/style/Text.js';
 import { fromLonLat } from 'ol/proj.js';
 import { movedFarEnough } from '../vehicle-center.js';
+import { t } from '../i18n.js';
 
 const ROUTE_PALETTE = ['#e6194b', '#3cb44b', '#0d6efd', '#f58231', '#911eb4', '#008080', '#f032e6', '#9a6324', '#800000', '#808000', '#000075', '#e6a800'];
 
@@ -136,29 +137,31 @@ export function createTransitLayer(map) {
             color,
         };
         window.dispatchEvent(new CustomEvent('symbiot:transit-route-selected', { detail: routeDetail }));
-        schedule.textContent = 'Se caută următoarea plecare programată…';
+        schedule.textContent = t('Searching for the next scheduled departure…');
         schedule.hidden = false;
         fetchJson(`/api/transit/stops/${encodeURIComponent(feed)}/${encodeURIComponent(stopId)}/next-departure?route_id=${encodeURIComponent(route.route_id)}`)
             .then(({ departure, reason }) => {
                 if (activeRoutes.get(key) !== entry) return;
                 if (!departure) {
                     schedule.textContent = reason === 'schedule_unavailable'
-                        ? 'Orarul nu este disponibil pentru acest traseu.'
-                        : 'Nu este programată o plecare în următoarele zile.';
+                        ? t('The timetable is not available for this route.')
+                        : t('No departure is scheduled in the coming days.');
                     window.dispatchEvent(new CustomEvent('symbiot:transit-route-schedule', {
                         detail: { ...routeDetail, departure: null, reason },
                     }));
                     return;
                 }
-                const countdown = departure.minutes_until === 0 ? 'acum' : `în ${departure.minutes_until} min`;
-                schedule.textContent = `Următoarea plecare: ${departure.time} (${countdown})${departure.headsign ? ` spre ${departure.headsign}` : ''} · orar programat`;
+                const countdown = departure.minutes_until === 0 ? t('now') : t('in :minutes min', { minutes: departure.minutes_until });
+                schedule.textContent = departure.headsign
+                    ? t('Next departure: :time (:countdown) to :headsign · scheduled timetable', { time: departure.time, countdown, headsign: departure.headsign })
+                    : t('Next departure: :time (:countdown) · scheduled timetable', { time: departure.time, countdown });
                 window.dispatchEvent(new CustomEvent('symbiot:transit-route-schedule', {
                     detail: { ...routeDetail, departure },
                 }));
             })
             .catch(() => {
                 if (activeRoutes.get(key) === entry) {
-                    schedule.textContent = 'Orarul nu este disponibil.';
+                    schedule.textContent = t('The timetable is not available.');
                     window.dispatchEvent(new CustomEvent('symbiot:transit-route-schedule', {
                         detail: { ...routeDetail, departure: null, reason: 'schedule_unavailable' },
                     }));

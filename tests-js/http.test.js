@@ -32,11 +32,11 @@ test('explains expired sessions and rate limits instead of showing raw pages', a
     const expired = await rejection(readJson(htmlResponse(419)));
     assert.ok(expired instanceof HttpError);
     assert.equal(expired.status, 419);
-    assert.equal(expired.message, 'Sesiunea a expirat. Reîncarcă pagina.');
+    assert.equal(expired.message, 'Your session has expired. Please reload the page.');
 
     // The server's throttle message talks about login attempts; the client knows better.
     const limited = await rejection(readJson(jsonResponse({ message: 'Prea multe încercări de autentificare.' }, 429)));
-    assert.equal(limited.message, 'Prea multe cereri. Încearcă din nou peste un minut.');
+    assert.equal(limited.message, 'Too many requests. Try again in a minute.');
 });
 
 test('uses the server message, then the first validation error', async () => {
@@ -50,13 +50,13 @@ test('uses the server message, then the first validation error', async () => {
 
 test('never surfaces "Unexpected token <" for HTML error pages or invalid JSON', async () => {
     const serverError = await rejection(readJson(htmlResponse(500)));
-    assert.equal(serverError.message, 'Cererea a eșuat (HTTP 500).');
+    assert.equal(serverError.message, 'The request failed (HTTP 500).');
 
     const unexpectedHtml = await rejection(readJson(htmlResponse(200)));
-    assert.match(unexpectedHtml.message, /răspuns neașteptat \(HTTP 200\)/);
+    assert.match(unexpectedHtml.message, /unexpected response \(HTTP 200\)/);
 
     const broken = await rejection(readJson(new Response('{"oops"', { status: 200, headers: { 'Content-Type': 'application/json' } })));
-    assert.equal(broken.message, 'Serverul a returnat un răspuns JSON invalid.');
+    assert.equal(broken.message, 'The server returned an invalid JSON response.');
 });
 
 test('a redirect to the login page is reported as an expired session', async () => {

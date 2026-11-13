@@ -23,6 +23,7 @@ import {
 
 import { fromLonLat } from "ol/proj";
 import { MAP_ATTRIBUTION } from "../map-attribution.js";
+import { intlLocale, t } from "../i18n.js";
 
 /* =========================================================
    ELEMENTS
@@ -127,7 +128,7 @@ function updateStatistics(points, statistics) {
     }
 
     if (pointCountElement) {
-        pointCountElement.textContent = result.points.toLocaleString();
+        pointCountElement.textContent = result.points.toLocaleString(intlLocale);
     }
 
     if (durationElement) {
@@ -209,7 +210,7 @@ class TrackLoader {
         );
 
         if (!response.ok) {
-            throw new Error("Could not load available tracks.");
+            throw new Error(t("Could not load available tracks."));
         }
 
         return response.json();
@@ -227,13 +228,13 @@ class TrackLoader {
         );
 
         if (!response.ok) {
-            throw new Error("Could not load track points.");
+            throw new Error(t("Could not load track points."));
         }
 
         const data = await response.json();
 
         if (!Array.isArray(data)) {
-            throw new Error("Invalid track data received from the server.");
+            throw new Error(t("Invalid track data received from the server."));
         }
 
         return this.normalize(data);
@@ -437,10 +438,10 @@ class TrackPopup {
 
     show(point, position) {
         this.element.innerHTML = `
-            <strong>GPS point</strong>
-            <div><span>Speed:</span> ${point.speed} km/h</div>
-            <div><span>Altitude:</span> ${point.altitude} m</div>
-            <div><span>Time:</span> ${point.timestamp.toLocaleString()}</div>
+            <strong>${t("GPS point")}</strong>
+            <div><span>${t("Speed")}:</span> ${point.speed} km/h</div>
+            <div><span>${t("Altitude")}:</span> ${point.altitude} m</div>
+            <div><span>${t("Time")}:</span> ${point.timestamp.toLocaleString(intlLocale)}</div>
         `;
 
         this.overlay.setPosition(position);
@@ -656,10 +657,10 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
 
         clearTrack();
 
-        trackSelect.innerHTML = '<option value="">Loading tracks...</option>';
+        trackSelect.innerHTML = `<option value="">${t("Loading tracks...")}</option>`;
         trackSelect.disabled = true;
 
-        setStatus("Loading available tracks...", "loading");
+        setStatus(t("Loading available tracks..."), "loading");
 
         try {
             const sessions = await loader.sessions(date, controller.signal);
@@ -669,14 +670,14 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
 
             if (!Array.isArray(sessions) || sessions.length === 0) {
                 trackSelect.innerHTML =
-                    '<option value="">No tracks available</option>';
+                    `<option value="">${t("No tracks available")}</option>`;
 
-                setStatus("No tracks were found for the selected date.");
+                setStatus(t("No tracks were found for the selected date."));
                 return;
             }
 
             trackSelect.appendChild(
-                new Option("Select a track", "")
+                new Option(t("Select a track"), "")
             );
 
             sessions.forEach(session => {
@@ -685,8 +686,8 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
                 option.value = session.id;
 
                 const dateLabel = session.started_at
-                    ? new Date(session.started_at).toLocaleString()
-                    : `Track #${session.id}`;
+                    ? new Date(session.started_at).toLocaleString(intlLocale)
+                    : t("Track #:id", { id: session.id });
 
                 option.textContent = dateLabel;
 
@@ -696,7 +697,7 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
             trackSelect.disabled = false;
 
             setStatus(
-                `${sessions.length} track(s) available. Select one to display its route.`,
+                t(":count track(s) available. Select one to display its route.", { count: sessions.length }),
                 "success"
             );
         } catch (error) {
@@ -705,10 +706,10 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
             console.error(error);
 
             trackSelect.innerHTML =
-                '<option value="">Unable to load tracks</option>';
+                `<option value="">${t("Unable to load tracks")}</option>`;
 
             setStatus(
-                error.message || "An error occurred while loading tracks.",
+                error.message || t("An error occurred while loading tracks."),
                 "error"
             );
         }
@@ -720,7 +721,7 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
 
         if (!id) {
             clearTrack();
-            setStatus("Select a track to display its route.");
+            setStatus(t("Select a track to display its route."));
             return;
         }
 
@@ -729,7 +730,7 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
 
         clearTrack();
 
-        setStatus("Loading GPS points...", "loading");
+        setStatus(t("Loading GPS points..."), "loading");
 
         try {
             const points = await loader.points(id, controller.signal);
@@ -737,7 +738,7 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
 
             if (!points.length) {
                 setStatus(
-                    "This track does not contain any valid GPS points.",
+                    t("This track does not contain any valid GPS points."),
                     "error"
                 );
                 return;
@@ -757,7 +758,7 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
             }
 
             setStatus(
-                `Track loaded successfully. ${currentPoints.length} GPS point(s) found.`,
+                t("Track loaded successfully. :count GPS point(s) found.", { count: currentPoints.length }),
                 "success"
             );
 
@@ -770,7 +771,7 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
             clearTrack();
 
             setStatus(
-                error.message || "An error occurred while loading the track.",
+                error.message || t("An error occurred while loading the track."),
                 "error"
             );
         }
@@ -787,11 +788,11 @@ if (trackDay && trackSelect && document.getElementById("track_map")) {
             clearTrack();
 
             trackSelect.innerHTML =
-                '<option value="">Select a date first</option>';
+                `<option value="">${t("Select a date first")}</option>`;
 
             trackSelect.disabled = true;
 
-            setStatus("Select a date to view your available tracks.");
+            setStatus(t("Select a date to view your available tracks."));
             return;
         }
 

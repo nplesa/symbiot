@@ -1,13 +1,15 @@
 import { pollDelayMs } from '../transit-polling.js';
+import { t } from '../i18n.js';
 
+// English keys; translated with t() where the label is shown.
 const STAGES = {
-    queued: 'În așteptare la coadă…',
-    retrying: 'Reîncerc importul…',
-    downloading: 'Descarc datele de transport…',
-    preparing: 'Pregătesc importul…',
-    importing: 'Import în baza de date',
-    done: 'Gata',
-    failed: 'Importul a eșuat',
+    queued: 'Waiting in the queue…',
+    retrying: 'Retrying the import…',
+    downloading: 'Downloading the transit data…',
+    preparing: 'Preparing the import…',
+    importing: 'Importing into the database',
+    done: 'Done',
+    failed: 'The import failed',
 };
 
 let activeRun = 0;
@@ -54,7 +56,7 @@ function render(el, feeds, preparing = false) {
     const visibleFeeds = feeds.filter((feed) => feed.progress);
     if (visibleFeeds.length === 0 && preparing) {
         const text = document.createElement('div');
-        text.textContent = 'Se verifică și se pregătesc datele GTFS…';
+        text.textContent = t('Checking and preparing the GTFS data…');
         const bar = document.createElement('div');
         bar.className = 'progress';
         bar.style.height = '6px';
@@ -66,7 +68,7 @@ function render(el, feeds, preparing = false) {
     }
     visibleFeeds.forEach((feed) => {
         const { stage, percent, detail } = feed.progress;
-        const label = STAGES[stage] || stage;
+        const label = STAGES[stage] ? t(STAGES[stage]) : stage;
         const wrap = document.createElement('div');
         wrap.className = 'mb-2';
         const text = document.createElement('div');
@@ -102,14 +104,14 @@ export async function watchTransitCoverage(lat, lon, anchor, onReady = () => {},
             });
             if (!response.ok) {
                 if (run !== activeRun) return;
-                el.textContent = 'Nu am putut verifica descărcarea GTFS. Categoriile POI sunt disponibile.';
+                el.textContent = t('Could not check the GTFS download. POI categories are available.');
                 onReady([]);
                 return;
             }
             data = await response.json();
         } catch {
             if (run !== activeRun) return;
-            el.textContent = 'Nu am putut verifica descărcarea GTFS. Categoriile POI sunt disponibile.';
+            el.textContent = t('Could not check the GTFS download. POI categories are available.');
             onReady([]);
             return;
         }
@@ -122,10 +124,10 @@ export async function watchTransitCoverage(lat, lon, anchor, onReady = () => {},
             if (data.import_limited) {
                 const note = document.createElement('div');
                 note.className = 'text-warning';
-                note.textContent = 'Limita de importuri pentru zone noi a fost atinsă. Încearcă din nou mai târziu.';
+                note.textContent = t('The import limit for new areas has been reached. Try again later.');
                 el.append(note);
             } else if (data.feeds.length === 0) {
-                el.textContent = 'Nu a fost găsit un feed GTFS disponibil pentru această zonă.';
+                el.textContent = t('No GTFS feed is available for this area.');
             }
             if (run !== activeRun) {
                 return;
@@ -146,7 +148,7 @@ export async function watchTransitCoverage(lat, lon, anchor, onReady = () => {},
             // A stuck queue or a very long import: stop polling, keep the map usable.
             const note = document.createElement('div');
             note.className = 'text-warning';
-            note.textContent = 'Importul durează mai mult decât de obicei. Reîncarcă pagina mai târziu pentru datele de transport.';
+            note.textContent = t('The import is taking longer than usual. Reload the page later for the transit data.');
             el.append(note);
             onReady(data.feeds);
             return;

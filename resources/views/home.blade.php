@@ -165,7 +165,7 @@
                                 <div class="col-12 d-flex flex-row flex-wrap align-items-center justify-content-between">
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" role="switch" id="toggleWifi">
-                                        <label class="form-check-label" for="toggleEnableDevice">{{ __('Activate Wifi') }}</label>
+                                        <label class="form-check-label" for="toggleWifi">{{ __('Activate Wifi') }}</label>
                                     </div>
                                     <div class="mt-md-1 mt-3">
                                         <button id="wifiConnect" class="btn btn-sm btn-primary">{{ __('Connect') }}</button>
@@ -204,8 +204,8 @@
                             <div class="row">
                                 <div class="col-12 d-flex flex-row flex-wrap align-items-center justify-content-between">
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="toggleCameras">
-                                        <label class="form-check-label" for="toggleCameras">{{ __('Activate') }}</label>
+                                        <input class="form-check-input" type="checkbox" role="switch" id="toggleDrone">
+                                        <label class="form-check-label" for="toggleDrone">{{ __('Activate') }}</label>
                                     </div>
                                     <div class="mt-md-1 mt-3">
                                         <button id="fixTarget" class="btn btn-sm btn-primary">{{ __('Set Target') }}</button>
@@ -271,7 +271,7 @@
                 </div>
                 <div class="poi-category-filters">
                     @foreach ($locations as $location)
-                        @if ($location === 'police' || $poiCategories[$location]['group'] !== 'Poliție')
+                        @if ($location === 'police' || $poiCategories[$location]['group'] !== 'police')
                             @include('partials.poi-category-filter', ['categoryIndex' => $loop->index])
                         @endif
                     @endforeach

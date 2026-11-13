@@ -1,56 +1,37 @@
 import {defineConfig} from 'vite';
-import { fileURLToPath } from "node:url";
-import * as path from "path";
 import {glob} from "glob";
 import * as fs from "node:fs";
 import laravel from 'laravel-vite-plugin';
 
-let sass = Object.fromEntries(
-    glob.sync("resources/sass/pages/**/*.scss")
-        .map((file) => [
-            path.relative(
-                "resources/sass/pages",
-                file.slice(0, file.length - path.extname(file).length)
-            ),
-            fileURLToPath(new URL(file, import.meta.url)),
-        ])
-);
+// One entry per page script/stylesheet. Modules shared by pages live outside pages/
+// (e.g. resources/js/map/) so they are bundled into the page instead of becoming entries.
+const pageEntries = (pattern) => glob.sync(pattern, { posix: true }).sort();
 
-sass = Object.values(sass);
-
-let js = Object.fromEntries(
-    glob.sync("resources/js/pages/**/*.js")
-        .map((file) => [
-            path.relative(
-                "resources/js/pages",
-                file.slice(0, file.length - path.extname(file).length)
-            ),
-            fileURLToPath(new URL(file, import.meta.url)),
-        ])
-);
-js = Object.values(js);
-
-let n4m = Object.fromEntries(
-    glob.sync("resources/js/vendor/n4m/**/*.js")
-        .map((file) => [
-            path.relative(
-                "resources/js/vendor/n4m",
-                file.slice(0, file.length - path.extname(file).length)
-            ),
-            fileURLToPath(new URL(file, import.meta.url)),
-        ])
-);
-n4m = Object.values(n4m);
-
-let input = [
+const input = [
     'resources/sass/app.scss',
     'resources/js/app.js',
-    ...sass,
-    ...js,
-    ...n4m
+    ...pageEntries('resources/sass/pages/**/*.scss'),
+    ...pageEntries('resources/js/pages/**/*.js'),
 ];
 
-export default defineConfig({
+// Local HTTPS certificate for the dev server only; `vite build` (and CI) never needs it.
+const devCertificate = {
+    key: 'C:/Developer/PhpWebStudy-Data/server/CA/1786422883336/CA-1786422883336.key',
+    cert: 'C:/Developer/PhpWebStudy-Data/server/CA/1786422883336/CA-1786422883336.crt',
+};
+
+function devHttps(command) {
+    if (command !== 'serve' || !fs.existsSync(devCertificate.key) || !fs.existsSync(devCertificate.cert)) {
+        return undefined;
+    }
+
+    return {
+        key: fs.readFileSync(devCertificate.key),
+        cert: fs.readFileSync(devCertificate.cert),
+    };
+}
+
+export default defineConfig(({ command }) => ({
     css: {
         preprocessorOptions: {
             scss: {
@@ -79,14 +60,7 @@ export default defineConfig({
 
         origin: 'https://symbiot.local:5173',
 
-        https: {
-            key: fs.readFileSync(
-                'C:/Developer/PhpWebStudy-Data/server/CA/1786422883336/CA-1786422883336.key'
-            ),
-            cert: fs.readFileSync(
-                'C:/Developer/PhpWebStudy-Data/server/CA/1786422883336/CA-1786422883336.crt'
-            ),
-        },
+        https: devHttps(command),
 
         ws: {
             protocol: 'wss',
@@ -104,4 +78,4 @@ export default defineConfig({
             refresh: true,
         }),
     ],
-});
+}));

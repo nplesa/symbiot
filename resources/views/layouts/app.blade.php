@@ -11,6 +11,14 @@
     <link rel="dns-prefetch" href="//fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
 
+    {{-- Translations for resources/js/i18n.js; must run before the module scripts below. --}}
+    <script>
+        window.SymbiotI18n = {!! json_encode([
+            'locale' => app()->getLocale(),
+            'messages' => (object) app('translator')->getLoader()->load(app()->getLocale(), '*', '*'),
+        ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!};
+    </script>
+
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 
     @livewireStyles

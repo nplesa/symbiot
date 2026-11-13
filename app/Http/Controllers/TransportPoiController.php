@@ -1231,25 +1231,6 @@ class TransportPoiController extends Controller
         return collect($routes)->unique('id')->values()->all();
     }
 
-    /**
-     * @param  array<string, mixed>  $route
-     * @return list<array{0: float, 1: float}>
-     */
-    private function routeCoordinates(array $route): array
-    {
-        $coordinates = [];
-
-        foreach ($route['members'] ?? [] as $member) {
-            foreach ($member['geometry'] ?? [] as $point) {
-                if (isset($point['lon'], $point['lat'])) {
-                    $coordinates[] = [(float) $point['lon'], (float) $point['lat']];
-                }
-            }
-        }
-
-        return $coordinates;
-    }
-
     /** @param array<string, mixed> $tags */
     private function transitRouteStatus(array $tags): string
     {

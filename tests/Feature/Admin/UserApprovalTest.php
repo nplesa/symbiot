@@ -65,7 +65,7 @@ class UserApprovalTest extends TestCase
             ->assertSee('1.2.3.4')
             ->assertSee('ACCEPT')
             ->assertSee('GHOST')
-            ->assertSee('EDITARE');
+            ->assertSee('EDIT');
     }
 
     public function test_admin_can_accept_and_delete_users(): void

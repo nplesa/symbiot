@@ -3,6 +3,8 @@
  * so an HTML error page (419, 500, login redirect) never surfaces as "Unexpected token <".
  */
 
+import { t } from './i18n.js';
+
 export class HttpError extends Error {
     constructor(message, status = 0, payload = null) {
         super(message);
@@ -13,11 +15,11 @@ export class HttpError extends Error {
 }
 
 // The server's own text for these is either missing (HTML page) or misleading
-// (the global throttle handler talks about login attempts).
+// (the global throttle handler talks about login attempts). English keys, translated when thrown.
 const STATUS_MESSAGES = {
-    401: 'Sesiunea a expirat. Autentifică-te din nou.',
-    419: 'Sesiunea a expirat. Reîncarcă pagina.',
-    429: 'Prea multe cereri. Încearcă din nou peste un minut.',
+    401: 'Your session has expired. Please log in again.',
+    419: 'Your session has expired. Please reload the page.',
+    429: 'Too many requests. Try again in a minute.',
 };
 
 function isJsonResponse(response) {
@@ -32,7 +34,7 @@ function isJsonResponse(response) {
 export async function readJson(response) {
     const responseUrl = response.url ? new URL(response.url, 'http://localhost') : null;
     if (response.redirected && responseUrl?.pathname.endsWith('/login')) {
-        throw new HttpError(STATUS_MESSAGES[401], 401);
+        throw new HttpError(t(STATUS_MESSAGES[401]), 401);
     }
 
     let payload = null;
@@ -47,20 +49,20 @@ export async function readJson(response) {
 
     if (!response.ok) {
         const validationError = Object.values(payload?.errors || {}).flat()[0];
-        const message = STATUS_MESSAGES[response.status]
+        const message = (STATUS_MESSAGES[response.status] && t(STATUS_MESSAGES[response.status]))
             || payload?.error
             || validationError
             || payload?.message
-            || `Cererea a eșuat (HTTP ${response.status}).`;
+            || t('The request failed (HTTP :status).', { status: response.status });
 
         throw new HttpError(message, response.status, payload);
     }
 
     if (invalidJson) {
-        throw new HttpError('Serverul a returnat un răspuns JSON invalid.', response.status);
+        throw new HttpError(t('The server returned an invalid JSON response.'), response.status);
     }
     if (payload === null && !isJsonResponse(response)) {
-        throw new HttpError(`Serverul a returnat un răspuns neașteptat (HTTP ${response.status}).`, response.status);
+        throw new HttpError(t('The server returned an unexpected response (HTTP :status).', { status: response.status }), response.status);
     }
 
     return payload;

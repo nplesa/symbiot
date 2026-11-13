@@ -25,7 +25,7 @@
         <div class="card-header navigation-traffic-controls">
             <div class="form-check form-switch mb-0">
                 <input class="form-check-input" type="checkbox" role="switch" id="navigation-realtime" aria-describedby="navigation-traffic-status">
-                <label class="form-check-label" for="navigation-realtime">RealTime <strong id="navigation-realtime-state">Off</strong></label>
+                <label class="form-check-label" for="navigation-realtime">{{ __('Real-time traffic') }} <strong id="navigation-realtime-state">{{ __('Off') }}</strong></label>
             </div>
             <span id="navigation-traffic-status" class="small text-muted" role="status">{{ __('TomTom traffic is off.') }}</span>
             <div id="navigation-traffic-legend" class="small" hidden>

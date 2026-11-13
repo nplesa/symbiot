@@ -1,5 +1,6 @@
 import { safeExternalUrl } from '../safe-url.js';
 import { notify } from '../notify.js';
+import { formatNumber, intlLocale, t } from '../i18n.js';
 
 /* =========================================================
    SYMBIOT GPS TRACKING
@@ -38,19 +39,19 @@ function showError(error) {
     switch (error.code) {
 
         case error.PERMISSION_DENIED:
-            notify("Permisiunea pentru localizare a fost refuzată.");
+            notify(t('Location permission was denied.'));
             break;
 
         case error.POSITION_UNAVAILABLE:
-            notify("Poziția nu este disponibilă.");
+            notify(t('The position is not available.'));
             break;
 
         case error.TIMEOUT:
-            notify("Obținerea poziției a expirat.");
+            notify(t('Getting the position timed out.'));
             break;
 
         default:
-            notify("Eroare necunoscută.");
+            notify(t('Unknown error.'));
     }
 
 }
@@ -210,7 +211,7 @@ async function startTracking() {
 
     if (!navigator.geolocation) {
 
-        notify("Geolocation nu este suportată.");
+        notify(t('Geolocation is not supported.'));
 
         if (trackingSwitch) {
             trackingSwitch.checked = false;
@@ -380,7 +381,7 @@ trackingSwitch?.addEventListener('change', async function () {
 
     if (!navigator.geolocation) {
 
-        notify("Geolocation nu este suportată.");
+        notify(t('Geolocation is not supported.'));
 
         this.checked = false;
 
@@ -409,7 +410,7 @@ trackingSwitch?.addEventListener('change', async function () {
 
         this.checked = !this.checked;
 
-        notify('Nu s-a putut modifica starea trackingului.');
+        notify(t('Could not change the tracking state.'));
 
     }
 
@@ -468,14 +469,14 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedRoute = null;
         stopRoutesPanel.hidden = true;
         stopRoutesList.replaceChildren();
-        setText('dashboard-stop-routes-count', '0 linii');
+        setText('dashboard-stop-routes-count', t('0 lines'));
         routeDetails.hidden = true;
         routePanel.classList.remove('is-open', 'has-stop-selection');
         poiFiltersCard?.classList.add('d-none');
         routeEmpty.hidden = !changing;
         nearbyPois = [];
         nearbyStops = [];
-        setText('dashboard-nearby-status', 'Alege categoriile POI pe care vrei să le vezi pe hartă.');
+        setText('dashboard-nearby-status', t('Choose the POI categories you want to see on the map.'));
         byId('dashboard-nearby-list')?.replaceChildren();
         setText('dashboard-nearby-count', '0');
     };
@@ -484,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const active = Boolean(trackingSwitch?.checked);
         trackButton?.classList.toggle('is-active', active);
         trackButton?.setAttribute('aria-pressed', String(active));
-        trackButton?.setAttribute('title', active ? 'Oprește urmărirea GPS' : 'Pornește urmărirea GPS');
+        trackButton?.setAttribute('title', active ? t('Stop GPS tracking') : t('Start GPS tracking'));
     };
     trackButton?.addEventListener('click', () => {
         if (!trackingSwitch) return;
@@ -512,7 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const formatDistance = (meters) => meters < 1000
         ? `${Math.round(meters)} m`
-        : `${(meters / 1000).toFixed(1).replace('.', ',')} km`;
+        : `${formatNumber(meters / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
 
     const renderNearby = () => {
         const list = byId('dashboard-nearby-list');
@@ -532,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return 6371000 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
                 })()
                 : null;
-            return { ...stop, type: 'Stație de transport', distance, distanceLabel: distance === null ? '' : formatDistance(distance) };
+            return { ...stop, type: 'Stație de transport', typeLabel: stop.typeLabel || t('Transit stop'), distance, distanceLabel: distance === null ? '' : formatDistance(distance) };
         });
         const unique = new Map();
         [...stops, ...nearbyPois].forEach((item) => {
@@ -544,17 +545,17 @@ document.addEventListener('DOMContentLoaded', () => {
         count.textContent = String(items.length);
         if (items.length === 0) {
             status.textContent = currentLocation?.dataset.lat
-                ? 'Nu am găsit stații sau puncte de interes în raza selectată.'
-                : 'Alege o localitate pentru a încărca stații și puncte de interes din zonă.';
+                ? t('No stops or points of interest found within the selected radius.')
+                : t('Choose a locality to load stops and points of interest in the area.');
             return;
         }
-        status.textContent = 'Cele mai apropiate locuri din zona selectată.';
+        status.textContent = t('The closest places in the selected area.');
         items.slice(0, 12).forEach((item) => {
             const row = document.createElement('li');
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'dashboard-nearby-item';
-            button.title = 'Centrează harta pe acest loc';
+            button.title = t('Center the map on this place');
             const icon = document.createElement('span');
             icon.className = 'dashboard-nearby-icon';
             icon.innerHTML = item.type === 'Stație de transport'
@@ -563,15 +564,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const details = document.createElement('span');
             details.className = 'dashboard-nearby-item-copy';
             const name = document.createElement('strong');
-            name.textContent = item.name || 'Punct fără nume';
+            name.textContent = item.name || t('Unnamed point');
             const type = document.createElement('small');
             const typeLabels = {
-                airport: 'Aeroport', bus: 'Stație de autobuz', train: 'Gară', subway: 'Metrou', taxi: 'Taxi',
-                fuel: 'Benzinărie', parking: 'Parcare', restaurant: 'Restaurant', cafe: 'Cafenea', lodging: 'Cazare',
-                supermarket: 'Supermarket', hospital: 'Spital', pharmacy: 'Farmacie', tourism: 'Obiectiv turistic',
-                charging_station: 'Încărcare electrică',
+                airport: t('Airport'), bus: t('Bus stop'), train: t('Train station'), subway: t('Metro'), taxi: t('Taxi'),
+                fuel: t('Fuel station'), parking: t('Car park'), restaurant: t('Restaurant'), cafe: t('Café'), lodging: t('Lodging'),
+                supermarket: t('Supermarket'), hospital: t('Hospital'), pharmacy: t('Pharmacy'), tourism: t('Tourist attraction'),
+                charging_station: t('EV charging'),
             };
-            type.textContent = item.typeLabel || typeLabels[item.type] || item.type || 'Punct de interes';
+            type.textContent = item.typeLabel || typeLabels[item.type] || item.type || t('Point of interest');
             details.append(name, type);
             const distance = document.createElement('span');
             distance.className = 'dashboard-nearby-distance';
@@ -608,7 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         const query = searchInput?.value.trim() ?? '';
         if (query.length < 2) {
-            searchStatus.textContent = 'Introdu cel puțin două caractere.';
+            searchStatus.textContent = t('Enter at least two characters.');
             return;
         }
         if (!cityInput || !cityForm) return;
@@ -617,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
             searchStatus.parentNode.classList.remove('d-none');
         }
 
-        searchStatus.textContent = 'Se caută localitatea…';
+        searchStatus.textContent = t('Searching for the locality...');
         searchResults.hidden = true;
         cityMode.checked = true;
         cityMode.dispatchEvent(new Event('change', { bubbles: true }));
@@ -628,7 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('symbiot:location-candidates', (event) => {
         const candidates = event.detail?.candidates ?? [];
-        searchSelect.replaceChildren(new Option('Selectează localitatea', ''));
+        searchSelect.replaceChildren(new Option(t('Choose locality'), ''));
         candidates.forEach((candidate) => searchSelect.add(new Option(candidate.label, String(candidate.index))));
         searchResults.hidden = false;
 
@@ -636,7 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
             searchStatus.parentNode.classList.remove('d-none');
         }
 
-        searchStatus.textContent = 'Am găsit mai multe rezultate. Alege localitatea.';
+        searchStatus.textContent = t('Several results found. Choose the locality.');
     });
 
     searchSelect?.addEventListener('change', () => {
@@ -646,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('symbiot:location-set', (event) => {
-        searchStatus.textContent = `Hartă centrată pe ${event.detail?.label ?? 'localitatea selectată'}.`;
+        searchStatus.textContent = t('Map centered on :place.', { place: event.detail?.label ?? t('the selected locality') });
         resetDashboardLocationState();
         if (!event.detail?.deferPoiCategories) {
             poiFiltersCard?.classList.remove('d-none');
@@ -655,22 +656,22 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('symbiot:location-changing', (event) => {
         resetDashboardLocationState(true);
         if (searchInput) searchInput.value = '';
-        searchSelect?.replaceChildren(new Option('Selectează localitatea', ''));
+        searchSelect?.replaceChildren(new Option(t('Choose locality'), ''));
 
         if(searchStatus.parentNode.classList.contains('d-none')) {
             searchStatus.parentNode.classList.remove('d-none');
         }
 
         searchStatus.textContent = event.detail?.mode === 'gps'
-            ? 'Se determină locația GPS…'
-            : 'Se schimbă localitatea…';
+            ? t('Determining the GPS location...')
+            : t('Changing the locality...');
     });
     window.addEventListener('symbiot:location-error', (event) => {
         if(searchStatus.parentNode.classList.contains('d-none')) {
             searchStatus.parentNode.classList.remove('d-none');
         }
 
-        searchStatus.textContent = event.detail?.message ?? 'Nu am putut găsi localitatea.';
+        searchStatus.textContent = event.detail?.message ?? t('Could not find the locality.');
     });
     window.addEventListener('symbiot:nearby-pois', (event) => {
         nearbyPois = event.detail?.pois ?? [];
@@ -681,10 +682,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderNearby();
     });
     window.addEventListener('symbiot:nearby-error', (event) => {
-        setText('dashboard-nearby-status', event.detail?.message || 'Nu s-au putut încărca punctele din apropiere.');
+        setText('dashboard-nearby-status', event.detail?.message || t('Could not load the nearby points.'));
     });
     window.addEventListener('symbiot:nearby-loading', () => {
-        setText('dashboard-nearby-status', 'Se încarcă rezultatele pentru categoriile selectate…');
+        setText('dashboard-nearby-status', t('Loading results for the selected categories...'));
         setText('dashboard-nearby-count', '…');
     });
     window.addEventListener('symbiot:nearby-cleared', () => {
@@ -692,12 +693,12 @@ document.addEventListener('DOMContentLoaded', () => {
         nearbyStops = [];
         byId('dashboard-nearby-list')?.replaceChildren();
         setText('dashboard-nearby-count', '0');
-        setText('dashboard-nearby-status', 'Alege categoriile POI pe care vrei să le vezi pe hartă.');
+        setText('dashboard-nearby-status', t('Choose the POI categories you want to see on the map.'));
     });
 
     const routeModeLabel = (type) => ({
-        0: 'Tramvai', 1: 'Metrou', 2: 'Tren', 3: 'Autobuz', 11: 'Troleibuz',
-    }[type] ?? (type >= 100 && type < 200 ? 'Tren' : 'Transport public'));
+        0: t('Tram'), 1: t('Metro'), 2: t('Train'), 3: t('Bus'), 11: t('Trolleybus'),
+    }[type] ?? (type >= 100 && type < 200 ? t('Train') : t('Public transport')));
     const gtfsColor = (value, fallback) => {
         const color = String(value ?? '').replace(/^#/, '');
         return /^[0-9a-f]{6}$/i.test(color) ? `#${color}` : fallback;
@@ -709,9 +710,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const shortNameIsNumeric = /^\d+$/.test(shortName);
         const publicName = shortNameIsNumeric && longNameIsLineCode
             ? longName
-            : shortName || longName || route.route_id || 'Linie';
+            : shortName || longName || route.route_id || t('Line');
         const secondaryName = shortNameIsNumeric && longNameIsLineCode
-            ? `Cod ${shortName}`
+            ? t('Code :code', { code: shortName })
             : longName && longName !== publicName
                 ? longName
                 : '';
@@ -726,15 +727,15 @@ document.addEventListener('DOMContentLoaded', () => {
         revealPanelSection(stopRoutesPanel);
         routePanel.classList.add('has-stop-selection');
         routePanel.classList.add('is-open');
-        setText('dashboard-stop-routes-title', 'Linii în stație');
-        setText('dashboard-stop-routes-stop', stopName || 'Stația selectată pe hartă');
-        setText('dashboard-stop-routes-count', loading ? '… linii' : `${routes.length} ${routes.length === 1 ? 'linie' : 'linii'}`);
+        setText('dashboard-stop-routes-title', t('Lines at stop'));
+        setText('dashboard-stop-routes-stop', stopName || t('Stop selected on the map'));
+        setText('dashboard-stop-routes-count', loading ? t(':count lines', { count: '…' }) : (routes.length === 1 ? t('1 line') : t(':count lines', { count: routes.length })));
         stopRoutesList.replaceChildren();
 
         if (loading) {
             const pending = document.createElement('p');
             pending.className = 'dashboard-stop-routes-empty';
-            pending.textContent = 'Se încarcă liniile stației…';
+            pending.textContent = t('Loading the stop lines...');
             stopRoutesList.append(pending);
             return;
         }
@@ -743,8 +744,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const empty = document.createElement('p');
             empty.className = 'dashboard-stop-routes-empty';
             empty.textContent = error
-                ? 'Nu am putut încărca liniile acestei stații. Încearcă din nou.'
-                : 'Nu există linii cu orar pentru această stație.';
+                ? t('Could not load the lines for this stop. Try again.')
+                : t('There are no lines with a timetable for this stop.');
             stopRoutesList.append(empty);
             return;
         }
@@ -764,8 +765,8 @@ document.addEventListener('DOMContentLoaded', () => {
             copy.className = 'dashboard-stop-route-copy';
             const name = document.createElement('strong');
             name.textContent = presentation.secondaryName
-                ? `Linia ${presentation.publicName}`
-                : route.long_name || `${routeModeLabel(Number(route.route_type))} · Linia ${badge.textContent}`;
+                ? t('Line :line', { line: presentation.publicName })
+                : route.long_name || `${routeModeLabel(Number(route.route_type))} · ${t('Line :line', { line: badge.textContent })}`;
             const mode = document.createElement('small');
             mode.textContent = [presentation.secondaryName, routeModeLabel(Number(route.route_type))].filter(Boolean).join(' · ');
             copy.append(name, mode);
@@ -798,20 +799,20 @@ document.addEventListener('DOMContentLoaded', () => {
         routeEmpty.hidden = true;
         revealPanelSection(stopRoutesPanel);
         routePanel.classList.add('has-stop-selection', 'is-open');
-        setText('dashboard-stop-routes-title', isAirport ? 'Zboruri în aeroport' : 'Linii în stație');
-        setText('dashboard-stop-routes-stop', stopName || (isAirport ? 'Aeroportul selectat pe hartă' : 'Stația selectată pe hartă'));
+        setText('dashboard-stop-routes-title', isAirport ? t('Flights at the airport') : t('Lines at stop'));
+        setText('dashboard-stop-routes-stop', stopName || (isAirport ? t('Airport selected on the map') : t('Stop selected on the map')));
         const flightCount = (airportFlights?.arrivals?.length ?? 0) + (airportFlights?.departures?.length ?? 0);
         setText('dashboard-stop-routes-count', loading
-            ? 'Se încarcă…'
+            ? t('Loading...')
             : isAirport
-                ? `${flightCount} ${flightCount === 1 ? 'zbor' : 'zboruri'}`
-                : `${routes.length} ${routes.length === 1 ? 'linie' : 'linii'}${trainServices.length ? ` · ${trainServices.length} trenuri` : ''}`);
+                ? (flightCount === 1 ? t('1 flight') : t(':count flights', { count: flightCount }))
+                : `${routes.length === 1 ? t('1 line') : t(':count lines', { count: routes.length })}${trainServices.length ? ` · ${t(':count trains', { count: trainServices.length })}` : ''}`);
         stopRoutesList.replaceChildren();
 
         if (loading) {
             const pending = document.createElement('p');
             pending.className = 'dashboard-stop-routes-empty';
-            pending.textContent = isAirport ? 'Se încarcă sosirile și plecările…' : 'Se caută liniile stației…';
+            pending.textContent = isAirport ? t('Loading arrivals and departures...') : t('Searching for the stop lines...');
             stopRoutesList.append(pending);
             return;
         }
@@ -821,7 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const unavailable = document.createElement('p');
                 unavailable.className = 'dashboard-stop-routes-empty';
                 unavailable.textContent = airportFlights?.message
-                    || 'Datele despre zboruri nu sunt disponibile pentru acest aeroport.';
+                    || t('Flight data is not available for this airport.');
                 stopRoutesList.append(unavailable);
             } else {
                 const formatFlightTime = (value, timeZone = undefined) => {
@@ -829,13 +830,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const date = new Date(value);
                     if (Number.isNaN(date.getTime())) return '—';
                     try {
-                        return new Intl.DateTimeFormat(undefined, {
+                        return new Intl.DateTimeFormat(intlLocale, {
                             hour: '2-digit', minute: '2-digit',
                             hour12: false, // <-- Forțează formatul de 24 de ore
                             ...(timeZone ? { timeZone } : {}),
                         }).format(date);
                     } catch {
-                        return new Intl.DateTimeFormat(undefined, { 
+                        return new Intl.DateTimeFormat(intlLocale, { 
                             hour: '2-digit', 
                             minute: '2-digit',
                             hour12: false // <-- Și aici pentru siguranță
@@ -857,7 +858,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (upcomingFlights.length === 0) {
                         const empty = document.createElement('p');
                         empty.className = 'dashboard-stop-routes-empty';
-                        empty.textContent = 'Nu sunt zboruri programate după ora curentă în următoarele 24 de ore.';
+                        empty.textContent = t('No flights scheduled after the current time in the next 24 hours.');
                         stopRoutesList.append(empty);
                         return;
                     }
@@ -874,24 +875,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         const copy = document.createElement('span');
                         copy.className = 'dashboard-stop-route-copy';
                         const name = document.createElement('strong');
-                        name.textContent = flight.number || 'Zbor';
+                        name.textContent = flight.number || t('Flight');
                         const endpoint = direction === 'arrival'
-                            ? (flight.origin_name || flight.origin || 'Origine indisponibilă')
-                            : (flight.destination_name || flight.destination || 'Destinație indisponibilă');
+                            ? (flight.origin_name || flight.origin || t('Origin unavailable'))
+                            : (flight.destination_name || flight.destination || t('Destination unavailable'));
                         const details = [
                             endpoint,
                             flight.operator,
-                            flight.terminal ? `Terminal ${flight.terminal}` : null,
-                            flight.gate ? `Poarta ${flight.gate}` : null,
-                            direction === 'arrival' && flight.baggage_claim ? `Bandă ${flight.baggage_claim}` : null,
+                            flight.terminal ? t('Terminal :terminal', { terminal: flight.terminal }) : null,
+                            flight.gate ? t('Gate :gate', { gate: flight.gate }) : null,
+                            direction === 'arrival' && flight.baggage_claim ? t('Baggage belt :belt', { belt: flight.baggage_claim }) : null,
                         ].filter(Boolean);
                         const description = document.createElement('small');
                         description.textContent = details.join(' · ');
                         copy.append(name, description);
                         item.append(badge, copy);
-                        const statusText = flight.cancelled ? 'Anulat'
-                            : flight.diverted ? 'Redirecționat'
-                                : flight.status || (flight.estimated_time ? 'Estimat' : 'Programat');
+                        const statusText = flight.cancelled ? t('Cancelled')
+                            : flight.diverted ? t('Diverted')
+                                : flight.status || (flight.estimated_time ? t('Estimated') : t('Scheduled'));
                         const status = document.createElement('small');
                         status.className = 'dashboard-train-services-source';
                         status.textContent = statusText;
@@ -899,11 +900,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         stopRoutesList.append(item);
                     });
                 };
-                renderFlightGroup('Sosiri începând de acum', airportFlights.arrivals || [], 'arrival');
-                renderFlightGroup('Plecări începând de acum', airportFlights.departures || [], 'departure');
+                renderFlightGroup(t('Arrivals from now on'), airportFlights.arrivals || [], 'arrival');
+                renderFlightGroup(t('Departures from now on'), airportFlights.departures || [], 'departure');
                 const source = document.createElement('small');
                 source.className = 'dashboard-train-services-source';
-                source.textContent = `Sursă: ${airportFlights.source || 'Flight data'} · actualizat ${airportFlights.updated_at ? formatFlightTime(airportFlights.updated_at) : 'recent'}`;
+                source.textContent = t('Source: :source · updated :time', {
+                    source: airportFlights.source || t('Flight data'),
+                    time: airportFlights.updated_at ? formatFlightTime(airportFlights.updated_at) : t('recently'),
+                });
                 stopRoutesList.append(source);
             }
             return;
@@ -913,8 +917,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const empty = document.createElement('p');
             empty.className = 'dashboard-stop-routes-empty';
             empty.textContent = routesAvailable
-                ? 'Nu există linii asociate acestei stații.'
-                : 'Liniile stației nu au putut fi încărcate.';
+                ? t('There are no lines associated with this stop.')
+                : t('The stop lines could not be loaded.');
             stopRoutesList.append(empty);
             return;
         }
@@ -922,7 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isTrainStation && trainServices.length === 0) {
             const upcoming = document.createElement('p');
             upcoming.className = 'dashboard-stop-routes-empty';
-            upcoming.textContent = 'Nu mai sunt plecări programate azi după ora curentă în mersul anual.';
+            upcoming.textContent = t('No more departures scheduled today after the current time in the annual timetable.');
             stopRoutesList.append(upcoming);
         }
 
@@ -944,7 +948,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const directions = [...new Set(group.routes.map((route) => route.direction).filter(Boolean))];
             mode.textContent = directions.length > 0
                 ? `${directions.join(' · ')} · OpenStreetMap`
-                : 'OpenStreetMap · selectează pentru a desena';
+                : t('OpenStreetMap · select to draw');
             copy.append(name, mode);
             const arrow = document.createElement('i');
             arrow.className = 'fa-solid fa-chevron-right';
@@ -969,7 +973,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (trainServices.length > 0) {
             const heading = document.createElement('p');
             heading.className = 'dashboard-stop-routes-stop dashboard-train-services-heading';
-            heading.textContent = 'Plecări rămase azi';
+            heading.textContent = t('Remaining departures today');
             stopRoutesList.append(heading);
 
             trainServices.forEach((service) => {
@@ -977,21 +981,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.className = 'dashboard-stop-route-option dashboard-train-service';
                 const badge = document.createElement('span');
                 badge.className = 'dashboard-stop-route-badge';
-                badge.textContent = service.category || 'Tren';
+                badge.textContent = service.category || t('Train');
                 const copy = document.createElement('span');
                 copy.className = 'dashboard-stop-route-copy';
                 const name = document.createElement('strong');
-                name.textContent = `Linia ${service.category || 'Tren'} ${service.number || ''}`.trim();
+                name.textContent = t('Line :line', { line: `${service.category || t('Train')} ${service.number || ''}`.trim() });
                 const details = [
-                    service.origin ? `din ${service.origin}` : null,
-                    service.destination ? `spre ${service.destination}` : service.direction ? `spre ${service.direction}` : null,
-                    service.arrival ? `sosire ${service.arrival}` : null,
-                    service.departure ? `plecare ${service.departure}` : null,
+                    service.origin ? t('from :place', { place: service.origin }) : null,
+                    service.destination ? t('to :place', { place: service.destination }) : service.direction ? t('to :place', { place: service.direction }) : null,
+                    service.arrival ? t('arrival :time', { time: service.arrival }) : null,
+                    service.departure ? t('departure :time', { time: service.departure }) : null,
                     service.operator || null,
                     service.service_days || null,
                 ].filter(Boolean);
                 const description = document.createElement('small');
-                description.textContent = details.join(' · ') || 'Serviciu feroviar programat';
+                description.textContent = details.join(' · ') || t('Scheduled rail service');
                 copy.append(name, description);
                 item.append(badge, copy);
                 const ticketUrl = safeExternalUrl(service.ticket_url);
@@ -1001,8 +1005,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     ticketLink.href = ticketUrl;
                     ticketLink.target = '_blank';
                     ticketLink.rel = 'noopener noreferrer';
-                    ticketLink.textContent = 'Cumpără bilet';
-                    ticketLink.setAttribute('aria-label', `Cumpără bilet pentru trenul ${service.category || ''} ${service.number || ''}`.trim());
+                    ticketLink.textContent = t('Buy ticket');
+                    ticketLink.setAttribute('aria-label', t('Buy a ticket for train :train', { train: `${service.category || ''} ${service.number || ''}`.trim() }).trim());
                     item.append(ticketLink);
                 }
                 stopRoutesList.append(item);
@@ -1010,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const source = document.createElement('small');
             source.className = 'dashboard-train-services-source';
-            source.textContent = `Sursă: ${timetableSource} · mers anual${timetableValidUntil ? `, valabil până la ${timetableValidUntil}` : ''}${trainServicesAvailable ? '' : ' · unele orare nu au putut fi încărcate'}`;
+            source.textContent = `${t('Source: :source · annual timetable', { source: timetableSource })}${timetableValidUntil ? `, ${t('valid until :date', { date: timetableValidUntil })}` : ''}${trainServicesAvailable ? '' : ` · ${t('some timetables could not be loaded')}`}`;
             stopRoutesList.append(source);
         }
     });
@@ -1060,15 +1064,15 @@ document.addEventListener('DOMContentLoaded', () => {
         badge.style.backgroundColor = detail.color || gtfsColor(route.color, '#1769e0');
         badge.style.color = gtfsColor(route.text_color, '#ffffff');
         setText('dashboard-route-mode', routeModeLabel(Number(route.route_type)));
-        setText('dashboard-route-title', `Traseul ${label}`);
-        setText('dashboard-route-subtitle', [presentation.secondaryName, detail.stopName ? `Stația ${detail.stopName}` : null].filter(Boolean).join(' · ')
-            || route.long_name || `Stația ${detail.stopName || ''}`);
-        setText('dashboard-route-stop', detail.stopName ? `Stația ${detail.stopName}` : 'Stația selectată pe hartă');
-        setText('dashboard-route-distance', 'Se calculează…');
-        setText('dashboard-route-departure', 'Se caută…');
-        setText('dashboard-route-countdown', 'Se caută orarul…');
+        setText('dashboard-route-title', t('Route :route', { route: label }));
+        setText('dashboard-route-subtitle', [presentation.secondaryName, detail.stopName ? t('Stop :stop', { stop: detail.stopName }) : null].filter(Boolean).join(' · ')
+            || route.long_name || t('Stop :stop', { stop: detail.stopName || '' }));
+        setText('dashboard-route-stop', detail.stopName ? t('Stop :stop', { stop: detail.stopName }) : t('Stop selected on the map'));
+        setText('dashboard-route-distance', t('Calculating...'));
+        setText('dashboard-route-departure', t('Searching...'));
+        setText('dashboard-route-countdown', t('Searching timetable...'));
         setText('dashboard-route-headsign', '');
-        setText('dashboard-route-shape-status', 'Se încarcă geometria traseului…');
+        setText('dashboard-route-shape-status', t('Loading the route geometry...'));
     };
 
     window.addEventListener('symbiot:transit-route-selected', (event) => showRoute(event.detail));
@@ -1076,15 +1080,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selectedRoute || event.detail?.feed !== selectedRoute.feed || event.detail?.route?.route_id !== selectedRoute.route?.route_id) return;
         const departure = event.detail.departure;
         if (!departure) {
-            setText('dashboard-route-departure', 'Indisponibil');
+            setText('dashboard-route-departure', t('Unavailable'));
             setText('dashboard-route-countdown', event.detail.reason === 'schedule_unavailable'
-                ? 'Orarul nu este disponibil.'
-                : 'Nu există plecări programate în perioada următoare.');
+                ? t('The timetable is not available.')
+                : t('There are no departures scheduled in the coming period.'));
             return;
         }
         setText('dashboard-route-departure', departure.time);
-        setText('dashboard-route-countdown', departure.minutes_until === 0 ? 'Pleacă acum' : `${departure.minutes_until} min`);
-        setText('dashboard-route-headsign', departure.headsign ? `Direcția: ${departure.headsign}` : 'Orar programat');
+        setText('dashboard-route-countdown', departure.minutes_until === 0 ? t('Leaving now') : t(':minutes min', { minutes: departure.minutes_until }));
+        setText('dashboard-route-headsign', departure.headsign ? t('Direction: :headsign', { headsign: departure.headsign }) : t('Scheduled timetable'));
     });
     window.addEventListener('symbiot:transit-route-shape', (event) => {
         if (!selectedRoute || event.detail?.feed !== selectedRoute.feed || event.detail?.route?.route_id !== selectedRoute.route?.route_id) return;
@@ -1100,8 +1104,8 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let index = 1; index < shape.length; index++) total += haversine(shape[index - 1], shape[index]);
             return total;
         }, 0);
-        setText('dashboard-route-distance', meters > 0 ? `${(meters / 1000).toFixed(1).replace('.', ',')} km` : '—');
-        setText('dashboard-route-shape-status', meters > 0 ? 'Traseul este evidențiat pe hartă.' : 'Geometria traseului nu este disponibilă.');
+        setText('dashboard-route-distance', meters > 0 ? `${formatNumber(meters / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km` : '—');
+        setText('dashboard-route-shape-status', meters > 0 ? t('The route is highlighted on the map.') : t('The route geometry is not available.'));
     });
 
     byId('dashboard-fit-route')?.addEventListener('click', () => {

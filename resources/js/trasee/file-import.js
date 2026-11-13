@@ -1,3 +1,5 @@
+import { t } from '../i18n.js';
+
 (() => {
     if (window.__routeFileImportBoundV4) return;
     window.__routeFileImportBoundV4 = true;
@@ -23,37 +25,37 @@
             const file = input?.files?.[0] || null;
             if (!routeName) {
                 window.__traseeFileImportInFlight = false;
-                if (status) { status.textContent = 'Completează numele traseului înainte de import.'; status.className = 'text-danger small'; }
+                if (status) { status.textContent = t('Fill in the route name before importing.'); status.className = 'text-danger small'; }
                 nameInput?.focus();
                 return;
             }
             if (!file) {
                 window.__traseeFileImportInFlight = false;
-                if (status) { status.textContent = 'Selectează mai întâi un fișier GPX, KML, KMZ, GeoJSON sau CSV.'; status.className = 'text-danger small'; }
+                if (status) { status.textContent = t('First select a GPX, KML, KMZ, GeoJSON or CSV file.'); status.className = 'text-danger small'; }
                 input?.focus();
                 return;
             }
             if (!window.Livewire) {
                 window.__traseeFileImportInFlight = false;
-                if (status) { status.textContent = 'Componenta Livewire nu a fost găsită. Reîncarcă pagina.'; status.className = 'text-danger small'; }
+                if (status) { status.textContent = t('The Livewire component was not found. Reload the page.'); status.className = 'text-danger small'; }
                 return;
             }
             const componentRoot = form.closest('[wire\\:id]');
             const componentId = componentRoot?.getAttribute('wire:id');
             if (!componentId) {
                 window.__traseeFileImportInFlight = false;
-                if (status) { status.textContent = 'Componenta Livewire nu a fost găsită. Reîncarcă pagina.'; status.className = 'text-danger small'; }
+                if (status) { status.textContent = t('The Livewire component was not found. Reload the page.'); status.className = 'text-danger small'; }
                 return;
             }
             const component = window.Livewire.find(componentId);
             if (!component || typeof component.upload !== 'function') {
                 window.__traseeFileImportInFlight = false;
-                if (status) { status.textContent = 'Upload-ul Livewire nu este disponibil. Reîncarcă pagina.'; status.className = 'text-danger small'; }
+                if (status) { status.textContent = t('Livewire upload is not available. Reload the page.'); status.className = 'text-danger small'; }
                 return;
             }
             window.__traseeRouteImportFailedDuringCall = false;
             if (button) button.disabled = true;
-            if (status) { status.textContent = 'Se încarcă fișierul...'; status.className = 'text-secondary small'; }
+            if (status) { status.textContent = t('Uploading file...'); status.className = 'text-secondary small'; }
             // Livewire 4 expune setter-ul public ca $set().
             // Nu folosim component.$wire.set('name', ...) aici: `name` este
             // și proprietate read-only a funcției Proxy folosite de $wire.
@@ -66,21 +68,21 @@
             }
             component.upload('file', file, async () => {
                 try {
-                    if (status) { status.textContent = 'Fișier încărcat. Se importă traseul...'; status.className = 'text-secondary small'; }
+                    if (status) { status.textContent = t('File uploaded. Importing the route...'); status.className = 'text-secondary small'; }
                     if (component.$wire && typeof component.$wire.importRoute === 'function') {
                         await component.$wire.importRoute(importToken);
                     } else if (typeof component.call === 'function') {
                         await component.call('importRoute', importToken);
                     } else {
-                        throw new Error('API-ul Livewire pentru import nu este disponibil. Reîncarcă pagina.');
+                        throw new Error(t('The Livewire import API is not available. Reload the page.'));
                     }
                     if (status && !window.__traseeRouteImportFailedDuringCall) {
-                        status.textContent = 'Importul a fost procesat. Se actualizează lista...';
+                        status.textContent = t('Import processed. Updating the list...');
                         status.className = 'text-secondary small';
                     }
                 } catch (error) {
                     console.error('[trasee] file import', error);
-                    if (status) { status.textContent = error?.message || 'Importul traseului a eșuat.'; status.className = 'text-danger small'; }
+                    if (status) { status.textContent = error?.message || t('Route import failed.'); status.className = 'text-danger small'; }
                 } finally {
                     window.__traseeFileImportInFlight = false;
                     if (button) button.disabled = false;
@@ -88,11 +90,11 @@
             }, (error) => {
                 window.__traseeFileImportInFlight = false;
                 console.error('[trasee] file upload', error);
-                if (status) { status.textContent = 'Încărcarea fișierului a eșuat.'; status.className = 'text-danger small'; }
+                if (status) { status.textContent = t('File upload failed.'); status.className = 'text-danger small'; }
                 if (button) button.disabled = false;
             }, (event) => {
                 const percent = Math.round((event.loaded / Math.max(event.total || 1, 1)) * 100);
-                if (status) status.textContent = `Se încarcă fișierul... ${percent}%`;
+                if (status) status.textContent = t('Uploading file... :percent%', { percent });
             });
         });
     };
@@ -102,7 +104,7 @@
             window.__traseeRouteImportFailedDuringCall = true;
             const status = document.getElementById('route-file-import-status');
             if (!status) return;
-            const message = event?.detail?.message || 'Fișierul nu a putut fi importat.';
+            const message = event?.detail?.message || t('The file could not be imported.');
             status.textContent = message;
             status.className = 'text-danger small';
         });
@@ -111,7 +113,7 @@
             window.__traseeRouteImportFailedDuringCall = false;
             const status = document.getElementById('route-file-import-status');
             if (!status) return;
-            status.textContent = 'Traseul a fost importat.';
+            status.textContent = t('The route was imported.');
             status.className = 'text-success small';
         });
     }

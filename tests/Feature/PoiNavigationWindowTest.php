@@ -73,7 +73,7 @@ class PoiNavigationWindowTest extends TestCase
             $visibleCategoryLabels[] = trim($label->textContent);
         }
         $expectedCategoryLabels = collect(config('poi.categories'))
-            ->filter(fn (array $category, string $type): bool => $type === 'police' || $category['group'] !== 'Poliție')
+            ->filter(fn (array $category, string $type): bool => $type === 'police' || $category['group'] !== 'police')
             ->pluck('label')
             ->all();
         usort($expectedCategoryLabels, fn (string $left, string $right): int => strcasecmp(
@@ -104,14 +104,14 @@ class PoiNavigationWindowTest extends TestCase
         );
 
         foreach ([
-            'police_station' => 'Secții',
-            'traffic_filters' => 'Filtre în trafic',
-            'speed_limit' => 'Limite de viteză',
-            'traffic_sign' => 'Indicatoare',
-            'locality' => 'Localități',
-            'speed_camera' => 'Camere de viteză',
-            'control' => 'Puncte de control',
-            'vignette_control' => 'Taxe / rovinietă',
+            'police_station' => 'Police stations',
+            'traffic_filters' => 'Traffic checks',
+            'speed_limit' => 'Speed limits',
+            'traffic_sign' => 'Traffic signs',
+            'locality' => 'Localities',
+            'speed_camera' => 'Speed cameras',
+            'control' => 'Checkpoints',
+            'vignette_control' => 'Tolls / vignette',
         ] as $type => $label) {
             $subcategory = $xpath->query('.//input[@data-filter="subcategory:police:' . $type . '"]', $subcategoryPanel)->item(0);
             $this->assertNotNull($subcategory, "Expected {$label} as a Police subcategory.");
@@ -136,7 +136,7 @@ class PoiNavigationWindowTest extends TestCase
             ->assertDontSee('Activate stations auto-location')
             ->assertSee('poi-category-filters')
             ->assertSee('data-type="police"', false)
-            ->assertSee('Poliție')
+            ->assertSee('Police')
             ->assertSee('data-filter="subcategory:police:police_station"', false)
             ->assertSee('data-filter="subcategory:police:traffic_filters"', false)
             ->assertSee('data-filter="subcategory:police:speed_limit"', false)
@@ -1460,7 +1460,7 @@ class PoiNavigationWindowTest extends TestCase
             ->assertJsonCount(1)
             ->assertJsonPath('0.id', 'node/42')
             ->assertJsonPath('0.type', 'speed_camera')
-            ->assertJsonPath('0.name', 'Camere de viteză');
+            ->assertJsonPath('0.name', 'Speed cameras');
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'overpass-api.de')
             && str_contains($request['data'], 'nwr["highway"="speed_camera"]'));
