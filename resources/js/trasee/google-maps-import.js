@@ -113,8 +113,6 @@ import { t } from '../i18n.js';
                 }
             });
         }
-
-        console.info('[trasee] Google Maps → KML form bound');
     };
 
     const bindAfterMorph = () => window.setTimeout(bindGoogleMapsImportForm, 0);

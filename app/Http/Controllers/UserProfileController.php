@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Arr;
 use App\Models\UserProfile;
 use App\Notifications\EmailChangedNotification;
 use Illuminate\Http\RedirectResponse;
@@ -65,7 +66,7 @@ class UserProfileController extends Controller
 
         $user->profile()->updateOrCreate(
             ['user_id' => $user->id],
-            collect($validated)->only([
+            Arr::only($validated, [
                 'username',
                 'phone',
                 'birth_date',
@@ -74,7 +75,7 @@ class UserProfileController extends Controller
                 'city',
                 'street',
                 'postal_code',
-            ])->all()
+            ])
         );
 
         if ($emailChanged) {

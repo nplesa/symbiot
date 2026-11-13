@@ -199,7 +199,8 @@ class PoiSubcategoryAvailability
                 continue;
             }
 
-            $found[$type] = collect($response->json('features') ?? [])
+            $features = $response->json('features');
+            $found[$type] = collect(is_array($features) ? $features : [])
                 ->flatMap(fn (array $feature): array => $feature['properties']['categories'] ?? [])
                 ->unique()
                 ->values()

@@ -39,6 +39,13 @@ class ScheduleTest extends TestCase
         }
     }
 
+    public function test_scheduled_times_are_romanian_local_time(): void
+    {
+        foreach ($this->events() as $command => $event) {
+            $this->assertSame('Europe/Bucharest', (string) $event->timezone, $command);
+        }
+    }
+
     public function test_no_overlapping_lock_outlives_a_crashed_run_for_a_day(): void
     {
         $events = $this->events();

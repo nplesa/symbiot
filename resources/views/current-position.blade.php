@@ -15,14 +15,14 @@
         </div>
 
         <button type="button" id="locateMe" class="btn btn-primary">
-            <i class="fa-solid fa-location-crosshairs"></i>
+            <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
             {{ __('Locate me') }}
         </button>
     </div>
 
     {{-- STATUS --}}
     <div class="current-position-status" id="locationStatus">
-        <i class="fa-solid fa-circle-info"></i>
+        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
         <span>{{ __('Press "Locate me" to get your current position.') }}</span>
     </div>
 
@@ -45,7 +45,7 @@
             </div>
 
             <div class="current-position-map-footer">
-                <i class="fa-solid fa-map"></i>
+                <i class="fa-solid fa-map" aria-hidden="true"></i>
                 {{ __('Map data © OpenStreetMap contributors') }}
             </div>
         </section>
@@ -59,7 +59,7 @@
                         <h5>{{ __('Location Address') }}</h5>
                         <small>{{ __('Geographical information') }}</small>
                     </div>
-                    <i class="fa-solid fa-map-location-dot position-card-icon"></i>
+                    <i class="fa-solid fa-map-location-dot position-card-icon" aria-hidden="true"></i>
                 </div>
 
                 <div class="position-address-main" id="positionFullAddress">
@@ -113,7 +113,7 @@
                         <h5>{{ __('GPS Information') }}</h5>
                         <small>{{ __('Technical position data') }}</small>
                     </div>
-                    <i class="fa-solid fa-satellite-dish position-card-icon"></i>
+                    <i class="fa-solid fa-satellite-dish position-card-icon" aria-hidden="true"></i>
                 </div>
 
                 <div class="position-gps-details">

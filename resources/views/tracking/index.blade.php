@@ -20,7 +20,7 @@
 
     {{-- STATUS --}}
     <div class="tracking-status" id="trackStatus">
-        <i class="fa-solid fa-circle-info"></i>
+        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
         <span>{{ __('Select a date to view your available tracks.') }}</span>
     </div>
 
@@ -32,7 +32,7 @@
                 <h5>{{ __('Track selection') }}</h5>
                 <small>{{ __('Choose a date and a recorded session') }}</small>
             </div>
-            <i class="fa-solid fa-route tracking-card-icon"></i>
+            <i class="fa-solid fa-route tracking-card-icon" aria-hidden="true"></i>
         </div>
 
         <div class="tracking-filters">
@@ -50,7 +50,7 @@
             <div class="tracking-field tracking-session-field">
                 <label for="trackDate">{{ __('Available tracks') }}</label>
                 <div class="tracking-input-wrap">
-                    <i class="fa-solid fa-route"></i>
+                    <i class="fa-solid fa-route" aria-hidden="true"></i>
                     <select
                         id="trackDate"
                         class="form-select"
@@ -71,17 +71,17 @@
 
             <div class="tracking-player-actions">
                 <button type="button" id="trackPlay" class="tracking-player-button primary" title="{{ __('Play') }}" disabled>
-                    <i class="fa-solid fa-play"></i>
+                    <i class="fa-solid fa-play" aria-hidden="true"></i>
                     <span>{{ __('Play') }}</span>
                 </button>
 
                 <button type="button" id="trackPause" class="tracking-player-button" title="{{ __('Pause') }}" disabled>
-                    <i class="fa-solid fa-pause"></i>
+                    <i class="fa-solid fa-pause" aria-hidden="true"></i>
                     <span>{{ __('Pause') }}</span>
                 </button>
 
                 <button type="button" id="trackReset" class="tracking-player-button" title="{{ __('Reset') }}" disabled>
-                    <i class="fa-solid fa-rotate-left"></i>
+                    <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
                     <span>{{ __('Reset') }}</span>
                 </button>
 
@@ -104,7 +104,7 @@
 
         <div class="tracking-summary-item">
             <div class="tracking-summary-icon">
-                <i class="fa-solid fa-route"></i>
+                <i class="fa-solid fa-route" aria-hidden="true"></i>
             </div>
             <div>
                 <span>{{ __('Distance') }}</span>
@@ -114,7 +114,7 @@
 
         <div class="tracking-summary-item">
             <div class="tracking-summary-icon">
-                <i class="fa-solid fa-location-dot"></i>
+                <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
             </div>
             <div>
                 <span>{{ __('GPS points') }}</span>
@@ -124,7 +124,7 @@
 
         <div class="tracking-summary-item">
             <div class="tracking-summary-icon">
-                <i class="fa-regular fa-clock"></i>
+                <i class="fa-regular fa-clock" aria-hidden="true"></i>
             </div>
             <div>
                 <span>{{ __('Duration') }}</span>
@@ -155,7 +155,7 @@
 
             <div class="tracking-map-empty" id="trackMapEmpty">
                 <div class="tracking-empty-icon">
-                    <i class="fa-solid fa-map-location-dot"></i>
+                    <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i>
                 </div>
                 <strong>{{ __('No route selected') }}</strong>
                 <span>{{ __('Select a date and track to display the route.') }}</span>
@@ -163,7 +163,7 @@
         </div>
 
         <div class="tracking-map-footer">
-            <i class="fa-solid fa-map"></i>
+            <i class="fa-solid fa-map" aria-hidden="true"></i>
             {{ __('Map data © OpenStreetMap contributors') }}
         </div>
 

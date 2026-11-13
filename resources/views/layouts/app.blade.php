@@ -56,7 +56,7 @@
                             aria-expanded="false"
                             aria-controls="symbiotSidebar">
 
-                        <i class="fa-solid fa-bars"></i>
+                        <i class="fa-solid fa-bars" aria-hidden="true"></i>
 
                     </button>
 
@@ -75,7 +75,7 @@
                            class="symbiot-brand">
 
                             <span class="symbiot-brand-icon">
-                                <i class="fa-solid fa-location-crosshairs"></i>
+                                <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
                             </span>
 
                             <span class="symbiot-brand-name">
@@ -89,7 +89,7 @@
                                 id="sidebarCollapse"
                                 aria-label="{{ __('Collapse sidebar') }}">
 
-                            <i class="fa-solid fa-angles-left"></i>
+                            <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
 
                         </button>
 
@@ -98,7 +98,7 @@
                                 id="sidebarMobileClose"
                                 aria-label="{{ __('Close menu') }}">
 
-                            <i class="fa-solid fa-xmark"></i>
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
 
                         </button>
 
@@ -115,7 +115,7 @@
                             <a href="{{ route('app.home') }}"
                                class="symbiot-nav-link {{ request()->routeIs('app.home') ? 'active' : '' }}">
 
-                                <i class="fa-solid fa-house"></i>
+                                <i class="fa-solid fa-house" aria-hidden="true"></i>
                                 <span>{{ __('Map') }}</span>
 
                             </a>
@@ -123,7 +123,7 @@
                             <a href="{{ route('app.position') }}"
                                class="symbiot-nav-link {{ request()->routeIs('app.position') ? 'active' : '' }}">
 
-                                <i class="fa-solid fa-crosshairs"></i>
+                                <i class="fa-solid fa-crosshairs" aria-hidden="true"></i>
                                 <span>{{ __('My position') }}</span>
 
                             </a>
@@ -131,7 +131,7 @@
                             <a href="{{ route('app.trackings.index') }}"
                                class="symbiot-nav-link {{ request()->routeIs('app.trackings.*') ? 'active' : '' }}">
 
-                                <i class="fa-solid fa-location-dot"></i>
+                                <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
                                 <span>{{ __('GPS sessions') }}</span>
 
                             </a>
@@ -139,7 +139,7 @@
                             <a href="{{ route('app.trasee.index') }}"
                                class="symbiot-nav-link {{ request()->routeIs('app.trasee.*') ? 'active' : '' }}">
 
-                                <i class="fa-solid fa-route"></i>
+                                <i class="fa-solid fa-route" aria-hidden="true"></i>
                                 <span>{{ __('Routes') }}</span>
 
                             </a>
@@ -157,7 +157,7 @@
                                 <a href="{{ route('app.admin.users') }}"
                                    class="symbiot-nav-link">
 
-                                    <i class="fa-solid fa-users"></i>
+                                    <i class="fa-solid fa-users" aria-hidden="true"></i>
                                     <span>{{ __('Users') }}</span>
 
                                 </a>
@@ -166,7 +166,7 @@
 
                             <a href="{{ route('app.profile.edit') }}"
                                class="symbiot-nav-link {{ request()->routeIs('app.profile.*') ? 'active' : '' }}">
-                                <i class="fa-solid fa-user"></i>
+                                <i class="fa-solid fa-user" aria-hidden="true"></i>
                                 <span>{{ __('Profile') }}</span>
                             </a>
 
@@ -175,7 +175,7 @@
                                     id="themeToggle">
 
                                 <i class="fa-solid fa-moon"
-                                   id="themeIcon"></i>
+                                   id="themeIcon" aria-hidden="true"></i>
 
                                 <span>{{ __('Dark / Light mode') }}</span>
 
@@ -194,8 +194,8 @@
                                 <span class="small text-muted d-block mb-1" style="font-size: 0.75rem;">{{ __('Language') }}</span>
                                 <div class="d-flex justify-content-center align-items-center gap-2">
                                     <!-- Steag Anglia (EN) -->
-                                    <a href="{{ route('lang.switch', 'en') }}" class="btn btn-sm p-1 @if(app()->getLocale() == 'en') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="English">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="22" height="13" style="border-radius: 2px;">
+                                    <a href="{{ route('lang.switch', 'en') }}" class="btn btn-sm p-1 @if(app()->getLocale() == 'en') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="English" aria-label="English" hreflang="en" lang="en" @if(app()->getLocale() == 'en') aria-current="true" @endif>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="22" height="13" style="border-radius: 2px;" aria-hidden="true" focusable="false">
                                             <rect width="600" height="300" fill="#012169"/>
                                             <path d="M0,0 L600,300 M600,0 L0,300" stroke="#fff" stroke-width="60"/>
                                             <path d="M0,0 L600,300 M600,0 L0,300" stroke="#C8102E" stroke-width="40"/>
@@ -204,16 +204,17 @@
                                         </svg>
                                     </a>
                                     <!-- Steag România (RO) -->
-                                    <a href="{{ route('lang.switch', 'ro') }}" class="btn btn-sm p-1 @if(app()->getLocale() == 'ro') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="Română">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="22" height="13" style="border-radius: 2px;">
-                                            <rect width="3" height="2" fill="#002B7F"/>
+                                    <a href="{{ route('lang.switch', 'ro') }}" class="btn btn-sm p-1 @if(app()->getLocale() == 'ro') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="Română" aria-label="Română" hreflang="ro" lang="ro" @if(app()->getLocale() == 'ro') aria-current="true" @endif>
+                                        {{-- Blue | yellow | red: each rect covers the stripes to its right. --}}
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="22" height="13" style="border-radius: 2px;" aria-hidden="true" focusable="false">
+                                            <rect width="3" height="2" fill="#CE1126"/>
                                             <rect width="2" height="2" fill="#FCD116"/>
-                                            <rect width="1" height="2" fill="#CE1126"/>
+                                            <rect width="1" height="2" fill="#002B7F"/>
                                         </svg>
                                     </a>
                                     <!-- Steag Italia (IT) -->
-                                    <a href="{{ route('lang.switch', 'it') }}" class="btn btn-sm p-1 @if(app()->getLocale() == 'it') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="Italiano">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="22" height="13" style="border-radius: 2px;">
+                                    <a href="{{ route('lang.switch', 'it') }}" class="btn btn-sm p-1 @if(app()->getLocale() == 'it') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="Italiano" aria-label="Italiano" hreflang="it" lang="it" @if(app()->getLocale() == 'it') aria-current="true" @endif>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="22" height="13" style="border-radius: 2px;" aria-hidden="true" focusable="false">
                                             <rect width="3" height="2" fill="#CE1126"/>
                                             <rect width="2" height="2" fill="#FFFFFF"/>
                                             <rect width="1" height="2" fill="#009246"/>
@@ -249,7 +250,7 @@
                             <button type="submit"
                                     class="symbiot-nav-link symbiot-logout">
 
-                                <i class="fa-solid fa-right-from-bracket"></i>
+                                <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
                                 <span>{{ __('Logout') }}</span>
 
                             </button>

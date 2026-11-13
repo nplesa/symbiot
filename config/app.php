@@ -10,7 +10,16 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Dates are stored and handled in UTC (e.g. tracked_at is converted to UTC before saving);
+    // changing this would mix local and UTC timestamps in the database. Do not wire it to .env.
     'timezone' => 'UTC',
+
+    // Time zone for dates shown to users or built into names, and the fallback for transit
+    // agencies without one.
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Europe/Bucharest'),
+
+    // The times in routes/console.php (dailyAt('02:30') ...) are local times in this zone.
+    'schedule_timezone' => env('APP_DISPLAY_TIMEZONE', 'Europe/Bucharest'),
 
     'locale' => env('APP_LOCALE', 'en'),
 

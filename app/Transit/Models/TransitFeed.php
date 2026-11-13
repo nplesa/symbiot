@@ -3,7 +3,16 @@
 namespace App\Transit\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property-read Carbon|null $last_imported_at
+ * @property-read Carbon|null $requested_at
+ * @property-read Carbon|null $catalog_synced_at
+ * @property-read Carbon|null $created_at
+ * @property-read Carbon|null $updated_at
+ * @property-read list<list<array{float, float}>>|null $boundary polygon rings of [lon, lat] points
+ */
 class TransitFeed extends Model
 {
     protected $fillable = [

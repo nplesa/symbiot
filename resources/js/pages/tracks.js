@@ -1,4 +1,5 @@
 
+import { haversineMeters } from '../geo.js';
 import Map from "ol/Map";
 import View from "ol/View";
 
@@ -378,9 +379,11 @@ class TrackStatistics {
         let distance = 0;
 
         for (let index = 1; index < points.length; index++) {
-            distance += this.dist(
-                points[index - 1],
-                points[index]
+            distance += haversineMeters(
+                points[index - 1].latitude,
+                points[index - 1].longitude,
+                points[index].latitude,
+                points[index].longitude
             );
         }
 
@@ -390,28 +393,6 @@ class TrackStatistics {
         };
     }
 
-    dist(a, b) {
-        const earthRadius = 6371000;
-
-        const dLat =
-            (b.latitude - a.latitude) * Math.PI / 180;
-
-        const dLon =
-            (b.longitude - a.longitude) * Math.PI / 180;
-
-        const x =
-            Math.sin(dLat / 2) ** 2 +
-            Math.cos(a.latitude * Math.PI / 180) *
-            Math.cos(b.latitude * Math.PI / 180) *
-            Math.sin(dLon / 2) ** 2;
-
-        return earthRadius *
-            2 *
-            Math.atan2(
-                Math.sqrt(x),
-                Math.sqrt(1 - x)
-            );
-    }
 }
 
 /* =========================================================

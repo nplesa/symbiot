@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\GeoDistance;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
@@ -70,7 +71,7 @@ class FuelPriceService
     {
         $verify = $this->caBundle();
         $responses = Http::pool(fn (Pool $pool) => collect(array_keys(self::PRODUCTS))
-            ->map(fn (string $id) => $pool->as($id)->withOptions(['verify' => $verify])->timeout(15)->get(self::ENDPOINT, [
+            ->map(fn (int $id) => $pool->as((string) $id)->withOptions(['verify' => $verify])->timeout(15)->get(self::ENDPOINT, [
                 'lat' => $lat,
                 'lon' => $lon,
                 'buffer' => 400,
@@ -195,7 +196,7 @@ class FuelPriceService
                 $nearestCity = null;
                 $nearestCityDistance = PHP_FLOAT_MAX;
                 foreach (self::CITIES as $cityName => [$cityLat, $cityLon]) {
-                    $distance = $this->meters($station['lat'], $station['lon'], $cityLat, $cityLon);
+                    $distance = GeoDistance::meters($station['lat'], $station['lon'], $cityLat, $cityLon);
                     if ($distance < $nearestCityDistance) {
                         $nearestCity = $cityName;
                         $nearestCityDistance = $distance;
@@ -275,7 +276,7 @@ class FuelPriceService
                 continue;
             }
 
-            $meters = $lat !== null ? (int) round($this->meters($lat, $lon, $station['lat'], $station['lon'])) : null;
+            $meters = $lat !== null ? (int) round(GeoDistance::meters($lat, $lon, $station['lat'], $station['lon'])) : null;
             $chains[$brand['id']]['name'] = $brand['label'];
             $chains[$brand['id']]['prices'][] = $station['price'];
             $current = $chains[$brand['id']]['station'] ?? null;
@@ -296,14 +297,22 @@ class FuelPriceService
             }
         }
 
-        return collect($chains)->map(fn (array $chain, string $id): array => [
-            'id' => $id,
-            'name' => $chain['name'],
-            'average_price' => round(array_sum($chain['prices']) / count($chain['prices']), 2),
-            'min_price' => min($chain['prices']),
-            'stations' => count($chain['prices']),
-            'nearest' => $chain['station'],
-        ])->sortBy([['average_price', 'asc'], ['min_price', 'asc']])->values()->all();
+        $ranked = [];
+        foreach ($chains as $id => $chain) {
+            $prices = array_map('floatval', $chain['prices']);
+            $ranked[] = [
+                'id' => (string) $id,
+                'name' => $chain['name'],
+                'average_price' => round(array_sum($prices) / count($prices), 2),
+                'min_price' => min($prices),
+                'stations' => count($prices),
+                'nearest' => $chain['station'],
+            ];
+        }
+        // Cheapest average first, then cheapest single station (usort is stable since PHP 8.0).
+        usort($ranked, fn (array $a, array $b): int => [$a['average_price'], $a['min_price']] <=> [$b['average_price'], $b['min_price']]);
+
+        return $ranked;
     }
 
     /** @return ?array{id: string, label: string} The fuel brand subcategory a network belongs to. */
@@ -326,7 +335,7 @@ class FuelPriceService
         return null;
     }
 
-    /** @return array<string, string> product id => label in the current locale */
+    /** @return array<int, string> product id (11, 12, ...; PHP keys numeric ids as int) => label in the current locale */
     public static function categories(): array
     {
         return array_map(fn (string $label): string => __($label), self::PRODUCTS);
@@ -422,7 +431,7 @@ class FuelPriceService
         $brand = $brand !== null ? $this->normalize($brand) : '';
 
         foreach ($stations as $station) {
-            $meters = $this->meters($lat, $lon, $station['lat'], $station['lon']);
+            $meters = GeoDistance::meters($lat, $lon, $station['lat'], $station['lon']);
             if ($meters > self::MATCH_METERS) {
                 continue;
             }
@@ -458,13 +467,5 @@ class FuelPriceService
     private function normalize(string $value): string
     {
         return preg_replace('/[^a-z0-9]+/', '', mb_strtolower(Str::ascii($value))) ?? '';
-    }
-
-    private function meters(float $lat1, float $lon1, float $lat2, float $lon2): float
-    {
-        $a = sin(deg2rad($lat2 - $lat1) / 2) ** 2
-            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin(deg2rad($lon2 - $lon1) / 2) ** 2;
-
-        return 6371000 * 2 * asin(min(1, sqrt($a)));
     }
 }

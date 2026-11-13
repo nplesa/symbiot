@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\GeoJsonLine;
 use App\Models\Route as PlannedRoute;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
@@ -12,7 +13,11 @@ class RouteKmlController extends Controller
     {
         abort_unless((int) $route->user_id === (int) auth()->id(), 404);
 
-        $coordinates = $this->flattenCoordinates($route->geometry);
+        // KML coordinates always carry an altitude; 0 when the route has none.
+        $coordinates = array_map(
+            static fn (array $point): array => [$point[0], $point[1], $point[2] ?? 0.0],
+            GeoJsonLine::points($route->geometry)
+        );
         abort_if(count($coordinates) < 2, 422, 'Traseul nu conține o geometrie exportabilă.');
 
         if (! class_exists(\DOMDocument::class)) {
@@ -117,74 +122,5 @@ class RouteKmlController extends Controller
             (float) $point[1],
             isset($point[2]) ? (float) $point[2] : 0.0
         );
-    }
-
-    /**
-     * @param  array<string, mixed>|null  $geometry
-     * @return list<array{0: float, 1: float, 2: float}>
-     */
-    private function flattenCoordinates(?array $geometry): array
-    {
-        if (! $geometry) {
-            return [];
-        }
-
-        if (($geometry['type'] ?? null) === 'Feature') {
-            return $this->flattenCoordinates($geometry['geometry'] ?? null);
-        }
-
-        if (($geometry['type'] ?? null) === 'FeatureCollection') {
-            $out = [];
-            foreach (($geometry['features'] ?? []) as $feature) {
-                $out = array_merge($out, $this->flattenCoordinates($feature));
-            }
-
-            return $out;
-        }
-
-        if (($geometry['type'] ?? null) === 'LineString') {
-            return $this->cleanLine($geometry['coordinates'] ?? []);
-        }
-
-        if (($geometry['type'] ?? null) === 'MultiLineString') {
-            $out = [];
-            foreach (($geometry['coordinates'] ?? []) as $line) {
-                $out = array_merge($out, $this->cleanLine($line));
-            }
-
-            return $out;
-        }
-
-        return [];
-    }
-
-    /**
-     * @param  array<mixed>  $line
-     * @return list<array{0: float, 1: float, 2: float}>
-     */
-    private function cleanLine(array $line): array
-    {
-        $out = [];
-
-        foreach ($line as $point) {
-            if (! is_array($point) || count($point) < 2 || ! is_numeric($point[0]) || ! is_numeric($point[1])) {
-                continue;
-            }
-
-            $lon = (float) $point[0];
-            $lat = (float) $point[1];
-
-            if ($lon < -180 || $lon > 180 || $lat < -90 || $lat > 90) {
-                continue;
-            }
-
-            $out[] = [
-                $lon,
-                $lat,
-                isset($point[2]) && is_numeric($point[2]) ? (float) $point[2] : 0.0,
-            ];
-        }
-
-        return $out;
     }
 }

@@ -65,6 +65,7 @@ class User extends Authenticatable
         return $this->hasMany(TrackingSession::class);
     }
 
+    /** @return HasOne<UserProfile, $this> */
     public function profile(): HasOne
     {
         return $this->hasOne(UserProfile::class);

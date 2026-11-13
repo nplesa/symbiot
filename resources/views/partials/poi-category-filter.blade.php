@@ -10,22 +10,22 @@
             <span class="poi-filter-icon" aria-hidden="true">
                 @switch($location)
                     @case('airport')
-                        <i class="fas fa-plane text-primary"></i>
+                        <i class="fas fa-plane text-primary" aria-hidden="true"></i>
                         @break
                     @case('train')
-                        <i class="fas fa-train text-success"></i>
+                        <i class="fas fa-train text-success" aria-hidden="true"></i>
                         @break
                     @case('subway')
-                        <i class="fas fa-subway text-danger"></i>
+                        <i class="fas fa-subway text-danger" aria-hidden="true"></i>
                         @break
                     @case('bus')
-                        <i class="fas fa-bus text-warning"></i>
+                        <i class="fas fa-bus text-warning" aria-hidden="true"></i>
                         @break
                     @default
                         @if (!empty($poiCategories[$location]['icon']))
                             {{ $poiCategories[$location]['icon'] }}
                         @else
-                            <i class="fa-solid fa-location-dot"></i>
+                            <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
                         @endif
                 @endswitch
             </span>

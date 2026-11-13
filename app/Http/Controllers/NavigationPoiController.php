@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\GeoJsonLine;
 use App\Models\Route as PlannedRoute;
 use App\Services\PoiCatalog;
 use Illuminate\Http\JsonResponse;
@@ -25,7 +26,7 @@ class NavigationPoiController extends Controller
     {
         abort_unless((int) $route->user_id === (int) auth()->id(), 404);
 
-        $routeCoordinates = $this->simplify($this->flattenCoordinates($route->geometry));
+        $routeCoordinates = $this->simplify($this->routePoints($route->geometry));
         if (count($routeCoordinates) < 2) {
             return response()->json(['pois' => []]);
         }
@@ -40,20 +41,8 @@ class NavigationPoiController extends Controller
         }
 
         try {
-            $response = Http::withHeaders([
-                'User-Agent' => 'Symbiot/1.0 navigation POI map',
-            ])->connectTimeout(5)
-                ->timeout(25)
-                ->retry(1, 300)
-                ->acceptJson()
-                ->asForm()
-                ->post('https://overpass-api.de/api/interpreter', ['data' => $this->overpassQuery($chunks)]);
-
-            if (! $response->successful()) {
-                throw new RuntimeException('Serviciul POI a returnat HTTP ' . $response->status() . '.');
-            }
-
-            $pois = $this->transform($response->json('elements') ?? [], $chunks);
+            $elements = $this->fetchElements($this->overpassQuery($chunks));
+            $pois = $this->transform($elements, $chunks);
             // The key includes updated_at, so editing the route invalidates this entry.
             Cache::put($cacheKey, $pois, now()->addHours(6));
         } catch (\Throwable $exception) {
@@ -64,6 +53,38 @@ class NavigationPoiController extends Controller
         }
 
         return response()->json(['pois' => $pois]);
+    }
+
+    /**
+     * Runs the query on the first Overpass server that answers (config osm.overpass_endpoints).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function fetchElements(string $query): array
+    {
+        $lastError = null;
+        foreach ((array) config('osm.overpass_endpoints') as $endpoint) {
+            try {
+                $response = Http::withHeaders([
+                    'User-Agent' => 'Symbiot/1.0 navigation POI map',
+                ])->connectTimeout(5)
+                    ->timeout(25)
+                    ->retry(1, 300, throw: false)
+                    ->acceptJson()
+                    ->asForm()
+                    ->post($endpoint, ['data' => $query]);
+
+                if (! $response->successful()) {
+                    throw new RuntimeException('Serviciul POI a returnat HTTP ' . $response->status() . '.');
+                }
+
+                return $response->json('elements') ?? [];
+            } catch (\Throwable $exception) {
+                $lastError = $exception;
+            }
+        }
+
+        throw $lastError ?? new RuntimeException('Niciun server Overpass nu este configurat.');
     }
 
     /** @param list<array{box: array{minLat: float, minLon: float, maxLat: float, maxLon: float}, points: list<array{0: float, 1: float}>}> $chunks */
@@ -342,25 +363,15 @@ class NavigationPoiController extends Controller
     }
 
     /**
-     * Valid [lon, lat] pairs only, without consecutive duplicates.
+     * Route points as [lon, lat], without consecutive duplicates.
      *
      * @param  array<string, mixed>|null  $geometry
      * @return list<array{0: float, 1: float}>
      */
-    private function flattenCoordinates(?array $geometry): array
+    private function routePoints(?array $geometry): array
     {
         $coordinates = [];
-        foreach ($this->rawCoordinates($geometry) as $point) {
-            if (! is_array($point) || ! isset($point[0], $point[1]) || ! is_numeric($point[0]) || ! is_numeric($point[1])) {
-                continue;
-            }
-
-            $lon = (float) $point[0];
-            $lat = (float) $point[1];
-            if ($lon < -180 || $lon > 180 || $lat < -90 || $lat > 90) {
-                continue;
-            }
-
+        foreach (GeoJsonLine::points($geometry) as [$lon, $lat]) {
             if ($coordinates !== [] && end($coordinates) === [$lon, $lat]) {
                 continue;
             }
@@ -368,37 +379,5 @@ class NavigationPoiController extends Controller
         }
 
         return $coordinates;
-    }
-
-    /** @param array<string, mixed>|null $geometry */
-    private function rawCoordinates(?array $geometry): array
-    {
-        if (! $geometry) {
-            return [];
-        }
-        if (($geometry['type'] ?? null) === 'Feature') {
-            return $this->rawCoordinates($geometry['geometry'] ?? null);
-        }
-        if (($geometry['type'] ?? null) === 'FeatureCollection') {
-            $coordinates = [];
-            foreach ($geometry['features'] ?? [] as $feature) {
-                $coordinates = array_merge($coordinates, $this->rawCoordinates($feature));
-            }
-
-            return $coordinates;
-        }
-        if (($geometry['type'] ?? null) === 'LineString') {
-            return $geometry['coordinates'] ?? [];
-        }
-        if (($geometry['type'] ?? null) === 'MultiLineString') {
-            $coordinates = [];
-            foreach ($geometry['coordinates'] ?? [] as $line) {
-                $coordinates = array_merge($coordinates, $line);
-            }
-
-            return $coordinates;
-        }
-
-        return [];
     }
 }

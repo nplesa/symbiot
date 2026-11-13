@@ -47,6 +47,28 @@ class ProcessTrackingSessionJobTest extends TestCase
         $this->assertNull($session->route_geojson);
     }
 
+    public function test_an_unnamed_session_gets_a_route_named_after_its_local_start_time(): void
+    {
+        $session = $this->createSession();
+        // 06:15 UTC on 1 July is 09:15 in Bucharest (summer time).
+        $session->forceFill(['name' => null, 'started_at' => '2026-07-01 06:15:00'])->save();
+        foreach ([[45.6486, 25.6061, 10], [45.6496, 25.6071, 0]] as [$lat, $lon, $secondsAgo]) {
+            Tracking::create([
+                'tracking_session_id' => $session->id,
+                'latitude' => $lat,
+                'longitude' => $lon,
+                'tracked_at' => now()->subSeconds($secondsAgo),
+            ]);
+        }
+
+        (new ProcessTrackingSessionJob($session->id))->handle(app(TrackProcessingService::class));
+
+        $this->assertDatabaseHas('routes', [
+            'source_url' => 'tracking-session:' . $session->id,
+            'name' => 'Tracking 01.07.2026 09:15',
+        ]);
+    }
+
     public function test_session_with_two_or_more_points_is_processed(): void
     {
         $session = $this->createSession();

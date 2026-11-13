@@ -5,6 +5,7 @@ import { safeExternalUrl } from '../safe-url.js';
 import { fetchJson, HttpError } from '../http.js';
 import { MAP_ATTRIBUTION } from '../map-attribution.js';
 import { t, intlLocale, formatNumber } from '../i18n.js';
+import { haversineMeters } from '../geo.js';
 
 import Map from 'ol/Map.js';
 import View from 'ol/View.js';
@@ -213,7 +214,7 @@ dashboardCitywide?.addEventListener('change', async () => {
         const visitCoordinates = (coordinates) => {
             if (!Array.isArray(coordinates)) return;
             if (typeof coordinates[0] === 'number' && typeof coordinates[1] === 'number') {
-                cityBoundaryRadiusMeters = Math.max(cityBoundaryRadiusMeters, getDistanceMeters(center.lat, center.lon, coordinates[1], coordinates[0]));
+                cityBoundaryRadiusMeters = Math.max(cityBoundaryRadiusMeters, haversineMeters(center.lat, center.lon, coordinates[1], coordinates[0]));
                 return;
             }
             coordinates.forEach(visitCoordinates);
@@ -471,7 +472,7 @@ function filterByRadius(data, lat, lon, radiusMeters) {
             return pointInCityBoundary(itemLon, itemLat, cityBoundaryFeature.geometry);
         }
 
-        const d = getDistanceMeters(lat, lon, itemLat, itemLon);
+        const d = haversineMeters(lat, lon, itemLat, itemLon);
 
         return d <= radiusMeters;
     });
@@ -906,7 +907,7 @@ async function loadBusStopRoutes(feature) {
             const candidates = (Array.isArray(nearbyPayload?.stops) ? nearbyPayload.stops : [])
                 .map((stop) => ({
                     stop,
-                    distance: getDistanceMeters(lat, lon, Number(stop.lat), Number(stop.lon)),
+                    distance: haversineMeters(lat, lon, Number(stop.lat), Number(stop.lon)),
                 }))
                 .filter(({ stop, distance }) => Number.isFinite(distance)
                     && distance <= 120
@@ -957,7 +958,7 @@ async function loadBusStopRoutes(feature) {
         stop = payload
             .map((item) => ({
                 item,
-                distance: getDistanceMeters(lat, lon, Number(item.coordinates?.lat), Number(item.coordinates?.lon)),
+                distance: haversineMeters(lat, lon, Number(item.coordinates?.lat), Number(item.coordinates?.lon)),
             }))
             .filter((candidate) => Number.isFinite(candidate.distance) && candidate.distance <= 100)
             .sort((a, b) => a.distance - b.distance)[0]?.item;
@@ -2148,7 +2149,7 @@ function renderPOI(data = [], userLat, userLon) {
         if (!coordinates) continue;
         const { lat, lon } = coordinates;
 
-        const distance = getDistanceMeters(userLat, userLon, lat, lon);
+        const distance = haversineMeters(userLat, userLon, lat, lon);
 
         if (distance > Number(app_radius)) continue;
 
@@ -2616,6 +2617,7 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
             }
 
             mbc?.classList.remove('d-none');
+            window.dispatchEvent(new CustomEvent('symbiot:poi-categories-ready'));
             if (selectedFilters.length > 0) {
                 await loadNearby({ lat: result.lat, lon: result.lon });
             }
@@ -2675,256 +2677,6 @@ document.getElementById('city-location-radius')?.addEventListener('change', even
         }
     }
 });
-
-
-
-
-
-
-// document
-//     .getElementById('toggleLocation')
-//     ?.addEventListener('change', async function () {
-
-//         if (!this.checked) return;
-
-//         tracking = true;
-//         fixedCityLocation = null;
-//         app_radius = deviceRadiusMeters;
-//         document.getElementById('city-location-mode').checked = false;
-//         document.getElementById('city-location-form')?.classList.add('d-none');
-
-//         let mapCard =
-//             document.getElementById('map_card');
-
-//         let mobCard =
-//             document.getElementById('mobility_card');
-
-//         let shareBtn = document.getElementById('shareLocation');    
-//         let turismBtn = document.getElementById('turismLocations');
-//         await fetch(
-//             '/location/toggle',
-//             {
-//                 method: 'POST',
-
-//                 headers: {
-//                     'Content-Type': 'application/json',
-//                     'X-CSRF-TOKEN':  csrfToken
-//                 },
-
-//                 body: JSON.stringify({
-//                     location: this.checked
-//                 })
-//             }
-//         );
-
-
-//         document.getElementById("i_location").classList.add("rotate3d-y");
-
-//         mobCard.querySelector('.row')
-//             .classList.remove('mt-3');
-
-//         mobCard.classList.remove('d-none');
-//         mapCard.classList.remove('d-none');
-
-//         setTimeout(() => {
-//             map.updateSize();
-//         }, 100);
-
-//         createInputLocationElement(true);
-
-//         if (!navigator.geolocation) {
-//             Swal.fire({
-//                 icon: 'error',
-//                 title: 'Geolocation not supported',
-//                 text: 'Your browser does not support geolocation.'
-//             });
-
-//             tracking = false;
-//             this.checked = false;
-//             return;
-//         }
-
-//         watchId =
-//             navigator.geolocation.watchPosition(
-
-//                 (position) => {
-
-//                     let lon =
-//                         position.coords.longitude;
-
-//                     let lat =
-//                         position.coords.latitude;
-
-//                     if (lastCoords) {
-
-//                         lon =
-//                             lastCoords.lon * 0.7 +
-//                             lon * 0.3;
-
-//                         lat =
-//                             lastCoords.lat * 0.7 +
-//                             lat * 0.3;
-//                     }
-
-//                     lastCoords = {
-//                         lon,
-//                         lat
-//                     };
-
-//                     currentUserLocation = {
-//                         lon,
-//                         lat
-//                     };
-
-//                     document
-//                         .getElementById('shareLocation')
-//                         ?.classList.remove('d-none');
-//                     document
-//                         .getElementById('turismLocations')
-//                         ?.classList.remove('d-none');
-
-//                     const coords =
-//                         fromLonLat([lon, lat]);
-//                     const isFirstLocationFix = !hasCentered;
-
-//                     if (lastPosition) {
-
-//                         const dx =
-//                             lon - lastPosition.lon;
-
-//                         const dy =
-//                             lat - lastPosition.lat;
-
-//                         heading =
-//                             Math.atan2(dy, dx);
-//                     }
-
-//                     lastPosition = {
-//                         lon,
-//                         lat
-//                     };
-
-//                     requestAnimationFrame(() => {
-
-//                         userFeature
-//                             .getGeometry()
-//                             .setCoordinates(coords);                        
-
-//                         if (radiusFeature) {
-
-//                             radiusFeature.setGeometry(
-//                                 circular(
-//                                     [lon, lat],
-//                                     Number(app_radius),
-//                                     64
-//                                 ).transform('EPSG:4326', 'EPSG:3857')
-//                             );
-//                         }                        
-
-//                         userStyle
-//                             .getImage()
-//                             .setRotation(heading);
-
-//                         userFeature.setStyle(
-//                             userStyle
-//                         );
-
-//                         const geometry =
-//                             trackFeature.getGeometry();
-
-//                         geometry.appendCoordinate(
-//                             coords
-//                         );
-
-//                         const coordinates =
-//                             geometry.getCoordinates();
-
-//                         if (
-//                             coordinates.length > 1000
-//                         ) {
-
-//                             coordinates.shift();
-
-//                             geometry.setCoordinates(
-//                                 coordinates
-//                             );
-//                         }
-//                     });
-
-//                     if (!hasCentered) {
-
-//                         map.getView().animate({
-
-//                             center: coords,
-
-//                             zoom: 17,
-
-//                             duration: 500
-//                         });
-
-//                         hasCentered = true;
-//                     }
-
-
-//                     let shareBtn = document.getElementById('shareLocation');
-//                     shareBtn.classList.remove('d-none');
-
-//                     let currentLocation = document.getElementById('current_location');
-//                     currentLocation.dataset.lat = lat;    
-//                     currentLocation.dataset.lon = lon;
-
-//                     initLocalFeatures();
-//                     updateSubcategoryAvailability(lat, lon);
-//                     const mobilityCard = document.getElementById('mobility_card');
-//                     if (isFirstLocationFix
-//                         && mobilityCard
-//                         && selectedPoiFilterTokens(mobilityCard).length > 0) {
-//                         loadNearby({ lat, lon });
-//                     }
-
-//                     const now = Date.now();
-
-//                     if (
-//                         now - lastSent > 5000
-//                     ) {
-
-//                         lastSent = now;
-
-//                         fetch(
-//                             '/location/update',
-//                             {
-//                                 method: 'POST',
-
-//                                 headers: {
-//                                     'Content-Type':
-//                                         'application/json',
-
-//                                     'X-CSRF-TOKEN':
-//                                         csrfToken
-//                                 },
-
-//                                 body: JSON.stringify({
-//                                     lat,
-//                                     lon,
-//                                     active: true,
-//                                     heading
-//                                 })
-//                             }
-//                         );
-//                     }
-//                 },
-
-//                 console.error,
-
-//                 {
-//                     enableHighAccuracy: true,
-//                     timeout: 10000,
-//                     maximumAge: 0
-//                 }
-//             );
-//     });
-
-
 
 document
     .getElementById('toggleLocation')
@@ -3064,7 +2816,6 @@ document
             });
 
             mapCard?.classList.remove('d-none');
-            mobilityCard?.classList.remove('d-none');
             window.dispatchEvent(new CustomEvent('symbiot:location-set', {
                 detail: { label: t('GPS location') },
             }));
@@ -3093,6 +2844,7 @@ document
                     if (!mobilityCard?.classList.contains('d-none')) {
                         mobilityCard?.classList.remove('d-none');
                     }
+                    window.dispatchEvent(new CustomEvent('symbiot:poi-categories-ready'));
 
                     if (selectedFilters.includes('bus')) {
                         try {
@@ -3370,8 +3122,8 @@ async function loadNearby(locationOverride = null) {
         transitStops.setVisible(selectedTypes.includes('bus'));
         // Bus stops and lines come from the stored transit feeds (blue stops) wherever they exist;
         // the OpenStreetMap bus POI layer stays only as a fallback for uncovered areas.
+        let hasStoredStops = false;
         if (selectedTypes.includes('bus')) {
-            let hasStoredStops = false;
             try {
                 hasStoredStops = await transitStops.load(
                     lat,
@@ -3392,7 +3144,13 @@ async function loadNearby(locationOverride = null) {
             clearVisibleTransitRoutes();
             hidePoiTooltip();
             hidePOIModal();
-            window.dispatchEvent(new CustomEvent('symbiot:nearby-cleared'));
+            if (hasStoredStops) {
+                // The GTFS stop request already emitted nearby-transit-stops. Clear
+                // only regular POIs so the dashboard keeps the bus-stop count.
+                window.dispatchEvent(new CustomEvent('symbiot:nearby-pois', { detail: { pois: [] } }));
+            } else {
+                window.dispatchEvent(new CustomEvent('symbiot:nearby-cleared'));
+            }
 
             return;
         }
@@ -3746,6 +3504,8 @@ function showResultData(data, lat, lon) {
     allPois = enriched;
 
     renderPOI(enriched, lat, lon);
+    const poiCountBadge = document.getElementById('dashboard-panel-poi-count');
+    if (poiCountBadge) poiCountBadge.textContent = `${enriched.length} POI`;
     window.dispatchEvent(new CustomEvent('symbiot:nearby-pois', {
         detail: {
             pois: enriched.map(poi => ({
@@ -3787,6 +3547,10 @@ function addUserEvents () {
         syncPoiFilterSelection(container);
         removeUnselectedPoiFeatures();
         transitStops.setVisible(selectedPoiFilterTokens(container).includes('bus'));
+        const poiCountBadge = document.getElementById('dashboard-panel-poi-count');
+        if (poiCountBadge) {
+            poiCountBadge.textContent = selectedPoiFilterTokens(container).length > 0 ? '… POI' : '0 POI';
+        }
 
         if (selectedPoiFilterTokens(container).length === 0) {
             clearTimeout(poiLoadDebounce);
@@ -3859,7 +3623,7 @@ function enrichPOIWithDistance(poiList, userLat, userLon) {
         let distanceMeters = null;
 
         if (typeof lat === 'number' && typeof lon === 'number') {
-            distanceMeters = getDistanceMeters(
+            distanceMeters = haversineMeters(
                 userLat,
                 userLon,
                 lat,
@@ -3884,31 +3648,6 @@ function enrichPOIWithDistance(poiList, userLat, userLon) {
 
 
 
-
-function getDistanceMeters(lat1, lon1, lat2, lon2) {
-
-    const R = 6371000;
-
-    const toRad = (deg) =>
-        deg * Math.PI / 180;
-
-    const dLat = toRad(lat2 - lat1);
-
-    const dLon = toRad(lon2 - lon1);
-
-    const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) ** 2;
-
-    return R * (
-        2 * Math.atan2(
-            Math.sqrt(a),
-            Math.sqrt(1 - a)
-        )
-    );
-}
 
 /** "Cancel" in the loading modal: stops the running POI load; POIs already on the map stay. */
 function cancelPoiLoad() {

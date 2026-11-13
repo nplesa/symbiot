@@ -19,6 +19,8 @@
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
+# Livewire serves its JS from the installed package; a published copy goes stale on update.
+/public/vendor/livewire
 /storage/*.key
 /storage/pail
 /vendor

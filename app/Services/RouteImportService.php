@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\GeoDistance;
 use App\Exceptions\UserFacingException;
 use Illuminate\Http\Client\Pool;
 use Illuminate\Http\Client\Response;
@@ -573,7 +574,7 @@ class RouteImportService
                 continue;
             }
 
-            $validSegments[] = array_values($segment);
+            $validSegments[] = $segment;
             $totalPoints += count($segment);
         }
 
@@ -620,11 +621,12 @@ class RouteImportService
                 $flatPoints[] = $point;
 
                 if ($previous !== null) {
-                    $distance += $this->haversine(
+                    $distance += GeoDistance::meters(
                         $previous['latitude'],
                         $previous['longitude'],
                         $point['latitude'],
-                        $point['longitude']
+                        $point['longitude'],
+                        6371008.8
                     );
 
                     if (
@@ -819,25 +821,6 @@ class RouteImportService
         }
 
         return null;
-    }
-
-    private function haversine(
-        float $lat1,
-        float $lon1,
-        float $lat2,
-        float $lon2
-    ): float {
-        $earth = 6371008.8;
-
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-
-        $a = sin($dLat / 2) ** 2
-            + cos(deg2rad($lat1))
-            * cos(deg2rad($lat2))
-            * sin($dLon / 2) ** 2;
-
-        return 2 * $earth * asin(min(1, sqrt($a)));
     }
 
     /**

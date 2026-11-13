@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\GeoDistance;
 use App\Support\GeoCacheKey;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -71,17 +72,9 @@ class FuelBrandAvailability
             ->whereBetween('lat', [$lat - $latPad, $lat + $latPad])
             ->whereBetween('lon', [$lon - $lonPad, $lon + $lonPad])
             ->get(['tags', 'lat', 'lon'])
-            ->filter(fn ($row): bool => $this->meters($lat, $lon, (float) $row->lat, (float) $row->lon) <= $radius)
+            ->filter(fn ($row): bool => GeoDistance::meters($lat, $lon, (float) $row->lat, (float) $row->lon) <= $radius)
             ->map(fn ($row): array => json_decode((string) $row->tags, true) ?: [])
             ->values()
             ->all();
-    }
-
-    private function meters(float $lat1, float $lon1, float $lat2, float $lon2): float
-    {
-        $a = sin(deg2rad($lat2 - $lat1) / 2) ** 2
-            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin(deg2rad($lon2 - $lon1) / 2) ** 2;
-
-        return 6371000 * 2 * asin(min(1, sqrt($a)));
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\GeoJsonLine;
 use App\Models\Route;
 use RuntimeException;
 
@@ -11,7 +12,10 @@ class GoogleMapsRouteUrl
 
     public function forRoute(Route $route): string
     {
-        $coordinates = $this->flattenCoordinates($route->geometry);
+        $coordinates = array_map(
+            static fn (array $point): array => [$point[0], $point[1]],
+            GeoJsonLine::points($route->geometry)
+        );
 
         if (count($coordinates) < 2) {
             throw new RuntimeException('Traseul nu conține suficiente puncte pentru navigare.');
@@ -63,64 +67,5 @@ class GoogleMapsRouteUrl
     private function formatPoint(array $point): string
     {
         return sprintf('%.7F,%.7F', $point[1], $point[0]);
-    }
-
-    /** @param array<string, mixed>|null $geometry */
-    private function flattenCoordinates(?array $geometry): array
-    {
-        if (! $geometry) {
-            return [];
-        }
-
-        if (($geometry['type'] ?? null) === 'Feature') {
-            return $this->flattenCoordinates($geometry['geometry'] ?? null);
-        }
-
-        if (($geometry['type'] ?? null) === 'FeatureCollection') {
-            $coordinates = [];
-            foreach (($geometry['features'] ?? []) as $feature) {
-                $coordinates = array_merge($coordinates, $this->flattenCoordinates($feature));
-            }
-
-            return $coordinates;
-        }
-
-        if (($geometry['type'] ?? null) === 'LineString') {
-            return $this->cleanLine($geometry['coordinates'] ?? []);
-        }
-
-        if (($geometry['type'] ?? null) === 'MultiLineString') {
-            $coordinates = [];
-            foreach (($geometry['coordinates'] ?? []) as $line) {
-                $coordinates = array_merge($coordinates, $this->cleanLine($line));
-            }
-
-            return $coordinates;
-        }
-
-        return [];
-    }
-
-    /** @param array<mixed> $line */
-    private function cleanLine(array $line): array
-    {
-        $coordinates = [];
-
-        foreach ($line as $point) {
-            if (! is_array($point) || count($point) < 2 || ! is_numeric($point[0]) || ! is_numeric($point[1])) {
-                continue;
-            }
-
-            $longitude = (float) $point[0];
-            $latitude = (float) $point[1];
-
-            if ($longitude < -180 || $longitude > 180 || $latitude < -90 || $latitude > 90) {
-                continue;
-            }
-
-            $coordinates[] = [$longitude, $latitude];
-        }
-
-        return $coordinates;
     }
 }

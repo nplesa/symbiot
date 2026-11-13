@@ -1,6 +1,7 @@
 import { safeExternalUrl } from '../safe-url.js';
 import { notify } from '../notify.js';
 import { formatNumber, intlLocale, t } from '../i18n.js';
+import { haversineMeters } from '../geo.js';
 
 /* =========================================================
    SYMBIOT GPS TRACKING
@@ -53,35 +54,6 @@ function showError(error) {
         default:
             notify(t('Unknown error.'));
     }
-
-}
-
-
-/* =========================================================
-   DISTANCE
-   ========================================================= */
-
-function distanceInMeters(lat1, lon1, lat2, lon2) {
-
-    const R = 6371000;
-
-    const toRad = value => value * Math.PI / 180;
-
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-
-    const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) ** 2;
-
-    return R * (
-        2 * Math.atan2(
-            Math.sqrt(a),
-            Math.sqrt(1 - a)
-        )
-    );
 
 }
 
@@ -160,7 +132,7 @@ async function onPosition(position) {
         return;
     }
 
-    const meters = distanceInMeters(
+    const meters = haversineMeters(
 
         lastPosition.latitude,
         lastPosition.longitude,
@@ -496,11 +468,15 @@ document.addEventListener('DOMContentLoaded', () => {
     trackingSwitch?.addEventListener('change', syncTrackButton);
     syncTrackButton();
 
-    // The POI filter card lives in the right-hand panel (home.blade.php).
+    // POI categories are available once transit coverage (GTFS) lookup finishes.
     const poiFiltersCard = byId('mobility_card');
+    const poiFiltersCollapse = byId('dashboard-poi-collapse');
+    const setPoiAccordionOpen = (open) => {
+        if (!poiFiltersCollapse || !window.bootstrap?.Collapse) return;
+        window.bootstrap.Collapse.getOrCreateInstance(poiFiltersCollapse, { toggle: false })[open ? 'show' : 'hide']();
+    };
+    const closePoiAccordion = () => setPoiAccordionOpen(false);
 
-    // The POI filter card sits above these sections in the side panel and no longer
-    // collapses, so bring a newly shown stop/route section into view.
     const revealPanelSection = (section) => {
         if (!section) return;
         const wasHidden = section.hidden;
@@ -524,14 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const lon = Number(currentLocation?.dataset.lon);
         const stops = nearbyStops.map((stop) => {
             const distance = Number.isFinite(lat) && Number.isFinite(lon)
-                ? (() => {
-                    const radians = (degrees) => degrees * Math.PI / 180;
-                    const dLat = radians(Number(stop.lat) - lat);
-                    const dLon = radians(Number(stop.lon) - lon);
-                    const value = Math.sin(dLat / 2) ** 2
-                        + Math.cos(radians(lat)) * Math.cos(radians(Number(stop.lat))) * Math.sin(dLon / 2) ** 2;
-                    return 6371000 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
-                })()
+                ? haversineMeters(lat, lon, Number(stop.lat), Number(stop.lon))
                 : null;
             return { ...stop, type: 'Stație de transport', typeLabel: stop.typeLabel || t('Transit stop'), distance, distanceLabel: distance === null ? '' : formatDistance(distance) };
         });
@@ -543,6 +512,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const items = [...unique.values()].sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
         list.replaceChildren();
         count.textContent = String(items.length);
+        setText('dashboard-panel-poi-count', `${items.length} POI`);
+        setText('dashboard-poi-count', String(items.length));
         if (items.length === 0) {
             status.textContent = currentLocation?.dataset.lat
                 ? t('No stops or points of interest found within the selected radius.')
@@ -649,9 +620,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('symbiot:location-set', (event) => {
         searchStatus.textContent = t('Map centered on :place.', { place: event.detail?.label ?? t('the selected locality') });
         resetDashboardLocationState();
-        if (!event.detail?.deferPoiCategories) {
-            poiFiltersCard?.classList.remove('d-none');
-        }
+    });
+    window.addEventListener('symbiot:poi-categories-ready', () => {
+        poiFiltersCard?.classList.remove('d-none');
+        setPoiAccordionOpen(true);
     });
     window.addEventListener('symbiot:location-changing', (event) => {
         resetDashboardLocationState(true);
@@ -687,12 +659,16 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('symbiot:nearby-loading', () => {
         setText('dashboard-nearby-status', t('Loading results for the selected categories...'));
         setText('dashboard-nearby-count', '…');
+        setText('dashboard-panel-poi-count', '… POI');
+        setText('dashboard-poi-count', '…');
     });
     window.addEventListener('symbiot:nearby-cleared', () => {
         nearbyPois = [];
         nearbyStops = [];
         byId('dashboard-nearby-list')?.replaceChildren();
         setText('dashboard-nearby-count', '0');
+        setText('dashboard-panel-poi-count', '0 POI');
+        setText('dashboard-poi-count', '0');
         setText('dashboard-nearby-status', t('Choose the POI categories you want to see on the map.'));
     });
 
@@ -723,6 +699,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('symbiot:transit-stop-routes', (event) => {
         const { feed, stopId, stopName, routes = [], error = false, loading = false } = event.detail ?? {};
         if (!stopRoutesPanel || !stopRoutesList) return;
+        closePoiAccordion();
         routeEmpty.hidden = true;
         revealPanelSection(stopRoutesPanel);
         routePanel.classList.add('has-stop-selection');
@@ -795,6 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
             isAirport = false,
             airportFlights = null,
         } = event.detail ?? {};
+        closePoiAccordion();
         routeDetails.hidden = true;
         routeEmpty.hidden = true;
         revealPanelSection(stopRoutesPanel);
@@ -1092,16 +1070,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     window.addEventListener('symbiot:transit-route-shape', (event) => {
         if (!selectedRoute || event.detail?.feed !== selectedRoute.feed || event.detail?.route?.route_id !== selectedRoute.route?.route_id) return;
-        const haversine = (a, b) => {
-            const radians = (degrees) => degrees * Math.PI / 180;
-            const dLat = radians(b[1] - a[1]);
-            const dLon = radians(b[0] - a[0]);
-            const value = Math.sin(dLat / 2) ** 2
-                + Math.cos(radians(a[1])) * Math.cos(radians(b[1])) * Math.sin(dLon / 2) ** 2;
-            return 6371000 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
-        };
         const meters = (event.detail.shapes ?? []).reduce((total, shape) => {
-            for (let index = 1; index < shape.length; index++) total += haversine(shape[index - 1], shape[index]);
+            for (let index = 1; index < shape.length; index++) total += haversineMeters(shape[index - 1][1], shape[index - 1][0], shape[index][1], shape[index][0]);
             return total;
         }, 0);
         setText('dashboard-route-distance', meters > 0 ? `${formatNumber(meters / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km` : '—');

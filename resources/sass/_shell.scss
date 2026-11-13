@@ -224,7 +224,8 @@
         white-space: nowrap;
     }
 
-    small { color: #8290a5; }
+    small,
+    .small { color: #8290a5; }
 }
 
 .symbiot-logout { margin-top: .5rem; }

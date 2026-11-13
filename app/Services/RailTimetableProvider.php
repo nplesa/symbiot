@@ -120,7 +120,7 @@ class RailTimetableProvider
             }
         );
 
-        $resources = collect($metadata['resources'] ?? [])
+        $resources = collect(is_array($metadata['resources'] ?? null) ? $metadata['resources'] : [])
             ->filter(fn (array $resource): bool => preg_match('/\.xml(?:$|\?)/i', (string) ($resource['url'] ?? '')) === 1)
             ->sortByDesc('created')
             ->values();

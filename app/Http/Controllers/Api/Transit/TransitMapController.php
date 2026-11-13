@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Transit;
 
+use App\Support\GeoDistance;
 use App\Http\Controllers\Controller;
 use App\Transit\Models\TransitFeed;
 use App\Transit\Services\FeedDiscovery;
@@ -73,7 +74,7 @@ class TransitMapController extends Controller
             ->orderByRaw($distanceSql, $distanceBindings)
             ->limit($maxStops + 1)
             ->get(['s.feed_id', 's.stop_id', 's.name', 's.lat', 's.lon'])
-            ->filter(fn ($s): bool => $this->metersBetween($lat, $lon, (float) $s->lat, (float) $s->lon) <= $radius)
+            ->filter(fn ($s): bool => GeoDistance::meters($lat, $lon, (float) $s->lat, (float) $s->lon) <= $radius)
             ->values();
         $truncated = $stops->count() > $maxStops;
         $stops = $stops->take($maxStops);
@@ -88,15 +89,6 @@ class TransitMapController extends Controller
             ])->all(),
             'truncated' => $truncated,
         ]);
-    }
-
-    private function metersBetween(float $lat1, float $lon1, float $lat2, float $lon2): float
-    {
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-        $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
-
-        return 6371000 * 2 * asin(min(1, sqrt($a)));
     }
 
     public function stopRoutes(int $feed, string $stop): JsonResponse
@@ -174,7 +166,7 @@ class TransitMapController extends Controller
             ->get(['s.feed_id', 's.stop_id', 's.name', 's.lat', 's.lon', 'r.route_id'])
             ->map(fn ($stop): array => [
                 ...((array) $stop),
-                'distance' => $this->metersBetween($lat, $lon, (float) $stop->lat, (float) $stop->lon),
+                'distance' => GeoDistance::meters($lat, $lon, (float) $stop->lat, (float) $stop->lon),
             ])
             ->filter(fn (array $stop): bool => $stop['distance'] <= $radius)
             ->sortBy('distance')
@@ -244,7 +236,7 @@ class TransitMapController extends Controller
                     ->get(['s.feed_id', 's.stop_id', 's.name', 's.lat', 's.lon', 'r.route_id'])
                     ->map(fn ($candidate): array => [
                         ...((array) $candidate),
-                        'distance' => $this->metersBetween((float) $osmStop->lat, (float) $osmStop->lon, (float) $candidate->lat, (float) $candidate->lon),
+                        'distance' => GeoDistance::meters((float) $osmStop->lat, (float) $osmStop->lon, (float) $candidate->lat, (float) $candidate->lon),
                     ])
                     ->filter(fn (array $candidate): bool => $candidate['distance'] <= $radius)
                     ->sortBy('distance');
@@ -273,11 +265,12 @@ class TransitMapController extends Controller
             ->pluck('stop_id')
             ->push($stop)
             ->all();
-        $timezone = DB::table('transit_agencies')->where('feed_id', $feed)->value('timezone') ?: config('app.timezone');
+        // GTFS times are local to the agency; without a (valid) agency zone use the display zone, not UTC.
+        $timezone = DB::table('transit_agencies')->where('feed_id', $feed)->value('timezone') ?: config('app.display_timezone');
         try {
             new DateTimeZone($timezone);
         } catch (\Exception) {
-            $timezone = config('app.timezone');
+            $timezone = config('app.display_timezone');
         }
         $now = now($timezone);
         $activeDatesByService = [];
@@ -292,7 +285,7 @@ class TransitMapController extends Controller
                 ->whereDate('end_date', '>=', $date)
                 ->whereRaw('(days_mask & ?) != 0', [$weekdayBit])
                 ->pluck('service_id')
-                ->flip();
+                ->mapWithKeys(fn ($serviceId): array => [$serviceId => true]);
 
             foreach (DB::table('transit_calendar_dates')
                 ->where('feed_id', $feed)

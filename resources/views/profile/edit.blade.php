@@ -16,7 +16,7 @@
     {{-- SUCCESS MESSAGE --}}
     @if(session('success'))
         <div class="alert alert-success">
-            <i class="fa-solid fa-circle-check me-2"></i>
+            <i class="fa-solid fa-circle-check me-2" aria-hidden="true"></i>
             {{ session('success') }}
         </div>
     @endif
@@ -43,7 +43,7 @@
                     <h2>{{ __('Profile photo') }}</h2>
                     <p>{{ __('The photo linked to your account.') }}</p>
                 </div>
-                <i class="fa-solid fa-camera"></i>
+                <i class="fa-solid fa-camera" aria-hidden="true"></i>
             </div>
 
             <div class="profile-avatar" id="profileAvatarPreview">
@@ -79,7 +79,7 @@
                     class="btn btn-outline-primary w-100"
                     id="chooseAvatar"
                 >
-                    <i class="fa-solid fa-image me-2"></i>
+                    <i class="fa-solid fa-image me-2" aria-hidden="true"></i>
                     {{ __('Choose photo') }}
                 </button>
 
@@ -93,7 +93,7 @@
                     id="uploadAvatarButton"
                     disabled
                 >
-                    <i class="fa-solid fa-upload me-2"></i>
+                    <i class="fa-solid fa-upload me-2" aria-hidden="true"></i>
                     {{ __('Upload photo') }}
                 </button>
             </form>
@@ -112,7 +112,7 @@
                         type="submit"
                         class="btn btn-outline-secondary w-100"
                     >
-                        <i class="fa-solid fa-trash me-2"></i>
+                        <i class="fa-solid fa-trash me-2" aria-hidden="true"></i>
                         {{ __('Remove photo') }}
                     </button>
                 </form>
@@ -132,7 +132,7 @@
                     <h2>{{ __('Personal information') }}</h2>
                     <p>{{ __('The main information of your account.') }}</p>
                 </div>
-                <i class="fa-solid fa-user"></i>
+                <i class="fa-solid fa-user" aria-hidden="true"></i>
             </div>
 
             <form
@@ -225,7 +225,7 @@
                         <h2>{{ __('Address') }}</h2>
                         <p>{{ __('Your home or mailing address.') }}</p>
                     </div>
-                    <i class="fa-solid fa-location-dot"></i>
+                    <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
                 </div>
 
                 <div class="profile-form-grid">
@@ -289,7 +289,7 @@
 
                 <div class="profile-actions">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fa-solid fa-check me-2"></i>
+                        <i class="fa-solid fa-check me-2" aria-hidden="true"></i>
                         {{ __('Save changes') }}
                     </button>
                 </div>
@@ -305,7 +305,7 @@
                     <h2>{{ __('Security') }}</h2>
                     <p>{{ __('Change your account password.') }}</p>
                 </div>
-                <i class="fa-solid fa-shield-halved"></i>
+                <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
             </div>
 
             <form
@@ -356,7 +356,7 @@
 
                 <div class="profile-actions">
                     <button type="submit" class="btn btn-primary">
-                        <i class="fa-solid fa-lock me-2"></i>
+                        <i class="fa-solid fa-lock me-2" aria-hidden="true"></i>
                         {{ __('Update password') }}
                     </button>
                 </div>

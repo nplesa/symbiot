@@ -56,7 +56,7 @@
         <div class="container">
 
             <div class="row align-items-center">
-                <div class="col-12 desktop-center d-flex flex-row flex-wrap justify-content-center ">
+                <div class="col-12 d-flex flex-row flex-wrap justify-content-center">
                     <div>
                         <img src="images/iob.webp" class="img-fluid w-100" alt="" style="border-radius: 15px;"> 
                     </div>

@@ -588,6 +588,14 @@
     &:hover { background: var(--dashboard-hover-bg); color: var(--dashboard-ink); }
 }
 
+.dashboard-route-panel .dashboard-poi-disclosure { margin: .75rem 0; }
+.dashboard-route-panel .dashboard-poi-disclosure > .accordion-item { overflow: hidden; border: 1px solid var(--dashboard-line); border-radius: 12px; background: var(--dashboard-panel-bg); }
+.dashboard-route-panel .dashboard-poi-disclosure .accordion-button { display: flex; gap: .65rem; padding: .8rem .9rem; color: var(--dashboard-ink); font-size: .82rem; font-weight: 750; box-shadow: none; }
+.dashboard-route-panel .dashboard-poi-disclosure .accordion-button:not(.collapsed) { background: var(--dashboard-panel-bg); color: var(--dashboard-ink); }
+.dashboard-route-panel .dashboard-poi-disclosure .accordion-button::after { margin-left: auto; }
+.dashboard-route-panel .dashboard-poi-disclosure .accordion-body { padding: .75rem; }
+.dashboard-route-panel .dashboard-poi-count { margin-left: auto; padding: .2rem .5rem; border-radius: 999px; background: var(--dashboard-blue-soft); color: var(--dashboard-blue); font-size: .68rem; }
+
 .dashboard-route-panel #mobility_card .poi-category-filters {
     display: grid;
     grid-template-columns: minmax(0, 1fr);

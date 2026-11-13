@@ -135,9 +135,29 @@ class NavigationTest extends TestCase
         });
     }
 
+    public function test_route_pois_fall_back_to_the_next_overpass_server(): void
+    {
+        Http::fake([
+            'overpass-api.de/*' => Http::response('busy', 504),
+            'overpass.private.coffee/*' => Http::response(['elements' => [
+                ['type' => 'node', 'id' => 7, 'lon' => 25.60, 'lat' => 45.65, 'tags' => ['amenity' => 'fuel', 'name' => 'Backup Fuel']],
+            ]]),
+        ]);
+        $user = User::factory()->create();
+        $route = $this->makeRoute($user);
+
+        $this->actingAs($user)->getJson(route('app.navigation.pois', $route))
+            ->assertOk()
+            ->assertJsonPath('pois.0.name', 'Backup Fuel');
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'overpass.private.coffee'));
+    }
+
     public function test_failed_overpass_lookup_is_cached_briefly_then_retried(): void
     {
-        Http::fake(['overpass-api.de/*' => Http::response('busy', 504)]);
+        Http::fake([
+            'overpass-api.de/*' => Http::response('busy', 504),
+            'overpass.private.coffee/*' => Http::response('busy', 504),
+        ]);
         $user = User::factory()->create();
         $route = $this->makeRoute($user);
 

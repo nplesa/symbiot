@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\GeoDistance;
 use App\Models\Tracking;
 use Illuminate\Support\Collection;
 
@@ -32,7 +33,7 @@ class TrackProcessingService
         foreach ($points as $point) {
             $current = [(float) $point->longitude, (float) $point->latitude];
             if ($previous !== null) {
-                $distance += $this->haversine($previous[1], $previous[0], $current[1], $current[0]);
+                $distance += GeoDistance::meters($previous[1], $previous[0], $current[1], $current[0]);
             }
             $coordinates[] = $current;
             $previous = $current;
@@ -74,27 +75,5 @@ class TrackProcessingService
                 return $aTime <=> $bTime;
             })
             ->values();
-    }
-
-    private function haversine(
-        float $lat1,
-        float $lon1,
-        float $lat2,
-        float $lon2
-    ): float {
-        $earthRadius = 6371000.0;
-
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-
-        $a =
-            sin($dLat / 2) ** 2 +
-            cos(deg2rad($lat1)) *
-            cos(deg2rad($lat2)) *
-            sin($dLon / 2) ** 2;
-
-        $a = min(1.0, max(0.0, $a));
-
-        return 2 * $earthRadius * asin(sqrt($a));
     }
 }

@@ -115,7 +115,8 @@ class ProcessTrackingSessionJob implements ShouldBeUnique, ShouldQueue
     ): void {
 
         DB::transaction(function () use ($session, $distance, $geojson): void {
-            $duration = $session->started_at->diffInSeconds($session->ended_at);
+            // Carbon 3 returns fractional seconds; the duration column and saveRoute() take whole seconds.
+            $duration = (int) round($session->started_at->diffInSeconds($session->ended_at));
 
             $session->update([
                 'distance' => round($distance, 2),
@@ -143,7 +144,7 @@ class ProcessTrackingSessionJob implements ShouldBeUnique, ShouldQueue
 
         $route = Route::create([
             'user_id' => $session->user_id,
-            'name' => $session->name ?: 'Tracking ' . $session->started_at->format('d.m.Y H:i'),
+            'name' => $session->name ?: 'Tracking ' . $session->started_at->copy()->setTimezone(config('app.display_timezone'))->format('d.m.Y H:i'),
             'format' => 'geojson',
             'geometry' => $geojson,
             'distance' => round($distance, 2),
