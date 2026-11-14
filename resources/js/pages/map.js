@@ -728,7 +728,9 @@ const cityBoundaryLayer = new VectorLayer({
 
 const map = new Map({
 
-    target: 'map',
+    // Attach only after the responsive layout gives the target a real size.
+    // OpenLayers' own ResizeObserver reports an error if the target starts at 0×0.
+    target: null,
 
     layers: [
         baseLayer,
@@ -749,13 +751,23 @@ map.getView().on('change:resolution', updatePoiClusterDistance);
 updatePoiClusterDistance();
 
 const updateMapSizeWhenVisible = () => {
-    const target = map.getTargetElement();
-    if (!target?.isConnected) return false;
+    const target = document.getElementById('map');
+    if (!target?.isConnected) {
+        if (map.getTargetElement()) map.setTarget(null);
+        return false;
+    }
 
     const { width, height } = target.getBoundingClientRect();
-    if (width <= 0 || height <= 0) return false;
+    if (width <= 0 || height <= 0) {
+        if (map.getTargetElement() === target) map.setTarget(null);
+        return false;
+    }
 
-    map.updateSize();
+    if (map.getTargetElement() !== target) {
+        map.setTarget(target);
+    } else {
+        map.updateSize();
+    }
     return true;
 };
 
@@ -766,6 +778,8 @@ const scheduleMapSizeUpdate = () => {
 const mapCardResizeObserver = new ResizeObserver(updateMapSizeWhenVisible);
 const mapCardElement = document.getElementById('map_card');
 if (mapCardElement) mapCardResizeObserver.observe(mapCardElement);
+const mapTargetElement = document.getElementById('map');
+if (mapTargetElement) mapCardResizeObserver.observe(mapTargetElement);
 
 window.addEventListener('symbiot:dashboard-panel-toggled', () => {
     scheduleMapSizeUpdate();
