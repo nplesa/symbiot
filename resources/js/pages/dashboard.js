@@ -440,6 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const routePanelMedia = window.matchMedia('(max-width: 767.98px)');
+    const focusWithoutScroll = (element) => element?.focus({ preventScroll: true });
     const syncRoutePanelCollapse = (collapsed) => {
         if (!routePanelToggle) return;
         page.classList.toggle('right-panel-collapsed', collapsed);
@@ -462,15 +463,15 @@ document.addEventListener('DOMContentLoaded', () => {
     routePanelToggle?.addEventListener('click', () => {
         const collapsed = !page.classList.contains('right-panel-collapsed');
         setRoutePanelCollapsed(collapsed);
-        if (collapsed && routePanelMedia.matches) mobilePanelOpen?.focus();
+        if (collapsed && routePanelMedia.matches) focusWithoutScroll(mobilePanelOpen);
     });
     mobilePanelOpen?.addEventListener('click', () => {
         setRoutePanelCollapsed(false);
-        routePanelToggle?.focus();
+        focusWithoutScroll(routePanelToggle);
     });
     mobilePanelBackdrop?.addEventListener('click', () => {
         setRoutePanelCollapsed(true);
-        mobilePanelOpen?.focus();
+        focusWithoutScroll(mobilePanelOpen);
     });
     routePanelMedia.addEventListener('change', () => {
         syncRoutePanelCollapse(routePanelMedia.matches && localStorage.getItem('symbiot-route-panel-collapsed') === 'true');

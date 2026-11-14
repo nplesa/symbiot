@@ -890,6 +890,7 @@
     }
 
     .dashboard-topbar {
+        z-index: 40;
         flex: 0 0 62px;
         min-height: 62px;
         gap: .55rem;
