@@ -2453,6 +2453,7 @@ function createInputLocationElement(create) {
 document.getElementById('city-location-mode')?.addEventListener('change', async event => {
     if (!event.target.checked) return;
 
+    document.getElementById('dashboard-share-location-wrap')?.classList.add('d-none');
     window.dispatchEvent(new CustomEvent('symbiot:location-changing', { detail: { mode: 'city' } }));
     resetPOIs();
 
@@ -2722,6 +2723,7 @@ document
             lastPosition = null;
             heading = null;
             currentUserLocation = null;
+            document.getElementById('dashboard-share-location-wrap')?.classList.add('d-none');
             return;
         }
 
@@ -2738,6 +2740,7 @@ document
         }
 
         window.dispatchEvent(new CustomEvent('symbiot:location-changing', { detail: { mode: 'gps' } }));
+        document.getElementById('dashboard-share-location-wrap')?.classList.add('d-none');
 
         // Switching from a city to GPS starts with a clean set of map filters and POIs.
         resetPOIs();
@@ -2850,7 +2853,7 @@ document
 
             setTimeout(scheduleMapSizeUpdate, 100);
 
-            document.getElementById('shareLocation')?.classList.remove('d-none');
+            document.getElementById('dashboard-share-location-wrap')?.classList.remove('d-none');
             document.getElementById('turismLocations')?.classList.remove('d-none');
 
             if (status) {
@@ -3072,7 +3075,7 @@ function resetMap() {
     currentUserLocation = null;
 
     document
-        .getElementById('shareLocation')
+        .getElementById('dashboard-share-location-wrap')
         ?.classList.add('d-none');
 
     heading = null;

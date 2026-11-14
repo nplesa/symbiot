@@ -75,9 +75,6 @@
                                         <label class="form-check-label" for="trackingmyself">{{ __('Tracking Me') }}</label>
                                     </div>
                                     <div class="">
-                                        <button id="shareLocation" class="btn btn-sm btn-warning d-none">
-                                            {{ __('Share Location') }}
-                                        </button>
                                         <button id="turismLocations" class="btn btn-sm btn-warning d-none btn-hidden">
                                             {{ __('Visit') }}
                                         </button>
@@ -249,6 +246,13 @@
             </div>
         </div>
         <div id="dashboard-transit-progress-host" class="dashboard-transit-progress-host" aria-live="polite"></div>
+
+        <div class="dashboard-share-location-wrap d-none" id="dashboard-share-location-wrap">
+            <button type="button" class="btn dashboard-primary-button dashboard-share-location-button" id="shareLocation">
+                <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+                {{ __('Share Location') }}
+            </button>
+        </div>
 
         <section class="dashboard-radius-control d-none" id="dashboard-radius-control" aria-labelledby="dashboard-radius-label">
             <div class="dashboard-radius-heading">

@@ -367,6 +367,9 @@
 .dashboard-transit-progress-host .transit-progress-panel { display: grid; gap: .3rem; }
 .dashboard-transit-progress-host .transit-progress-panel > div { min-width: 0; overflow-wrap: anywhere; }
 
+.dashboard-share-location-wrap { padding: .75rem 1rem 0; }
+.dashboard-share-location-button { justify-content: center; width: 100%; margin: 0; }
+
 .dashboard-radius-control {
     margin: .75rem 1rem;
     padding: .7rem .85rem .45rem;
