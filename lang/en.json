@@ -672,5 +672,11 @@
     "Control": "Control",
     "Destroy": "Destroy",
     "Download Data": "Download Data",
-    "Use my location": "Use my location"
+    "Use my location": "Use my location",
+    "Weather forecast": "Weather forecast",
+    "3 days": "3 days",
+    "Loading weather forecast…": "Loading weather forecast…",
+    "Weather forecast unavailable.": "Weather forecast unavailable.",
+    "Weather data by WeatherAPI.com": "Weather data by WeatherAPI.com",
+    "Rain": "Rain"
 }

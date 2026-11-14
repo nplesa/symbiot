@@ -254,6 +254,17 @@
             </button>
         </div>
 
+        <section class="dashboard-weather d-none" id="dashboard-weather" data-url="{{ route('app.api.weather.forecast') }}" aria-labelledby="dashboard-weather-title" aria-live="polite">
+            <div class="dashboard-weather-heading">
+                <h2 id="dashboard-weather-title"><i class="fa-solid fa-cloud-sun" aria-hidden="true"></i> {{ __('Weather forecast') }}</h2>
+                <span>{{ __('3 days') }}</span>
+            </div>
+            <div class="dashboard-weather-current" id="dashboard-weather-current"></div>
+            <p class="dashboard-weather-status" id="dashboard-weather-status" role="status">{{ __('Loading weather forecast…') }}</p>
+            <div class="dashboard-weather-days" id="dashboard-weather-days"></div>
+            <a class="dashboard-weather-attribution" href="https://www.weatherapi.com/" target="_blank" rel="noopener noreferrer">{{ __('Weather data by WeatherAPI.com') }}</a>
+        </section>
+
         <section class="dashboard-radius-control d-none" id="dashboard-radius-control" aria-labelledby="dashboard-radius-label">
             <div class="dashboard-radius-heading">
                 <label id="dashboard-radius-label" for="dashboard-search-radius">{{ __('Search radius (meters)') }}</label>

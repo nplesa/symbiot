@@ -672,5 +672,11 @@
     "Control": "Controlla",
     "Destroy": "Distruggi",
     "Download Data": "Scarica i dati",
-    "Use my location": "Usa la mia posizione"
+    "Use my location": "Usa la mia posizione",
+    "Weather forecast": "Previsioni meteo",
+    "3 days": "3 giorni",
+    "Loading weather forecast…": "Caricamento delle previsioni meteo…",
+    "Weather forecast unavailable.": "Previsioni meteo non disponibili.",
+    "Weather data by WeatherAPI.com": "Dati meteo forniti da WeatherAPI.com",
+    "Rain": "Pioggia"
 }

@@ -672,5 +672,11 @@
     "Control": "Controlează",
     "Destroy": "Distruge",
     "Download Data": "Descarcă datele",
-    "Use my location": "Folosește locația mea"
+    "Use my location": "Folosește locația mea",
+    "Weather forecast": "Prognoza meteo",
+    "3 days": "3 zile",
+    "Loading weather forecast…": "Se încarcă prognoza meteo…",
+    "Weather forecast unavailable.": "Prognoza meteo nu este disponibilă.",
+    "Weather data by WeatherAPI.com": "Date meteo de la WeatherAPI.com",
+    "Rain": "Ploaie"
 }

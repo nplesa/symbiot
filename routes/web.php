@@ -20,6 +20,7 @@ use App\Http\Controllers\RouteKmlController;
 use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\TrafficTileController;
 use App\Http\Controllers\TransportPoiController;
+use App\Http\Controllers\WeatherForecastController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ReverseGeocodeController;
 use App\Http\Controllers\UserProfileController;
@@ -57,6 +58,8 @@ Route::name('app.')->middleware(['auth', 'approved'])->group(function () {
     Route::get('/api/poi/subcategories', PoiSubcategoryController::class)->middleware('throttle:60,1')->name('api.poi.subcategories');
     Route::get('/api/fuel/best', FuelBestPriceController::class)->middleware('throttle:30,1')->name('api.fuel.best');
     Route::get('/api/fuel/prices', FuelPriceController::class)->middleware('throttle:60,1')->name('api.fuel.prices');
+    Route::get('/api/weather/forecast', WeatherForecastController::class)
+        ->middleware('throttle:30,1')->name('api.weather.forecast');
 
     // Each request can fan out to several Geoapify/Overpass/OSM calls.
     Route::middleware('throttle:poi-search')->group(function (): void {
