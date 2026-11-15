@@ -311,6 +311,7 @@ dashboardCitywide?.addEventListener('change', async () => {
     try {
         const params = new URLSearchParams({ lat: String(center.lat), lon: String(center.lon) });
         if (center.placeId) params.set('id', center.placeId);
+        if (center.name) params.set('name', center.name);
         const payload = await fetchJson(`/api/location/city-boundary?${params}`);
         if (!payload?.feature?.geometry) throw new Error(t('Could not load the city boundary.'));
 
@@ -394,6 +395,9 @@ let poiLoadController = null;
 let poiLoadDebounce = null;
 const POI_FILTER_DEBOUNCE_MS = 400;
 let busStopLookupRun = 0;
+let subwayStopRoutesRun = 0;
+let metroScheduleRun = 0;
+let activeMetroStationFeature = null;
 let poiLoadingTimer = null;
 let poiLoadingStartedAt = null;
 let poiLoadingModalEventsBound = false;
@@ -1119,6 +1123,7 @@ async function loadBusStopRoutes(feature) {
 function showPoiTooltip(feature, coordinate) {
     const transitTypes = new Set(['bus', 'subway', 'train', 'airport']);
     const featureType = feature.get('type');
+    if (featureType !== 'subway') subwayStopRoutesRun++;
     window.dispatchEvent(new CustomEvent('symbiot:poi-selected', { detail: { type: featureType } }));
     if (featureType === 'lodging') {
         showLodgingDetails(feature);
@@ -1179,7 +1184,36 @@ function showPoiTooltip(feature, coordinate) {
         return;
     }
 
+    if (featureType === 'subway' && !feature.get('subwayRoutesLoaded')) {
+        hidePoiTooltip();
+        const lookupRun = ++subwayStopRoutesRun;
+        const stopName = feature.get('name') || poiTypeLabels.subway;
+        window.dispatchEvent(new CustomEvent('symbiot:osm-stop-routes', {
+            detail: { stopName, routes: [], feature, routesAvailable: true, loading: true },
+        }));
+        const coordinates = feature.get('coordinates') || {};
+        const params = new URLSearchParams({ lat: String(coordinates.lat), lon: String(coordinates.lon) });
+        fetchJson(`/api/transport/subway/stop-routes?${params}`, { signal: AbortSignal.timeout(35_000) })
+            .then((payload) => {
+                if (lookupRun !== subwayStopRoutesRun) return;
+                feature.set('routes', Array.isArray(payload.routes) ? payload.routes : []);
+                feature.set('routes_available', payload.available !== false);
+                feature.set('subwayRoutesLoaded', true);
+                showPoiTooltip(feature, coordinate);
+            })
+            .catch((error) => {
+                if (lookupRun !== subwayStopRoutesRun) return;
+                console.warn('Subway station routes could not be loaded:', error);
+                feature.set('routes', []);
+                feature.set('routes_available', false);
+                feature.set('subwayRoutesLoaded', true);
+                showPoiTooltip(feature, coordinate);
+            });
+        return;
+    }
+
     if (featureType === 'train' || featureType === 'subway') {
+        activeMetroStationFeature = featureType === 'subway' ? feature : null;
         hidePoiTooltip();
         window.dispatchEvent(new CustomEvent('symbiot:osm-stop-routes', {
             detail: {
@@ -1491,7 +1525,8 @@ function showPoiTooltip(feature, coordinate) {
 
 async function loadBusArrival(feature, group, statusElement) {
     const coordinates = feature.get('coordinates') || {};
-    const routeRef = group.label.replace(/^(Autobuz|Troleibuz)\s+/i, '').trim();
+    const mode = feature.get('type') === 'subway' ? 'subway' : 'bus';
+    const routeRef = group.label.replace(/^(Autobuz|Troleibuz|Metrou)\s+/i, '').trim();
     statusElement.textContent = t('Searching for the next departure…');
     statusElement.dataset.routeKey = group.key;
     statusElement.hidden = false;
@@ -1502,6 +1537,7 @@ async function loadBusArrival(feature, group, statusElement) {
             lon: String(coordinates.lon),
             route_ref: routeRef,
         });
+        if (mode === 'subway') params.set('mode', mode);
         const result = await fetchJson(`/api/transit/stops/nearest-next-departure?${params}`);
         if (statusElement.dataset.routeKey !== group.key) return;
         if (!result.departure) {
@@ -1519,9 +1555,10 @@ async function loadBusArrival(feature, group, statusElement) {
 
         const departure = result.departure;
         const countdown = departure.minutes_until === 0 ? t('now') : t('in :minutes min', { minutes: departure.minutes_until });
+        const modeLabel = mode === 'subway' ? t('metro train') : t('bus');
         statusElement.textContent = departure.headsign
-            ? t('Next bus for :route: :time (:countdown) towards :headsign · GTFS timetable', { route: routeRef, time: departure.time, countdown, headsign: departure.headsign })
-            : t('Next bus for :route: :time (:countdown) · GTFS timetable', { route: routeRef, time: departure.time, countdown });
+            ? t('Next :mode on :route: :time (:countdown) towards :headsign · GTFS timetable', { mode: modeLabel, route: routeRef, time: departure.time, countdown, headsign: departure.headsign })
+            : t('Next :mode on :route: :time (:countdown) · GTFS timetable', { mode: modeLabel, route: routeRef, time: departure.time, countdown });
     } catch {
         if (statusElement.dataset.routeKey === group.key) {
             statusElement.textContent = t('The timetable could not be loaded.');
@@ -2148,13 +2185,60 @@ window.addEventListener('symbiot:osm-route-toggle', (event) => {
     loadBusArrival(feature, group, status);
 });
 
-function updateMetroArrivalEstimate() {
+async function updateMetroArrivalEstimate() {
     const estimateElement = document.getElementById('metroArrivalEstimate');
     if (!estimateElement) return;
 
     const selectedLines = document.querySelectorAll('#transitLinesList .poi-route-checkbox:checked');
     if (selectedLines.length !== 1) {
+        metroScheduleRun++;
         estimateElement.textContent = t('Select exactly one metro line to estimate the next train.');
+        return;
+    }
+
+    const checkbox = selectedLines[0];
+    const group = activeTransitRoutes.get(checkbox.dataset.routeKey);
+    const coordinates = activeMetroStationFeature?.get('coordinates') || {};
+    const routeRef = group?.label?.replace(/^Metrou\s+/i, '').trim();
+    if (routeRef && Number.isFinite(Number(coordinates.lat)) && Number.isFinite(Number(coordinates.lon))) {
+        const run = ++metroScheduleRun;
+        estimateElement.textContent = t('Searching for the next scheduled departure…');
+        const params = new URLSearchParams({
+            lat: String(coordinates.lat),
+            lon: String(coordinates.lon),
+            route_ref: routeRef,
+            mode: 'subway',
+        });
+        try {
+            const result = await fetchJson(`/api/transit/stops/nearest-next-departure?${params}`, {
+                signal: AbortSignal.timeout(12_000),
+            });
+            if (run !== metroScheduleRun) return;
+            if (result.departure) {
+                const departure = result.departure;
+                const countdown = departure.minutes_until === 0
+                    ? t('now')
+                    : t('in :minutes min', { minutes: departure.minutes_until });
+                estimateElement.textContent = departure.estimated
+                    ? t('Expected next metro train on :route: around :time (:countdown) · estimated from GTFS', {
+                        route: routeRef,
+                        time: departure.time,
+                        countdown,
+                    })
+                    : t('Next metro train on :route: :time (:countdown) · GTFS timetable', {
+                        route: routeRef,
+                        time: departure.time,
+                        countdown,
+                    });
+                return;
+            }
+        } catch {
+            if (run !== metroScheduleRun) return;
+        }
+
+        if (run !== metroScheduleRun) return;
+        const approximate = getMetroArrivalWindow();
+        estimateElement.textContent = t('The published metro timetable is unavailable. Estimated next train: :from–:until (about a 5-minute interval).', approximate);
         return;
     }
 
@@ -2713,7 +2797,7 @@ document.getElementById('city-location-form')?.addEventListener('submit', async 
         cityBoundaryRadiusMeters = null;
         dashboardCitywide && (dashboardCitywide.checked = false);
         cityBoundarySource.clear();
-        fixedCityLocation = { lat: result.lat, lon: result.lon, placeId: result.place_id || null };
+        fixedCityLocation = { lat: result.lat, lon: result.lon, placeId: result.place_id || null, name: result.name || null };
         currentUserLocation = { lat: result.lat, lon: result.lon };
         hasCentered = true;
         initLocalFeatures();

@@ -79,9 +79,11 @@ export function buildPoiCategoryRequests(selectedTypes, {
                 lon: String(lon),
                 radius: String(radius),
             });
-            // Stop markers are loaded from local transit feeds separately. Avoid the
-            // expensive Overpass route-relation lookup during the initial bus POI request.
-            if (category === 'bus' || category === 'train') params.set('include_routes', 'false');
+            // Bus stops are loaded from local feeds separately. Keep the initial
+            // markers fast for train and subway too; line details load on selection.
+            if (category === 'bus' || category === 'train' || category === 'subway') {
+                params.set('include_routes', 'false');
+            }
 
             return {
                 category,

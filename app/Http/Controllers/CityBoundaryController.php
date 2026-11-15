@@ -15,6 +15,7 @@ class CityBoundaryController extends Controller
             'lat' => ['required_without:id', 'numeric', 'between:-90,90'],
             'lon' => ['required_without:id', 'numeric', 'between:-180,180'],
             'id' => ['nullable', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:100'],
         ]);
         $apiKey = config('services.geoapify.key');
         if (blank($apiKey)) {
@@ -28,7 +29,7 @@ class CityBoundaryController extends Controller
                 $baseParams = [
                     'boundaries' => 'administrative',
                     'geometry' => 'geometry_1000',
-                    'lang' => 'en',
+                    'lang' => substr((string) app()->getLocale(), 0, 2),
                     'apiKey' => $apiKey,
                 ];
 
@@ -46,12 +47,45 @@ class CityBoundaryController extends Controller
                     }
 
                     $features = $response->json('features', []);
-                    foreach ($features as $item) {
-                        $properties = $item['properties'] ?? [];
-                        if (($properties['name'] ?? null) === ($properties['city'] ?? null)
-                            && in_array($item['geometry']['type'] ?? null, ['Polygon', 'MultiPolygon'], true)) {
-                            return $item;
+                    $polygonFeatures = array_values(array_filter($features, static fn (array $item): bool =>
+                        in_array($item['geometry']['type'] ?? null, ['Polygon', 'MultiPolygon'], true)
+                    ));
+                    $requestedName = mb_strtolower(trim((string) ($validated['name'] ?? '')));
+                    if ($requestedName !== '') {
+                        $cityBoundary = collect($polygonFeatures)->first(static function (array $item) use ($requestedName): bool {
+                            $properties = $item['properties'] ?? [];
+
+                            return in_array($requestedName, array_map(
+                                static fn (mixed $value): string => mb_strtolower(trim((string) $value)),
+                                [$properties['name'] ?? '', $properties['city'] ?? '']
+                            ), true);
+                        });
+
+                        if ($cityBoundary !== null) {
+                            return $cityBoundary;
                         }
+                    }
+
+                    $cityBoundary = collect($polygonFeatures)->first(static function (array $item): bool {
+                        $properties = $item['properties'] ?? [];
+
+                        return isset($properties['name'], $properties['city'])
+                            && mb_strtolower(trim((string) $properties['name'])) === mb_strtolower(trim((string) $properties['city']));
+                    });
+
+                    if ($cityBoundary !== null) {
+                        return $cityBoundary;
+                    }
+
+                    // Some cities, including municipality-style capitals, don't
+                    // populate the `city` field on their boundary feature. Use
+                    // Geoapify's explicit city-level category as a safe fallback.
+                    $cityBoundary = collect($polygonFeatures)->first(static fn (array $item): bool =>
+                        in_array('administrative.city_level', $item['properties']['categories'] ?? [], true)
+                    );
+
+                    if ($cityBoundary !== null) {
+                        return $cityBoundary;
                     }
                 }
 

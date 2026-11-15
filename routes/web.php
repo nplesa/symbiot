@@ -70,6 +70,8 @@ Route::name('app.')->middleware(['auth', 'approved'])->group(function () {
                 ->defaults('type', $mode)
                 ->name("api.transport.{$mode}");
         }
+        Route::get('/api/transport/subway/stop-routes', [TransportPoiController::class, 'subwayStopRoutes'])
+            ->name('api.transport.subway.stop-routes');
         foreach ([
             'fuel', 'parking', 'restaurant', 'cafe', 'lodging', 'supermarket', 'taxi', 'hospital', 'pharmacy',
             'fire', 'tourism', 'charging_station', 'police', 'speed_camera', 'speed_limit', 'traffic_sign',

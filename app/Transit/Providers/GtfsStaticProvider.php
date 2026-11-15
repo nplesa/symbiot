@@ -19,7 +19,7 @@ class GtfsStaticProvider implements TransitProvider
     private const CHUNK = 500;
 
     private const TABLES = [
-        'transit_shapes', 'transit_calendar_dates', 'transit_calendars', 'transit_stop_times',
+        'transit_shapes', 'transit_calendar_dates', 'transit_calendars', 'transit_frequencies', 'transit_stop_times',
         'transit_trips', 'transit_routes', 'transit_stops', 'transit_agencies',
     ];
 
@@ -176,7 +176,7 @@ class GtfsStaticProvider implements TransitProvider
     {
         $this->totalBytes = 0;
         $this->doneBytes = 0;
-        foreach (['agency.txt', 'stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt', 'calendar.txt', 'calendar_dates.txt', 'shapes.txt'] as $name) {
+        foreach (['agency.txt', 'stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt', 'frequencies.txt', 'calendar.txt', 'calendar_dates.txt', 'shapes.txt'] as $name) {
             $this->totalBytes += (int) ($zip->statName($name)['size'] ?? 0);
         }
         $this->totalBytes = max(1, $this->totalBytes);
@@ -250,6 +250,24 @@ class GtfsStaticProvider implements TransitProvider
             'arrival_seconds' => $this->seconds($r['arrival_time'] ?? null),
             'departure_seconds' => $this->seconds($r['departure_time'] ?? null),
         ]);
+
+        $this->load($path, 'frequencies.txt', 'transit_frequencies', function (array $r) use ($id): ?array {
+            $start = $this->seconds($r['start_time'] ?? null);
+            $end = $this->seconds($r['end_time'] ?? null);
+            $headway = isset($r['headway_secs']) && is_numeric($r['headway_secs']) ? (int) $r['headway_secs'] : 0;
+            if ($start === null || $end === null || $end <= $start || $headway <= 0) {
+                return null;
+            }
+
+            return [
+                'feed_id' => $id,
+                'trip_id' => $r['trip_id'],
+                'start_seconds' => $start,
+                'end_seconds' => $end,
+                'headway_secs' => $headway,
+                'exact_times' => isset($r['exact_times']) && $r['exact_times'] !== '' ? (int) $r['exact_times'] : 0,
+            ];
+        });
 
         $this->load($path, 'calendar.txt', 'transit_calendars', fn (array $r): array => [
             'feed_id' => $id,

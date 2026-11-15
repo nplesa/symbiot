@@ -109,7 +109,8 @@ class OsmTransitRoutes
         int $radius,
         array $types,
         array $features,
-        array $fallbackElements = []
+        array $fallbackElements = [],
+        bool $preferEuropeEndpoint = false,
     ): array {
         $routeTypes = [];
         foreach ($types as $type) {
@@ -158,27 +159,46 @@ class OsmTransitRoutes
         if ($nearbyPoints === []) {
             return ['stops' => [], 'routes' => [], 'available' => true];
         }
+        $subwayStationLookup = $routeTypes === ['subway'] && $radius <= 1000;
         $stopQueries = [];
-        $searchRadius = $radius + 500;
+        $searchRadius = $radius + ($subwayStationLookup ? 100 : 500);
         $searchCenter = sprintf('%.5f,%.5f', $lat, $lon);
         foreach ($stopSelectors as $selector) {
             $stopQueries[] = 'nwr(around:' . $searchRadius . ',' . $searchCenter . ')' . $selector . ';';
         }
-        $query = '[out:json][timeout:20];'
+        $queryTimeout = $subwayStationLookup ? 8 : 20;
+        $query = '[out:json][timeout:' . $queryTimeout . '];'
             . '(' . implode('', $stopQueries) . ')->.stops;'
             . '.stops out center tags;'
             . '(rel(bn.stops)["route"~"^(' . $routeTypeFilter . ')$"];'
             . 'rel(bw.stops)["route"~"^(' . $routeTypeFilter . ')$"];)->.routes;'
-            . '.routes out meta;'
             . '.routes out body;';
+        $requestTimeout = $subwayStationLookup ? 4 : ($routeTypes === ['subway'] ? 8 : 25);
+        $requestDeadline = microtime(true) + 16;
+        $endpoints = (array) config('osm.overpass_endpoints');
+        if ($preferEuropeEndpoint && $lat >= 34 && $lat <= 72 && $lon >= -12 && $lon <= 45) {
+            $europeEndpoint = config('osm.overpass_europe_endpoint');
+            if (is_string($europeEndpoint) && $europeEndpoint !== '') {
+                $endpoints = array_values(array_unique([$europeEndpoint, ...$endpoints]));
+            }
+        }
 
         $payload = null;
         $lastError = null;
-        foreach ((array) config('osm.overpass_endpoints') as $endpoint) {
+        foreach ($endpoints as $endpoint) {
             try {
+                $endpointTimeout = $requestTimeout;
+                if ($subwayStationLookup) {
+                    $remainingSeconds = (int) floor($requestDeadline - microtime(true));
+                    if ($remainingSeconds < 1) {
+                        break;
+                    }
+                    $endpointTimeout = min($endpointTimeout, $remainingSeconds);
+                }
+
                 $response = Http::withHeaders([
                     'User-Agent' => 'Symbiot/1.0 nearby POI map',
-                ])->timeout(25)
+                ])->timeout($endpointTimeout)
                     ->acceptJson()
                     ->asForm()
                     ->post($endpoint, [
@@ -192,6 +212,15 @@ class OsmTransitRoutes
                 $candidate = $response->json();
                 if (! is_array($candidate) || isset($candidate['remark'])) {
                     throw new \RuntimeException('OpenStreetMap transit route service returned an incomplete result.');
+                }
+
+                $candidateHasRoutes = collect($candidate['elements'] ?? [])
+                    ->contains(fn (array $element): bool => isset($element['tags']['route']));
+                if ($subwayStationLookup && ! $candidateHasRoutes) {
+                    // Try the next mirror when one returns the nearby stops but omits their
+                    // route relations, or when it has no data for this location.
+                    $payload ??= $candidate;
+                    continue;
                 }
 
                 $payload = $candidate;
@@ -358,7 +387,10 @@ class OsmTransitRoutes
     {
         $subwayOnly = $routeTypes === ['subway'];
         $stopSelectors = $subwayOnly
-            ? ['["subway"="yes"]']
+            ? [
+                '["subway"="yes"]',
+                '["station"="subway"]',
+            ]
             : ['["public_transport"~"^(platform|stop_position|station)$"]'];
         if (array_intersect($routeTypes, ['bus', 'trolleybus']) !== []) {
             $stopSelectors[] = '["highway"="bus_stop"]';

@@ -149,10 +149,22 @@ class TransitMapController extends Controller
             'lat' => 'required|numeric|between:-90,90',
             'lon' => 'required|numeric|between:-180,180',
             'route_ref' => 'required|string|max:100',
+            'mode' => 'nullable|in:subway',
         ]);
         $lat = (float) $data['lat'];
         $lon = (float) $data['lon'];
         $routeRef = mb_strtolower(trim($data['route_ref']));
+        $routeRefs = [$routeRef];
+        $bareRouteRef = preg_replace('/^(?:(?:metro|metrou|subway|line|m|u|l)[\s_-]*)+/u', '', $routeRef) ?? $routeRef;
+        if ($bareRouteRef !== '' && $bareRouteRef !== $routeRef) {
+            $routeRefs[] = $bareRouteRef;
+        }
+        if (ctype_digit($bareRouteRef)) {
+            foreach (['m', 'u', 'l', 'line ', 'metro ', 'metrou '] as $prefix) {
+                $routeRefs[] = $prefix . $bareRouteRef;
+            }
+        }
+        $routeRefs = array_values(array_unique($routeRefs));
         $feeds = $discovery->ensureImported($lat, $lon, userId: $request->user()->id);
         $feedIds = $feeds
             ->filter(fn (TransitFeed $feed): bool => $feed->provider !== 'osm' && $feed->static_hash !== null)
@@ -183,7 +195,13 @@ class TransitMapController extends Controller
             ->whereIn('s.feed_id', $feedIds)
             ->whereBetween('s.lat', [$lat - $dLat, $lat + $dLat])
             ->whereBetween('s.lon', [$lon - $dLon, $lon + $dLon])
-            ->whereRaw('LOWER(TRIM(r.short_name)) = ?', [$routeRef])
+            ->where(function ($query) use ($routeRefs): void {
+                $query->whereIn(DB::raw('LOWER(TRIM(r.short_name))'), $routeRefs)
+                    ->orWhereIn(DB::raw('LOWER(TRIM(r.route_id))'), $routeRefs);
+            })
+            ->when(($data['mode'] ?? null) === 'subway', fn ($query) => $query->where(function ($types): void {
+                $types->where('r.route_type', 1)->orWhereBetween('r.route_type', [400, 499]);
+            }))
             ->distinct()
             ->orderByRaw($distanceSql, $distanceBindings)
             ->limit(self::MAX_DEPARTURE_CANDIDATES)
@@ -337,23 +355,130 @@ class TransitMapController extends Controller
             ->where('t.route_id', $data['route_id'])
             ->whereIn('t.service_id', array_keys($activeDatesByService))
             ->whereIn('st.stop_id', $stopIds)
-            ->where(fn ($query) => $query->whereNotNull('st.arrival_seconds')->orWhereNotNull('st.departure_seconds'))
             ->get([
+                't.trip_id',
                 't.service_id',
                 't.headsign',
                 'st.arrival_seconds',
                 'st.departure_seconds',
+                'st.stop_sequence',
             ]);
+
+        $timesByTrip = $times->groupBy('trip_id');
+        $timepointsByTrip = collect();
+        if ($times->contains(fn ($time): bool => $time->arrival_seconds === null && $time->departure_seconds === null)) {
+            $timepointsByTrip = DB::table('transit_stop_times')
+                ->where('feed_id', $feed)
+                ->whereIn('trip_id', $times->pluck('trip_id')->unique()->values())
+                ->where(fn ($query) => $query->whereNotNull('arrival_seconds')->orWhereNotNull('departure_seconds'))
+                ->orderBy('trip_id')
+                ->orderBy('stop_sequence')
+                ->get(['trip_id', 'stop_sequence', 'arrival_seconds', 'departure_seconds'])
+                ->groupBy('trip_id');
+        }
+        $interpolatedSeconds = [];
+        foreach ($times as $time) {
+            if ($time->arrival_seconds !== null || $time->departure_seconds !== null) {
+                continue;
+            }
+
+            $tripTimepoints = $timepointsByTrip->get($time->trip_id, collect());
+            $before = $tripTimepoints->last(fn ($point): bool => (int) $point->stop_sequence < (int) $time->stop_sequence);
+            $after = $tripTimepoints->first(fn ($point): bool => (int) $point->stop_sequence > (int) $time->stop_sequence);
+            $beforeSeconds = $before?->departure_seconds ?? $before?->arrival_seconds;
+            $afterSeconds = $after?->arrival_seconds ?? $after?->departure_seconds;
+            $sequenceSpan = $after === null ? 0 : (int) $after->stop_sequence - (int) ($before->stop_sequence ?? 0);
+
+            if ($beforeSeconds === null || $afterSeconds === null || (int) $afterSeconds <= (int) $beforeSeconds || $sequenceSpan <= 0) {
+                continue;
+            }
+
+            $elapsedStops = (int) $time->stop_sequence - (int) $before->stop_sequence;
+            $interpolatedSeconds[$time->trip_id . '|' . $time->stop_sequence] = [
+                'seconds' => (int) round((int) $beforeSeconds + ((int) $afterSeconds - (int) $beforeSeconds) * $elapsedStops / $sequenceSpan),
+                'estimated' => true,
+            ];
+        }
+
+        $frequencyRows = DB::table('transit_frequencies')
+            ->where('feed_id', $feed)
+            ->whereIn('trip_id', $times->pluck('trip_id')->unique()->values())
+            ->get();
+        $frequencyTripIds = $frequencyRows->pluck('trip_id')->unique()->all();
+        $originTimes = collect();
+        if ($frequencyTripIds !== []) {
+            $originTimes = DB::table('transit_stop_times as origin')
+                ->where('origin.feed_id', $feed)
+                ->whereIn('origin.trip_id', $frequencyTripIds)
+                ->whereNotExists(function ($earlier): void {
+                    $earlier->selectRaw('1')
+                        ->from('transit_stop_times as prior')
+                        ->whereColumn('prior.feed_id', 'origin.feed_id')
+                        ->whereColumn('prior.trip_id', 'origin.trip_id')
+                        ->whereColumn('prior.stop_sequence', '<', 'origin.stop_sequence');
+                })
+                ->get(['origin.trip_id', 'origin.arrival_seconds', 'origin.departure_seconds'])
+                ->keyBy('trip_id');
+        }
 
         $next = null;
         foreach ($times as $time) {
+            if (in_array($time->trip_id, $frequencyTripIds, true)) {
+                continue;
+            }
             $seconds = $time->arrival_seconds ?? $time->departure_seconds;
+            $estimated = false;
+            if ($seconds === null) {
+                $inferred = $interpolatedSeconds[$time->trip_id . '|' . $time->stop_sequence] ?? null;
+                $seconds = $inferred['seconds'] ?? null;
+                $estimated = $inferred !== null;
+            }
+            if ($seconds === null) {
+                continue;
+            }
             foreach ($activeDatesByService[$time->service_id] ?? [] as $serviceDate) {
                 $departure = $serviceDate->copy()->addSeconds((int) $seconds);
                 if ($departure->lt($now) || ($next !== null && ! $departure->lt($next['at']))) {
                     continue;
                 }
-                $next = ['at' => $departure, 'headsign' => $time->headsign];
+                $next = ['at' => $departure, 'headsign' => $time->headsign, 'estimated' => $estimated];
+            }
+        }
+
+        foreach ($frequencyRows as $frequency) {
+            $origin = $originTimes->get($frequency->trip_id);
+            $originSeconds = $origin?->departure_seconds ?? $origin?->arrival_seconds;
+            if ($originSeconds === null || (int) $frequency->headway_secs <= 0) {
+                continue;
+            }
+
+            foreach ($timesByTrip->get($frequency->trip_id, collect()) as $time) {
+                $targetSeconds = $time->departure_seconds ?? $time->arrival_seconds;
+                if ($targetSeconds === null) {
+                    continue;
+                }
+                $offsetSeconds = max(0, (int) $targetSeconds - (int) $originSeconds);
+                foreach ($activeDatesByService[$time->service_id] ?? [] as $serviceDate) {
+                    $firstDeparture = $serviceDate->copy()->startOfDay()->addSeconds((int) $frequency->start_seconds + $offsetSeconds);
+                    $headway = (int) $frequency->headway_secs;
+                    $elapsed = $now->getTimestamp() - $firstDeparture->getTimestamp();
+                    $iteration = max(0, (int) ceil($elapsed / $headway));
+                    $tripStart = (int) $frequency->start_seconds + $iteration * $headway;
+                    if ($tripStart >= (int) $frequency->end_seconds) {
+                        continue;
+                    }
+
+                    $departure = $serviceDate->copy()->startOfDay()->addSeconds($tripStart + $offsetSeconds);
+                    if ($departure->lt($now) || ($next !== null && ! $departure->lt($next['at']))) {
+                        continue;
+                    }
+                $next = [
+                        'at' => $departure,
+                        'headsign' => $time->headsign,
+                    'estimated' => (int) $frequency->exact_times !== 1
+                        || isset($interpolatedSeconds[$time->trip_id . '|' . $time->stop_sequence]),
+                    ];
+                }
             }
         }
 
@@ -367,6 +492,7 @@ class TransitMapController extends Controller
                 'minutes_until' => (int) ceil($now->diffInSeconds($next['at']) / 60),
                 'headsign' => $next['headsign'],
                 'timezone' => $timezone,
+                'estimated' => $next['estimated'],
             ],
         ]);
     }

@@ -5,7 +5,10 @@ return [
     'overpass_endpoints' => [
         'https://overpass-api.de/api/interpreter',
         'https://overpass.private.coffee/api/interpreter',
+        'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
     ],
+    // Europe-only mirror; used first for European station lookups, then global mirrors.
+    'overpass_europe_endpoint' => 'https://ovp.dresel.systems/api/interpreter',
 
     'romania' => [
         'extract_url' => env('OSM_ROMANIA_EXTRACT_URL', 'https://download.geofabrik.de/europe/romania-latest.osm.pbf'),

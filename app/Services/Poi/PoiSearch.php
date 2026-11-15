@@ -57,7 +57,10 @@ class PoiSearch
                 )
             ));
             if (! $includeTransitRoutes) {
-                $missingTransitTypes = [];
+                // GTFS-backed bus and train layers load independently. Subway
+                // markers still need the OSM stop fallback, but their route
+                // relations are fetched lazily after a station is selected.
+                $missingTransitTypes = array_values(array_intersect($missingTransitTypes, ['subway']));
             }
             $transitFallbackSelectors = $selected
                 ->filter(fn (array $filter) => in_array($filter['type'], $missingTransitTypes, true))
@@ -141,8 +144,13 @@ class PoiSearch
         );
         // Airports are sparse; a single circle query is enough and avoids a
         // series of redundant Geoapify grid requests on large search radii.
-        $points = $airportSearch ? [[$lat, $lon]] : $this->buildGridPoints($lat, $lon, $radius);
-        $timeoutSeconds = $airportSearch ? 8 : (trim($categories) === 'public_transport.train' ? 5 : 10);
+        $subwaySearch = trim($categories) === 'public_transport.subway';
+        // A single circle is enough for metro stations, and avoids multiplying
+        // provider latency across a grid in cities with a wide search radius.
+        $points = ($airportSearch || $subwaySearch) ? [[$lat, $lon]] : $this->buildGridPoints($lat, $lon, $radius);
+        $timeoutSeconds = ($airportSearch || $subwaySearch)
+            ? 5
+            : (trim($categories) === 'public_transport.train' ? 5 : 10);
         $all = [];
 
         foreach (array_chunk($categoryList, 100) as $categoryChunk) {

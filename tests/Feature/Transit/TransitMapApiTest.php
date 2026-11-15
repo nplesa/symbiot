@@ -132,6 +132,41 @@ class TransitMapApiTest extends TestCase
         }
     }
 
+    public function test_next_departure_resolves_gtfs_frequency_based_metro_service(): void
+    {
+        $feed = $this->seedFeed();
+        Carbon::setTestNow('2026-10-05 10:04:00');
+        DB::table('transit_calendars')->insert([
+            'feed_id' => $feed->id,
+            'service_id' => 's',
+            'days_mask' => 127,
+            'start_date' => '2026-10-01',
+            'end_date' => '2026-10-10',
+        ]);
+        DB::table('transit_agencies')->insert([
+            'feed_id' => $feed->id, 'agency_id' => 'agency', 'name' => 'Metro', 'timezone' => 'UTC',
+        ]);
+        DB::table('transit_stop_times')->where('feed_id', $feed->id)->where('trip_id', 't1')->update([
+            'departure_seconds' => 36000,
+        ]);
+        DB::table('transit_frequencies')->insert([
+            'feed_id' => $feed->id,
+            'trip_id' => 't1',
+            'start_seconds' => 36000,
+            'end_seconds' => 39600,
+            'headway_secs' => 600,
+            'exact_times' => 1,
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->getJson("/api/transit/stops/{$feed->id}/A%2F1/next-departure?route_id=M1")
+            ->assertOk()
+            ->assertJsonPath('departure.time', '10:10')
+            ->assertJsonPath('departure.estimated', false);
+
+        Carbon::setTestNow();
+    }
+
     public function test_next_departure_of_an_agency_without_timezone_uses_the_display_timezone(): void
     {
         $feed = $this->seedFeed();
@@ -266,5 +301,47 @@ class TransitMapApiTest extends TestCase
         // sort by distance before limiting the candidates.
         $this->assertCount(1, $candidateQueries);
         $this->assertMatchesRegularExpression('/order by .*s\.lat - \?.*limit 10/s', $candidateQueries[0]);
+    }
+
+    public function test_nearest_metro_departure_interpolates_a_blank_intermediate_stop_time(): void
+    {
+        $feed = $this->seedFeed();
+        $feed->forceFill([
+            'min_lat' => 44.99, 'max_lat' => 45.01, 'min_lon' => 25.99, 'max_lon' => 26.01,
+            'last_imported_at' => now(), 'import_status' => 'imported',
+        ])->save();
+        Carbon::setTestNow('2026-10-05 10:00:00');
+        DB::table('transit_agencies')->insert([
+            'feed_id' => $feed->id, 'agency_id' => 'agency', 'name' => 'Metro', 'timezone' => 'UTC',
+        ]);
+        DB::table('transit_calendars')->insert([
+            'feed_id' => $feed->id, 'service_id' => 's', 'days_mask' => 127,
+            'start_date' => '2026-10-01', 'end_date' => '2026-10-10',
+        ]);
+        DB::table('transit_stops')->insert([
+            ['feed_id' => $feed->id, 'stop_id' => 'PREV', 'name' => 'Previous', 'lat' => 45.0, 'lon' => 26.0002, 'location_type' => 0],
+            ['feed_id' => $feed->id, 'stop_id' => 'MID', 'name' => 'Metro station', 'lat' => 45.0, 'lon' => 26.0, 'location_type' => 0],
+            ['feed_id' => $feed->id, 'stop_id' => 'NEXT', 'name' => 'Next', 'lat' => 45.0, 'lon' => 25.9998, 'location_type' => 0],
+        ]);
+        DB::table('transit_stop_times')->where('feed_id', $feed->id)->where('trip_id', 't1')->where('stop_id', 'A/1')->update([
+            'stop_id' => 'PREV', 'stop_sequence' => 1,
+            'arrival_seconds' => 10 * 3600, 'departure_seconds' => 10 * 3600,
+        ]);
+        DB::table('transit_stop_times')->insert([
+            ['feed_id' => $feed->id, 'trip_id' => 't1', 'stop_id' => 'MID', 'stop_sequence' => 2,
+                'arrival_seconds' => null, 'departure_seconds' => null],
+            ['feed_id' => $feed->id, 'trip_id' => 't1', 'stop_id' => 'NEXT', 'stop_sequence' => 3,
+                'arrival_seconds' => 10 * 3600 + 10 * 60, 'departure_seconds' => 10 * 3600 + 10 * 60],
+        ]);
+
+        try {
+            $this->actingAs(User::factory()->create())
+                ->getJson('/api/transit/stops/nearest-next-departure?lat=45.0&lon=26.0&route_ref=M1&mode=subway')
+                ->assertOk()
+                ->assertJsonPath('departure.time', '10:05')
+                ->assertJsonPath('departure.estimated', true);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 }

@@ -115,7 +115,13 @@ return [
             'label' => 'Metro', 'icon' => '🚇', 'default' => true,
             'group' => 'services', 'distance' => 500,
             'geoapify' => ['public_transport.subway'],
-            'osm' => [['railway' => 'subway_entrance'], ['railway' => 'station', 'station' => 'subway']],
+            'osm' => [
+                ['railway' => 'subway_entrance'],
+                ['railway' => 'station', 'station' => 'subway'],
+                ['station' => 'subway'],
+                ['subway' => 'yes'],
+                ['public_transport' => 'station', 'subway' => 'yes'],
+            ],
         ],
         'train' => [
             'label' => 'Train stations', 'icon' => '🚆', 'default' => true,

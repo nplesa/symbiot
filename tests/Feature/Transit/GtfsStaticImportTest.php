@@ -25,6 +25,7 @@ class GtfsStaticImportTest extends TestCase
         $zip->addFromString('routes.txt', "route_id,agency_id,route_short_name,route_long_name,route_type,route_color\nR1,A,{$routeName},Linia,3,#ff0000\n");
         $zip->addFromString('trips.txt', "route_id,service_id,trip_id,trip_headsign,direction_id,shape_id\nR1,WK,T1,Centru,0,SH1\n");
         $zip->addFromString('stop_times.txt', "trip_id,arrival_time,departure_time,stop_id,stop_sequence\nT1,25:10:00,25:10:30,S1,1\nT1,25:20:00,25:20:00,S2,2\n");
+        $zip->addFromString('frequencies.txt', "trip_id,start_time,end_time,headway_secs,exact_times\nT1,25:00:00,27:00:00,600,1\n");
         $zip->addFromString('calendar.txt', "service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\nWK,1,1,1,1,1,0,0,20260101,20261231\n");
         $zip->addFromString('shapes.txt', "shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence\nSH1,45.16,26.83,2\nSH1,45.15,26.82,1\n");
         $zip->close();
@@ -63,6 +64,8 @@ class GtfsStaticImportTest extends TestCase
         $this->assertSame(2, DB::table('transit_stops')->count());
         $this->assertSame('FF0000', DB::table('transit_routes')->value('color'));
         $this->assertSame(25 * 3600 + 600, (int) DB::table('transit_stop_times')->orderBy('stop_sequence')->value('arrival_seconds'));
+        $this->assertSame(25 * 3600, (int) DB::table('transit_frequencies')->value('start_seconds'));
+        $this->assertSame(1, (int) DB::table('transit_frequencies')->value('exact_times'));
         $this->assertSame(31, (int) DB::table('transit_calendars')->value('days_mask'));
         $this->assertSame([[26.82, 45.15], [26.83, 45.16]], json_decode(DB::table('transit_shapes')->value('points'), true));
         $this->assertSame('imported', $feed->fresh()->import_status);

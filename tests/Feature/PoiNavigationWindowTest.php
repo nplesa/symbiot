@@ -743,14 +743,14 @@ class PoiNavigationWindowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('0.id', 'bus-stop-incomplete-routes')
             ->assertJsonPath('0.routes_available', false);
-        // Per lookup: Geoapify, then Overpass, then the Overpass mirror after the incomplete result.
-        Http::assertSentCount(3);
+        // Per lookup: Geoapify plus the three global Overpass sources after incomplete results.
+        Http::assertSentCount(4);
 
         // Within a minute the incomplete result is served from cache, sparing the upstream APIs.
         $this->getJson($url)
             ->assertOk()
             ->assertJsonPath('0.routes_available', false);
-        Http::assertSentCount(3);
+        Http::assertSentCount(4);
 
         // After the short TTL the lookup is retried instead of caching missing routes for 10 minutes.
         $this->travel(61)->seconds();
@@ -759,7 +759,7 @@ class PoiNavigationWindowTest extends TestCase
             ->assertJsonPath('0.id', 'bus-stop-incomplete-routes')
             ->assertJsonPath('0.routes_available', false);
 
-        Http::assertSentCount(6);
+        Http::assertSentCount(8);
         Http::assertSent(fn ($request) => str_contains($request->url(), 'overpass-api.de'));
         $this->assertSame(
             2,
@@ -768,6 +768,10 @@ class PoiNavigationWindowTest extends TestCase
         $this->assertSame(
             2,
             Http::recorded(fn ($request) => str_contains($request->url(), 'overpass.private.coffee'))->count()
+        );
+        $this->assertSame(
+            2,
+            Http::recorded(fn ($request) => str_contains($request->url(), 'maps.mail.ru'))->count()
         );
     }
 
@@ -949,7 +953,8 @@ class PoiNavigationWindowTest extends TestCase
             && ! str_contains($request['data'], 'airline')
             && str_contains($request['data'], 'around:5500,45.65000,25.60000')
             && substr_count($request['data'], 'nwr(around:5500,') === 7
-            && str_contains($request['data'], '.routes out meta;.routes out body;'));
+            && str_contains($request['data'], '.routes out body;')
+            && ! str_contains($request['data'], '.routes out meta;'));
     }
 
     public function test_harman_station_includes_its_osm_train_routes_and_directions(): void
@@ -1292,6 +1297,49 @@ class PoiNavigationWindowTest extends TestCase
             && str_contains($request['data'], '["route"~"^(subway)$"]'));
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'api.geoapify.com')
             && str_contains($request->url(), 'public_transport.bus'));
+    }
+
+    public function test_subway_station_route_details_can_be_loaded_on_demand(): void
+    {
+        Cache::flush();
+        Http::fake(fn () => Http::response(['elements' => [
+            [
+                'type' => 'node',
+                'id' => 5101,
+                'lat' => 44.4522,
+                'lon' => 26.0864,
+                'tags' => ['railway' => 'station', 'station' => 'subway', 'subway' => 'yes'],
+            ],
+            [
+                'type' => 'relation',
+                'id' => 5102,
+                'tags' => ['type' => 'route', 'route' => 'subway', 'ref' => 'M1'],
+                'members' => [['type' => 'node', 'ref' => 5101, 'role' => 'stop']],
+            ],
+            [
+                'type' => 'relation',
+                'id' => 5103,
+                'tags' => ['type' => 'route', 'route' => 'subway', 'ref' => 'M2'],
+                'members' => [['type' => 'node', 'ref' => 5101, 'role' => 'stop']],
+            ],
+        ]]));
+
+        $this->actingAs(User::factory()->create())
+            ->getJson('/api/transport/subway/stop-routes?lat=44.4522&lon=26.0864')
+            ->assertOk()
+            ->assertJsonPath('available', true)
+            ->assertJsonCount(2, 'routes')
+            ->assertJsonPath('routes.0.label', 'Metrou M1')
+            ->assertJsonPath('routes.1.label', 'Metrou M2');
+
+        $this->getJson('/api/transport/subway/stop-routes?lat=44.4522&lon=26.0864')
+            ->assertOk()
+            ->assertJsonCount(2, 'routes');
+
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'ovp.dresel.systems')
+            && str_contains($request['data'], 'around:400,44.45220,26.08640')
+            && substr_count($request['data'], 'nwr(around:400,') === 2);
     }
 
     public function test_train_only_lookup_queries_rail_stops_without_bus_or_airport_stops(): void

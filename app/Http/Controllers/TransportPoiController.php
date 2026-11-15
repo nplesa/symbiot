@@ -9,6 +9,7 @@ use App\Services\Poi\WazePoliceAlerts;
 use App\Services\PoiCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class TransportPoiController extends Controller
@@ -25,6 +26,35 @@ class TransportPoiController extends Controller
         $request->query->set('types', $type);
 
         return $this->nearby($request);
+    }
+
+    public function subwayStopRoutes(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'lat' => 'required|numeric|between:-90,90',
+            'lon' => 'required|numeric|between:-180,180',
+        ]);
+        $lat = (float) $validated['lat'];
+        $lon = (float) $validated['lon'];
+        $cacheKey = sprintf('osm_subway_stop_routes:v1:%.5f:%.5f', $lat, $lon);
+        if (is_array($cached = Cache::get($cacheKey))) {
+            return response()->json($cached);
+        }
+
+        $station = [[
+            'properties' => ['categories' => ['public_transport.subway']],
+            'geometry' => ['coordinates' => [$lon, $lat]],
+        ]];
+        $data = $this->transitRoutes->fetch($lat, $lon, 300, ['subway'], $station, [], true);
+        $routesByStop = $this->transitRoutes->routesByStop($data['stops'], $data['routes']);
+
+        $result = [
+            'routes' => $this->transitRoutes->routesNearStop($lat, $lon, 'subway', $data['stops'], $routesByStop),
+            'available' => $data['available'],
+        ];
+        Cache::put($cacheKey, $result, $data['available'] ? now()->addHours(6) : now()->addSeconds(15));
+
+        return response()->json($result);
     }
 
     public function nearbyForCategory(Request $request, string $category): JsonResponse
