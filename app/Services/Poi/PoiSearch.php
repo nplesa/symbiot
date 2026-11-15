@@ -108,7 +108,8 @@ class PoiSearch
                 $radius,
                 $data['transit_stops'] ?? [],
                 $data['transit_routes'] ?? [],
-                $data['transit_routes_available'] ?? false
+                $data['transit_routes_available'] ?? false,
+                $poiTypes
             ),
             $this->transformOsm(
                 $data['osm_elements'] ?? [],
@@ -386,7 +387,8 @@ class PoiSearch
         int $radius,
         array $transitStops = [],
         array $transitRoutes = [],
-        bool $transitRoutesAvailable = true
+        bool $transitRoutesAvailable = true,
+        array $allowedTypes = []
     ): array {
         $out = [];
         $routesByStop = $this->transitRoutes->routesByStop($transitStops, $transitRoutes);
@@ -395,6 +397,11 @@ class PoiSearch
 
             $props = $feature['properties'] ?? [];
             $coords = $feature['geometry']['coordinates'] ?? null;
+            $type = $this->detectType($props['categories'] ?? []);
+
+            if (! in_array($type, $allowedTypes, true)) {
+                continue;
+            }
 
             if (! is_array($coords) || count($coords) !== 2) {
                 continue;
@@ -411,7 +418,7 @@ class PoiSearch
             $routes = $this->transitRoutes->routesNearStop(
                 $lat,
                 $lon,
-                $this->detectType($props['categories'] ?? []),
+                $type,
                 $transitStops,
                 $routesByStop
             );
@@ -424,7 +431,7 @@ class PoiSearch
                     ?? $props['street']
                     ?? 'Unknown',
 
-                'type' => $this->detectType($props['categories'] ?? []),
+                'type' => $type,
                 'routes' => $routes,
                 'routes_available' => $transitRoutesAvailable,
 
@@ -446,7 +453,7 @@ class PoiSearch
                     'city' => $props['city'] ?? null,
                     'country' => $props['country'] ?? null,
                 ],
-                'details' => match ($this->detectType($props['categories'] ?? [])) {
+                'details' => match ($type) {
                     'lodging' => $this->extractLodgingDetails($props),
                     'airport' => $this->extractAirportDetails(is_array($props['datasource']['raw'] ?? null)
                         ? array_merge(

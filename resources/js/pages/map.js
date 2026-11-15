@@ -1045,7 +1045,7 @@ async function loadBusStopRoutes(feature) {
     // Prefer the locally imported transit feed. OSM relation lookups can be
     // slow or unavailable in cities where Overpass is under load (for example Budapest).
     try {
-        const nearbyResponse = await fetch(`/api/transit/stops?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&radius=1000`, {
+        const nearbyResponse = await fetch(`/api/transit/stops?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&radius=1000&type=bus`, {
             headers: { Accept: 'application/json' },
         });
         if (nearbyResponse.ok) {
@@ -3279,7 +3279,8 @@ async function loadNearby(locationOverride = null) {
                 hasStoredStops = await transitStops.load(
                     lat,
                     lon,
-                    Math.min(Number(app_radius) || 1500, 35000)
+                    Math.min(Number(app_radius) || 1500, 35000),
+                    'bus'
                 );
             } catch (error) {
                 console.error('Stored transit stops could not be loaded; trying OpenStreetMap POIs.', error);

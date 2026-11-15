@@ -384,11 +384,11 @@ export function createTransitLayer(map) {
             }
         },
 
-        async load(lat, lon, radius = 1500) {
+        async load(lat, lon, radius = 1500, type = 'bus') {
             const run = ++loadRun;
             selection++;
             clearRoutes();
-            const data = await fetchJson(`/api/transit/stops?lat=${lat}&lon=${lon}&radius=${radius}`);
+            const data = await fetchJson(`/api/transit/stops?lat=${lat}&lon=${lon}&radius=${radius}&type=${encodeURIComponent(type)}`);
             if (run !== loadRun) {
                 return false;
             }

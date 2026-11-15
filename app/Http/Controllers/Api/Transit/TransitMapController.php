@@ -38,10 +38,16 @@ class TransitMapController extends Controller
             'lat' => 'required|numeric|between:-90,90',
             'lon' => 'required|numeric|between:-180,180',
             'radius' => 'nullable|integer|min:100|max:35000',
+            'type' => 'nullable|in:bus,train',
         ]);
         $lat = (float) $v['lat'];
         $lon = (float) $v['lon'];
         $radius = (int) ($v['radius'] ?? 1500);
+        $routeTypes = match ($v['type'] ?? null) {
+            'bus' => [3, ...range(700, 799)],
+            'train' => [2, ...range(100, 199)],
+            default => null,
+        };
 
         $feedIds = $discovery->coverageWithinRadius($lat, $lon, $radius)
             ->filter(fn (TransitFeed $feed): bool => $feed->static_hash !== null)
@@ -53,8 +59,26 @@ class TransitMapController extends Controller
 
         // Nearest first with a SQL LIMIT, so dense areas never load every stop of the
         // search square; one extra row tells whether the result was truncated.
-        $stops = DB::table('transit_stops as s')
-            ->whereIn('s.feed_id', $feedIds)
+        $stopsQuery = DB::table('transit_stops as s')->whereIn('s.feed_id', $feedIds);
+        if ($routeTypes !== null) {
+            // Return a stop only when it is served by the selected mode. GTFS feeds
+            // can overlap (for example a railway feed and a regional bus feed).
+            $stopsQuery->whereExists(function ($query) use ($routeTypes): void {
+                $query->selectRaw('1')
+                    ->from('transit_stop_times as st')
+                    ->join('transit_trips as t', fn ($join) => $join
+                        ->on('t.feed_id', '=', 'st.feed_id')
+                        ->on('t.trip_id', '=', 'st.trip_id'))
+                    ->join('transit_routes as r', fn ($join) => $join
+                        ->on('r.feed_id', '=', 't.feed_id')
+                        ->on('r.route_id', '=', 't.route_id'))
+                    ->whereColumn('st.feed_id', 's.feed_id')
+                    ->whereColumn('st.stop_id', 's.stop_id')
+                    ->whereIn('r.route_type', $routeTypes);
+            });
+        }
+
+        $stops = $stopsQuery
             ->whereBetween('s.lat', [$lat - $dLat, $lat + $dLat])
             ->whereBetween('s.lon', [$lon - $dLon, $lon + $dLon])
             ->where(function ($query): void {
