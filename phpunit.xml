@@ -33,5 +33,11 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- No real API keys in tests (CI has none either); tests that need one set it themselves. -->
+        <env name="GEOAPIFY_KEY" value="" force="true"/>
+        <env name="TOMTOM_API_KEY" value="" force="true"/>
+        <env name="WAZE_API_KEY" value="" force="true"/>
+        <env name="FLIGHTAWARE_API_KEY" value="" force="true"/>
+        <env name="WEATHERAPI_KEY" value="" force="true"/>
     </php>
 </phpunit>

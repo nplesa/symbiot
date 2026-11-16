@@ -14,6 +14,14 @@ class UserApprovalTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // These tests render pages; they must not depend on a front-end build (public/build).
+        $this->withoutVite();
+    }
+
     public function test_new_registration_is_pending_and_stores_ip_and_country(): void
     {
         Http::fake(['ipwho.is/*' => Http::response(['success' => true, 'country_code' => 'RO'])]);

@@ -20,6 +20,8 @@ class TileTrackingTest extends TestCase
 
         // Keep tests away from tiles cached by the real app in storage/framework/cache/tiles.
         config(['cache.stores.tiles.path' => storage_path('framework/testing/tile-cache')]);
+        // The tile proxy needs a provider key; phpunit.xml blanks the real one from .env.
+        config(['services.geoapify.key' => 'test-key']);
         Cache::store('tiles')->flush();
     }
 

@@ -154,10 +154,8 @@ class NavigationTest extends TestCase
 
     public function test_failed_overpass_lookup_is_cached_briefly_then_retried(): void
     {
-        Http::fake([
-            'overpass-api.de/*' => Http::response('busy', 504),
-            'overpass.private.coffee/*' => Http::response('busy', 504),
-        ]);
+        // Every configured Overpass server (config osm.overpass_endpoints) is down.
+        Http::fake(['*/api/interpreter*' => Http::response('busy', 504)]);
         $user = User::factory()->create();
         $route = $this->makeRoute($user);
 

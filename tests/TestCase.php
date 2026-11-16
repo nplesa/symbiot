@@ -5,6 +5,7 @@ namespace Tests;
 use App\Support\PublicUrlGuard;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -15,6 +16,9 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         $this->registerSqliteMathFunctions();
+
+        // Tests never reach the internet: an unfaked request throws instead of hitting a real API.
+        Http::preventStrayRequests();
 
         // No real DNS in tests: fake hosts like feeds.test resolve to a public documentation address.
         $this->app->instance(PublicUrlGuard::class, new PublicUrlGuard(fn (string $host): array => ['203.0.113.10']));
