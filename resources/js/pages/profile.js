@@ -76,6 +76,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         upload.disabled = true;
-        upload.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>' + t('Uploading...');
+        upload.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2" aria-hidden="true"></i>' + t('Uploading...');
     });
 });

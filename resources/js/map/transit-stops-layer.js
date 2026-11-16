@@ -11,6 +11,7 @@ import Style from 'ol/style/Style.js';
 import Text from 'ol/style/Text.js';
 import { fromLonLat } from 'ol/proj.js';
 import { movedFarEnough } from '../vehicle-center.js';
+import { shouldReloadStops } from '../transit-follow.js';
 import { t } from '../i18n.js';
 
 const ROUTE_PALETTE = ['#e6194b', '#3cb44b', '#0d6efd', '#f58231', '#911eb4', '#008080', '#f032e6', '#9a6324', '#800000', '#808000', '#000075', '#e6a800'];
@@ -301,6 +302,10 @@ export function createTransitLayer(map) {
     });
 
     let loadRun = 0;
+    // Center, radius and type of the last stops load; followUser() reloads around the user from it.
+    let lastStopsLoad = null;
+    // Stop loads still waiting for the server; a GPS follow-up never overrides an explicit load.
+    let loadsInFlight = 0;
     let vehicleTimer = null;
     let vehicleRun = 0;
     // Where live vehicles are searched; follows the user in GPS mode (moveVehicleCenter).
@@ -384,32 +389,66 @@ export function createTransitLayer(map) {
             }
         },
 
-        async load(lat, lon, radius = 1500, type = 'bus') {
-            const run = ++loadRun;
-            selection++;
-            clearRoutes();
-            const data = await fetchJson(`/api/transit/stops?lat=${lat}&lon=${lon}&radius=${radius}&type=${encodeURIComponent(type)}`);
-            if (run !== loadRun) {
-                return false;
-            }
-            stopSource.clear();
-            stopSource.addFeatures(data.stops.map((stop) => {
-                const feature = new Feature(new Point(fromLonLat([stop.lon, stop.lat])));
-                feature.setProperties({ name: stop.name, feedId: stop.feed_id, stopId: stop.stop_id });
+        load(lat, lon, radius = 1500, type = 'bus') {
+            return loadStops(lat, lon, radius, type, false);
+        },
 
-                return feature;
-            }));
-
-            updateStopClusterDistance();
-            if (data.stops.length > 0 && (map.getView().getZoom() ?? 0) < 16) {
-                map.getView().animate({ zoom: 16, duration: 450 });
+        /**
+         * GPS mode: reload the stops around the user once they have left the loaded area
+         * (see shouldReloadStops). Quiet: keeps the selected stop/lines and the zoom.
+         */
+        async followUser(lat, lon) {
+            if (!stopLayer.getVisible() || loadsInFlight > 0
+                || !shouldReloadStops(lastStopsLoad, lat, lon, Date.now())) {
+                return;
             }
 
-            window.dispatchEvent(new CustomEvent('symbiot:nearby-transit-stops', {
-                detail: { stops: data.stops, lat, lon },
-            }));
-
-            return data.stops.length > 0;
+            try {
+                await loadStops(lat, lon, lastStopsLoad.radius, lastStopsLoad.type, true);
+            } catch (error) {
+                console.warn('Transit stops could not be reloaded around the new position:', error);
+            }
         },
     };
+
+    /**
+     * @param {boolean} quiet a background reload while the user moves: no selection reset, no zoom
+     */
+    async function loadStops(lat, lon, radius, type, quiet) {
+        const run = ++loadRun;
+        // Recorded before the request, so a failed follow-up reload also waits for the next interval.
+        lastStopsLoad = { lat, lon, radius, type, at: Date.now() };
+        if (!quiet) {
+            selection++;
+            clearRoutes();
+        }
+        loadsInFlight++;
+        let data;
+        try {
+            data = await fetchJson(`/api/transit/stops?lat=${lat}&lon=${lon}&radius=${radius}&type=${encodeURIComponent(type)}`);
+        } finally {
+            loadsInFlight--;
+        }
+        if (run !== loadRun) {
+            return false;
+        }
+        stopSource.clear();
+        stopSource.addFeatures(data.stops.map((stop) => {
+            const feature = new Feature(new Point(fromLonLat([stop.lon, stop.lat])));
+            feature.setProperties({ name: stop.name, feedId: stop.feed_id, stopId: stop.stop_id });
+
+            return feature;
+        }));
+
+        updateStopClusterDistance();
+        if (!quiet && data.stops.length > 0 && (map.getView().getZoom() ?? 0) < 16) {
+            map.getView().animate({ zoom: 16, duration: 450 });
+        }
+
+        window.dispatchEvent(new CustomEvent('symbiot:nearby-transit-stops', {
+            detail: { stops: data.stops, lat, lon },
+        }));
+
+        return data.stops.length > 0;
+    }
 }

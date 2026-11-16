@@ -26,6 +26,32 @@ class AccessibilityMarkupTest extends TestCase
         $this->assertSame([], $missing, 'Decorative icons need aria-hidden="true"; label the button or link instead.');
     }
 
+    public function test_every_font_awesome_icon_built_in_javascript_is_hidden_from_screen_readers(): void
+    {
+        $missing = [];
+        foreach (File::allFiles(resource_path('js')) as $file) {
+            $source = $file->getContents();
+
+            // Icons written as markup: '<i class="fa-solid ...">'.
+            preg_match_all('/<i\s[^>]*class=["\x27][^"\x27]*\b(?:fa|fas|fa-solid|fa-regular|fa-brands)\b[^>]*>/', $source, $icons);
+            foreach ($icons[0] as $icon) {
+                if (! str_contains($icon, 'aria-hidden="true"')) {
+                    $missing[] = $file->getRelativePathname() . ': ' . $icon;
+                }
+            }
+
+            // Icons built as elements: const x = document.createElement('i'); ... x.setAttribute('aria-hidden', 'true');
+            preg_match_all('/(?:const|let|var)\s+(\w+)\s*=\s*document\.createElement\(\s*[\'"]i[\'"]\s*\)/', $source, $elements);
+            foreach ($elements[1] as $variable) {
+                if (! preg_match('/\b' . preg_quote($variable, '/') . '\.setAttribute\(\s*[\'"]aria-hidden[\'"]\s*,\s*[\'"]true[\'"]\s*\)/', $source)) {
+                    $missing[] = $file->getRelativePathname() . ": document.createElement('i') assigned to \${$variable}";
+                }
+            }
+        }
+
+        $this->assertSame([], $missing, 'Decorative icons built in JavaScript need aria-hidden="true".');
+    }
+
     public function test_language_links_are_labelled_and_mark_the_current_language(): void
     {
         $this->withoutVite();

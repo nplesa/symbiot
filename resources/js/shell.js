@@ -91,22 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.innerWidth < 1200;
 
     /* =====================================================
-       TRANSPORT ICONS
-       ===================================================== */
-
-
-        const getTransportIcon = (type) => {
-            switch (type) {
-                case 'airport': return '<i class="fas fa-plane text-primary"></i>';
-                case 'train': return '<i class="fas fa-train text-success"></i>';
-                case 'subway': return '<i class="fas fa-subway text-danger"></i>';
-                case 'bus': return '<i class="fas fa-bus text-warning"></i>';
-                default: return '<i class="fas fa-map-marker-alt text-secondary"></i>';
-            }
-        };
-
-
-    /* =====================================================
        MOBILE MENU
        ===================================================== */
 

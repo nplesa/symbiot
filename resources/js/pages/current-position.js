@@ -90,7 +90,7 @@ if (mapElement) {
 
         statusElement.className = `current-position-status ${type}`;
         statusElement.innerHTML = `
-            <i class="fa-solid ${icons[type]}"></i>
+            <i class="fa-solid ${icons[type]}" aria-hidden="true"></i>
             <span>${message}</span>
         `;
     };

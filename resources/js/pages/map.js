@@ -3127,8 +3127,9 @@ document
 
                 lastCoords = { lat, lon };
                 currentUserLocation = { lat, lon };
-                // Live vehicles follow the user (GPS mode only; this watch is cleared in city mode).
+                // Live vehicles and transit stops follow the user (GPS mode only; this watch is cleared in city mode).
                 transitStops.moveVehicleCenter(lat, lon);
+                transitStops.followUser(lat, lon);
 
                 const currentCenter = fromLonLat([lon, lat]);
 

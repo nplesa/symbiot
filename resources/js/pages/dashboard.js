@@ -571,8 +571,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const icon = document.createElement('span');
             icon.className = 'dashboard-nearby-icon';
             icon.innerHTML = item.type === 'Stație de transport'
-                ? '<i class="fa-solid fa-bus-simple"></i>'
-                : '<i class="fa-solid fa-location-dot"></i>';
+                ? '<i class="fa-solid fa-bus-simple" aria-hidden="true"></i>'
+                : '<i class="fa-solid fa-location-dot" aria-hidden="true"></i>';
             const details = document.createElement('span');
             details.className = 'dashboard-nearby-item-copy';
             const name = document.createElement('strong');
@@ -805,6 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
             copy.append(name, mode);
             const arrow = document.createElement('i');
             arrow.className = 'fa-solid fa-chevron-right';
+            arrow.setAttribute('aria-hidden', 'true');
             button.append(badge, copy, arrow);
             button.addEventListener('click', () => window.dispatchEvent(new CustomEvent('symbiot:transit-route-toggle', {
                 detail: { feed, stopId, stopName, route },
@@ -987,6 +988,7 @@ document.addEventListener('DOMContentLoaded', () => {
             copy.append(name, mode);
             const arrow = document.createElement('i');
             arrow.className = 'fa-solid fa-chevron-right';
+            arrow.setAttribute('aria-hidden', 'true');
             button.append(badge, copy, arrow);
 
             const checkbox = document.createElement('input');
