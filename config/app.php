@@ -42,7 +42,8 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
-    'distance_number' => env('APP_DEFAULT_DISTANCE_NUMBER', 50),
-    'distance_unit' => env('APP_DEFAULT_DISTANCE_UNIT', 'KM'),
-    'admin_pass' => env('APP_ADMIN_PASS'),
+    'distance_number'   => env('APP_DEFAULT_DISTANCE_NUMBER', 50),
+    'distance_unit'     => env('APP_DEFAULT_DISTANCE_UNIT', 'KM'),
+    'admin_pass'        => env('APP_ADMIN_PASS_MAIN'),
+    'moderator_pass'    => env('APP_ADMIN_PASS_SECOND'),
 ];

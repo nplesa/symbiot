@@ -29,12 +29,12 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Claudia Plesa',
                 'email' => 'plesaclaudia2004@yahoo.com',
-                'password' => Hash::make(Str::random(20)),
+                'password' => Hash::make(config('app.moderator_pass')),
             ],
             [
                 'name' => 'Ana Maria Plesa',
                 'email' => 'anamaria2014.plesa61@gmail.com',
-                'password' => Hash::make(Str::random(20)),
+                'password' => Hash::make(config('app.moderator_pass')),
             ],
         ];
         foreach ($users as $user) {
