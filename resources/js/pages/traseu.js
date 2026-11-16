@@ -26,8 +26,7 @@ function getTarget() {
     if (target) {
         target.style.display = 'grid';
         target.style.width = '100%';
-        target.style.height = '100%';
-        target.style.minHeight = '420px';
+        // Height and min-height come from .traseu-map in traseu.scss (500px, 45vh on phones).
     }
     return target;
 }

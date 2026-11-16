@@ -685,5 +685,22 @@
     "Loading weather forecast…": "Se încarcă prognoza meteo…",
     "Weather forecast unavailable.": "Prognoza meteo nu este disponibilă.",
     "Weather data by WeatherAPI.com": "Date meteo de la WeatherAPI.com",
-    "Rain": "Ploaie"
+    "Rain": "Ploaie",
+    "Track :track": "Linia :track",
+    "+:minutes min, :time": "+:minutes min, :time",
+    ":minutes min early": "cu :minutes min mai devreme",
+    "On time": "La timp",
+    "Trains at :station": "Trenuri în :station",
+    "the station": "gară",
+    "Loading trains...": "Se încarcă trenurile...",
+    "The train data could not be loaded.": "Datele despre trenuri nu au putut fi încărcate.",
+    "No train arrivals in the next hours.": "Nicio sosire de tren în următoarele ore.",
+    "No train departures in the next hours.": "Nicio plecare de tren în următoarele ore.",
+    "Live train data is not available right now.": "Datele în timp real despre trenuri nu sunt disponibile acum.",
+    "No train data was found for this station.": "Nu am găsit date despre trenuri pentru această gară.",
+    "Live data: :source": "Date în timp real: :source",
+    "data sources": "surse de date",
+    "Departures": "Plecări",
+    "Arrivals": "Sosiri",
+    "Refresh": "Reîmprospătează"
 }

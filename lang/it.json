@@ -685,5 +685,22 @@
     "Expected next metro train on :route: around :time (:countdown) · estimated from GTFS": "Prossimo treno della metropolitana sulla :route: previsto verso le :time (:countdown) · stima da GTFS",
     "metro train": "treno della metropolitana",
     "bus": "autobus",
-    "The published metro timetable is unavailable. Estimated next train: :from–:until (about a 5-minute interval).": "L'orario pubblicato della metropolitana non è disponibile. Prossimo treno stimato tra :from e :until (intervallo di circa 5 minuti)."
+    "The published metro timetable is unavailable. Estimated next train: :from–:until (about a 5-minute interval).": "L'orario pubblicato della metropolitana non è disponibile. Prossimo treno stimato tra :from e :until (intervallo di circa 5 minuti).",
+    "Track :track": "Binario :track",
+    "+:minutes min, :time": "+:minutes min, :time",
+    ":minutes min early": "in anticipo di :minutes min",
+    "On time": "In orario",
+    "Trains at :station": "Treni a :station",
+    "the station": "stazione",
+    "Loading trains...": "Caricamento dei treni...",
+    "The train data could not be loaded.": "Non è stato possibile caricare i dati dei treni.",
+    "No train arrivals in the next hours.": "Nessun arrivo di treni nelle prossime ore.",
+    "No train departures in the next hours.": "Nessuna partenza di treni nelle prossime ore.",
+    "Live train data is not available right now.": "I dati in tempo reale dei treni non sono disponibili al momento.",
+    "No train data was found for this station.": "Nessun dato sui treni trovato per questa stazione.",
+    "Live data: :source": "Dati in tempo reale: :source",
+    "data sources": "fonti dei dati",
+    "Departures": "Partenze",
+    "Arrivals": "Arrivi",
+    "Refresh": "Aggiorna"
 }

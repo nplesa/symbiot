@@ -16,6 +16,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\NavigationController;
 use App\Http\Controllers\NavigationPoiController;
 use App\Http\Controllers\PoiSubcategoryController;
+use App\Http\Controllers\RailBoardController;
 use App\Http\Controllers\RouteKmlController;
 use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\TrafficTileController;
@@ -86,6 +87,8 @@ Route::name('app.')->middleware(['auth', 'approved'])->group(function () {
         Route::get('/api/transport-nearby', [TransportPoiController::class, 'nearby'])->name('api.transport-nearby');
         Route::get('/api/transit-route/{relationId}', [TransportPoiController::class, 'routeGeometry'])
             ->whereNumber('relationId')->name('api.transit-route');
+        // Live train departures/arrivals of a clicked station (Transitous), CFR annual timetable as fallback.
+        Route::get('/api/transit/rail-board', RailBoardController::class)->name('api.transit.rail-board');
     });
 
     Route::get('/api/transit/coverage', CoverageController::class)

@@ -4,7 +4,6 @@ namespace App\Services\Poi;
 
 use App\Support\GeoDistance;
 use App\Services\PoiCatalog;
-use App\Services\RailTimetableProvider;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -126,11 +125,8 @@ class PoiSearch
             ),
         );
 
-        // Train markers are loaded with include_routes=false, and the station popup reads
-        // train_services from the marker, so the (cached) timetable is attached either way.
-        if (in_array('train', $poiTypes, true)) {
-            $result = app(RailTimetableProvider::class)->addScheduledServices($result);
-        }
+        // Train timetables are not attached here: the station panel loads them on click
+        // from /api/transit/rail-board (Transitous, with the CFR annual timetable as fallback).
 
         return $result;
     }

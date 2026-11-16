@@ -34,30 +34,30 @@
     .table {
         width: 100%;
         margin-bottom: 0;
-        background-color: transparent !important;
+        background-color: transparent;
         color: var(--sym-text, #111827);
         vertical-align: middle;
-        border-collapse: collapse !important;
-        border: 1px solid var(--sym-border, #e5e7eb) !important;
+        border-collapse: collapse;
+        border: 1px solid var(--sym-border, #e5e7eb);
 
         th {
-            background-color: transparent !important;
+            background-color: transparent;
             color: var(--sym-muted, #6b7280);
             font-size: .75rem;
             font-weight: 800;
             letter-spacing: .08em;
             text-transform: uppercase;
             padding: 1rem 1.25rem;
-            border-bottom: 2px solid var(--sym-border, #e5e7eb) !important;
+            border-bottom: 2px solid var(--sym-border, #e5e7eb);
             border-top: none;
             border-left: none;
             border-right: none;
         }
 
         td {
-            background-color: transparent !important;
+            background-color: transparent;
             padding: 1.1rem 1.25rem;
-            border-bottom: 1px solid var(--sym-border, #e5e7eb) !important;
+            border-bottom: 1px solid var(--sym-border, #e5e7eb);
             border-top: none;
             border-left: none;
             border-right: none;
@@ -66,17 +66,17 @@
         }
 
         tr {
-            background-color: transparent !important;
-            border-bottom: 1px solid var(--sym-border, #e5e7eb) !important;
+            background-color: transparent;
+            border-bottom: 1px solid var(--sym-border, #e5e7eb);
         }
 
         tr:last-child td {
-            border-bottom: none !important;
+            border-bottom: none;
         }
 
         .table-warning {
-            background-color: rgba(245, 158, 11, .1) !important;
-            color: inherit !important;
+            background-color: rgba(245, 158, 11, .1);
+            color: inherit;
         }
     }
 
@@ -149,11 +149,11 @@
         td {
             display: block;
             width: 100%;
-            border: none !important;
+            border: none;
         }
 
         tr {
-            border: 1px solid var(--sym-border, #e5e7eb) !important;
+            border: 1px solid var(--sym-border, #e5e7eb);
             border-radius: 16px;
             margin-bottom: 1.25rem;
             padding: 1.25rem;
@@ -162,9 +162,9 @@
         }
 
         td {
-            border: 0 !important;
+            border: 0;
             padding: .5rem 0;
-            background-color: transparent !important;
+            background-color: transparent;
             word-break: break-word;
             display: flex;
             flex-direction: column;
@@ -184,7 +184,7 @@
         .admin-users__actions {
             margin-top: 1rem;
             padding-top: .85rem;
-            border-top: 1px solid var(--sym-border, #e5e7eb) !important;
+            border-top: 1px solid var(--sym-border, #e5e7eb);
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: .6rem;
@@ -210,12 +210,12 @@
 
 @media (max-width: 767.98px) {
     .symbiot-content {
-        width: calc(100% - 10px) !important;
-        max-width: calc(100% - 10px) !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        padding-left: 5px !important;
-        padding-right: 5px !important;
+        width: calc(100% - 10px);
+        max-width: calc(100% - 10px);
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 5px;
+        padding-right: 5px;
     }
 }
 
@@ -231,87 +231,87 @@ body.dark {
         color: var(--sym-text, #f9fafb);
 
         .card {
-            background-color: transparent !important;
-            border-color: transparent !important;
+            background-color: transparent;
+            border-color: transparent;
 
             .card-header {
-                background-color: var(--sym-surface, #1f2937) !important;
-                color: var(--sym-text, #f9fafb) !important;
-                border: 1px solid var(--sym-border, #374151) !important;
+                background-color: var(--sym-surface, #1f2937);
+                color: var(--sym-text, #f9fafb);
+                border: 1px solid var(--sym-border, #374151);
                 border-radius: 16px;
             }
         }
 
         .table {
-            background-color: transparent !important;
-            color: var(--sym-text, #f9fafb) !important;
-            border: 1px solid var(--sym-border, #374151) !important;
+            background-color: transparent;
+            color: var(--sym-text, #f9fafb);
+            border: 1px solid var(--sym-border, #374151);
 
             th {
-                background-color: transparent !important;
-                color: var(--sym-muted, #9ca3af) !important;
-                border-bottom: 2px solid var(--sym-border, #374151) !important;
+                background-color: transparent;
+                color: var(--sym-muted, #9ca3af);
+                border-bottom: 2px solid var(--sym-border, #374151);
             }
 
             td {
-                background-color: transparent !important;
-                border-bottom: 1px solid var(--sym-border, #374151) !important;
-                color: var(--sym-text, #f9fafb) !important;
+                background-color: transparent;
+                border-bottom: 1px solid var(--sym-border, #374151);
+                color: var(--sym-text, #f9fafb);
             }
 
             tr {
-                background-color: transparent !important;
-                border-bottom: 1px solid var(--sym-border, #374151) !important;
+                background-color: transparent;
+                border-bottom: 1px solid var(--sym-border, #374151);
 
                 &:hover {
-                    background-color: rgba(255, 255, 255, .02) !important;
+                    background-color: rgba(255, 255, 255, .02);
                 }
             }
 
             .table-warning {
-                background-color: rgba(245, 158, 11, .15) !important;
-                color: #fcd34d !important;
+                background-color: rgba(245, 158, 11, .15);
+                color: #fcd34d;
             }
         }
 
         .modal-content {
-            background-color: var(--sym-surface, #1f2937) !important;
-            color: var(--sym-text, #f9fafb) !important;
-            border-color: var(--sym-border, #374151) !important;
+            background-color: var(--sym-surface, #1f2937);
+            color: var(--sym-text, #f9fafb);
+            border-color: var(--sym-border, #374151);
 
             .modal-header,
             .modal-footer {
-                border-color: var(--sym-border, #374151) !important;
+                border-color: var(--sym-border, #374151);
             }
 
             .form-label {
-                color: var(--sym-muted, #9ca3af) !important;
+                color: var(--sym-muted, #9ca3af);
             }
 
             .form-control {
-                background-color: var(--sym-bg, #111827) !important;
-                color: var(--sym-text, #f9fafb) !important;
-                border-color: var(--sym-border, #374151) !important;
+                background-color: var(--sym-bg, #111827);
+                color: var(--sym-text, #f9fafb);
+                border-color: var(--sym-border, #374151);
                 color-scheme: dark;
 
                 &::placeholder {
-                    color: var(--sym-muted, #9ca3af) !important;
+                    color: var(--sym-muted, #9ca3af);
                 }
             }
         }
 
         @media (max-width: 767.98px) {
             tr {
-                background-color: var(--sym-surface, #1f2937) !important;
-                border-color: var(--sym-border, #374151) !important;
+                background-color: var(--sym-surface, #1f2937);
+                border-color: var(--sym-border, #374151);
             }
 
             td {
-                background-color: transparent !important;
+                background-color: transparent;
             }
 
             .admin-users__actions {
-                border-top-color: var(--sym-border, #374151) !important;
+                border-top-color: var(--sym-border, #374151);
             }
         }
     }

@@ -1151,7 +1151,7 @@ class PoiNavigationWindowTest extends TestCase
         Http::assertSent(fn ($request) => str_contains($request->url(), 'api.openstreetmap.org/api/0.6/node/8935426209/relations.json'));
     }
 
-    public function test_train_markers_skip_route_lookups_but_include_the_published_timetable(): void
+    public function test_train_markers_skip_route_lookups_and_leave_the_timetable_to_the_station_board(): void
     {
         Cache::flush();
         config([
@@ -1214,12 +1214,10 @@ class PoiNavigationWindowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('0.name', 'Ploiești Nord')
             ->assertJsonPath('0.routes', [])
-            ->assertJsonPath('0.train_timetable_source', 'data.gov.ro')
-            ->assertJsonStructure(['0' => ['train_services', 'train_services_available']]);
+            ->assertJsonMissingPath('0.train_services');
 
-        // Marker requests skip the Overpass route lookup, but the station popup reads
-        // train_services from the marker, so the published timetable is still attached.
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'data.gov.ro'));
+        // Markers load fast: the timetable is fetched only when a station is opened (/api/transit/rail-board).
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'data.gov.ro'));
     }
 
     public function test_train_endpoint_skips_slow_osm_fallback_when_loading_stations_without_lines(): void

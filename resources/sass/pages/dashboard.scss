@@ -564,6 +564,24 @@
 .dashboard-stop-route-option > i { color: var(--dashboard-muted); font-size: .75rem; }
 .dashboard-stop-route-status { padding: 0 .75rem .35rem; color: var(--dashboard-muted); font-size: .72rem; }
 .dashboard-stop-routes-empty { margin: 0; padding: .8rem; border-radius: 8px; background: var(--dashboard-hover-bg); color: var(--dashboard-muted); font-size: .82rem; }
+
+/* Live station board (departures / arrivals) */
+.dashboard-rail-board { display: grid; gap: .5rem; }
+.dashboard-rail-tabs { display: flex; align-items: center; gap: .35rem; }
+.dashboard-rail-tab,
+.dashboard-rail-refresh { padding: .4rem .75rem; border: 1px solid var(--dashboard-line); border-radius: 999px; background: var(--dashboard-item-bg); color: var(--dashboard-ink); font-size: .78rem; font-weight: 700; cursor: pointer; }
+.dashboard-rail-tab[aria-selected="true"] { border-color: var(--dashboard-blue); background: var(--dashboard-blue); color: #fff; }
+.dashboard-rail-refresh { margin-left: auto; padding: .4rem .6rem; color: var(--dashboard-muted); }
+.dashboard-rail-tab:focus-visible,
+.dashboard-rail-refresh:focus-visible { outline: 2px solid var(--dashboard-blue); outline-offset: 2px; }
+.dashboard-rail-results { display: grid; gap: .45rem; }
+.dashboard-rail-entry { cursor: default; }
+.dashboard-rail-status { flex: 0 0 auto; max-width: 9rem; color: var(--dashboard-muted); font-size: .72rem; font-weight: 700; text-align: right; }
+.dashboard-rail-status.is-on_time { color: #198754; }
+.dashboard-rail-status.is-late { color: #d63384; }
+.dashboard-rail-status.is-cancelled { color: #dc3545; }
+.dashboard-rail-entry.is-cancelled .dashboard-stop-route-copy strong { text-decoration: line-through; }
+.dashboard-train-services-source a { color: inherit; text-decoration: underline; }
 .dashboard-route-panel.has-stop-selection .dashboard-nearby-section { display: none; }
 
 .dashboard-nearby-section { margin: 0 1.1rem 1rem; padding-top: .95rem; border-top: 1px solid var(--dashboard-line); }

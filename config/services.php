@@ -61,5 +61,14 @@ return [
             ['package' => 'mers-tren-transferoviar-calatori-s-r-l', 'operator' => 'Transferoviar Călători'],
         ],
     ],
+    // Worldwide train departures/arrivals (MOTIS). Free for open-source, non-commercial apps only;
+    // every request must name the app and a contact; the UI must link to transitous.org/sources.
+    // See https://transitous.org/api/
+    'transitous' => [
+        'enabled' => (bool) env('TRANSITOUS_ENABLED', true),
+        'base_url' => env('TRANSITOUS_URL', 'https://api.transitous.org/api'),
+        'user_agent' => env('TRANSITOUS_USER_AGENT', 'Symbiot/1.0 (+https://github.com/nplesa/symbiot)'),
+        'timeout' => (int) env('TRANSITOUS_TIMEOUT', 8),
+    ],
 
 ];

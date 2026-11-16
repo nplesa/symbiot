@@ -685,5 +685,22 @@
     "Loading weather forecast…": "Loading weather forecast…",
     "Weather forecast unavailable.": "Weather forecast unavailable.",
     "Weather data by WeatherAPI.com": "Weather data by WeatherAPI.com",
-    "Rain": "Rain"
+    "Rain": "Rain",
+    "Track :track": "Track :track",
+    "+:minutes min, :time": "+:minutes min, :time",
+    ":minutes min early": ":minutes min early",
+    "On time": "On time",
+    "Trains at :station": "Trains at :station",
+    "the station": "the station",
+    "Loading trains...": "Loading trains...",
+    "The train data could not be loaded.": "The train data could not be loaded.",
+    "No train arrivals in the next hours.": "No train arrivals in the next hours.",
+    "No train departures in the next hours.": "No train departures in the next hours.",
+    "Live train data is not available right now.": "Live train data is not available right now.",
+    "No train data was found for this station.": "No train data was found for this station.",
+    "Live data: :source": "Live data: :source",
+    "data sources": "data sources",
+    "Departures": "Departures",
+    "Arrivals": "Arrivals",
+    "Refresh": "Refresh"
 }

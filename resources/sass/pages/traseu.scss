@@ -217,11 +217,11 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0 !important;
+    padding: 0;
     border-radius: 10px;
     font-size: .85rem;
 
-    i { margin: 0 !important; }
+    i { margin: 0; }
 }
 
 .trasee-item__export {
@@ -338,6 +338,8 @@
         width: 100%;
         gap: .5rem;
 
+        // Bootstrap squares the joined corners of .input-group children with a much more specific
+        // selector (.input-group:not(.has-validation) > :not(:last-child):not(...)…), hence !important.
         > .form-control {
             flex: 1 1 auto;
             border-top-right-radius: 12px !important;
@@ -391,20 +393,22 @@
 #traseu_map_container {
     position: relative;
     width: 100%;
-    min-height: 500px;
+    min-height: 0;
     flex: 1 1 auto;
-    overflow: hidden;
     border-radius: 16px;
     display: flex;
     flex-direction: column;
+    gap: 1rem;
 }
 
 .traseu-map {
-    position: absolute;
-    inset: 0;
+    position: relative;
     width: 100%;
-    height: 100%;
+    height: 500px;
     min-height: 500px;
+    flex: 0 0 500px;
+    border-radius: 14px;
+    overflow: hidden;
 }
 
 .traseu-map-empty {
@@ -426,13 +430,12 @@
     }
 }
 
-/* Selected Route Floating Bar */
+/* Selected route card, under the map */
 .traseu-selected-info {
-    position: absolute;
-    z-index: 5;
-    right: 1.25rem;
-    bottom: 1.25rem;
-    left: 1.25rem;
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    margin: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -442,7 +445,7 @@
     border-radius: 14px;
     background: var(--sym-surface, #ffffff);
     color: var(--sym-text, #111827);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .12);
 }
 
 .traseu-selected-info__details {
@@ -593,6 +596,8 @@
 body.dark {
     .trasee-page {
         color: var(--sym-text, #f9fafb);
+        // Bootstrap's .text-muted is color: var(--bs-secondary-color) !important.
+        --bs-secondary-color: var(--sym-muted, #9ca3af);
 
         .card,
         .card-body,
@@ -601,25 +606,26 @@ body.dark {
         .trasee-item,
         .traseu-selected-info,
         .trasee-google-import {
-            color: var(--sym-text, #f9fafb) !important;
-            border-color: var(--sym-border, #374151) !important;
+            color: var(--sym-text, #f9fafb);
+            border-color: var(--sym-border, #374151);
         }
 
         .trasee-panel__header {
-            border-bottom-color: var(--sym-border, #374151) !important;
+            border-bottom-color: var(--sym-border, #374151);
 
             h1, h2, h3, h4, h5, .h5 {
-                color: var(--sym-text, #f9fafb) !important;
+                color: var(--sym-text, #f9fafb);
             }
 
             p, small, .text-muted {
-                color: var(--sym-muted, #9ca3af) !important;
+                color: var(--sym-muted, #9ca3af);
             }
 
+            // The route count badge uses .text-bg-light, whose colours are utilities: these must be too.
             .badge {
                 background-color: var(--sym-bg, #111827) !important;
                 color: var(--sym-text, #f9fafb) !important;
-                border: 1px solid var(--sym-border, #374151) !important;
+                border: 1px solid var(--sym-border, #374151);
             }
         }
 
@@ -630,7 +636,7 @@ body.dark {
         .trasee-google-import__title h3,
         .trasee-google-import__title h4,
         .trasee-google-import__title h5 {
-            color: var(--sym-text, #f9fafb) !important;
+            color: var(--sym-text, #f9fafb);
         }
 
         .trasee-item__content small,
@@ -643,23 +649,23 @@ body.dark {
         .trasee-import-form .form-label,
         small.text-muted,
         p.text-muted {
-            color: var(--sym-muted, #9ca3af) !important;
+            color: var(--sym-muted, #9ca3af);
         }
 
         .trasee-item.is-selected {
-            background: rgba(67, 136, 232, .2) !important;
-            border-color: var(--sym-primary, #2563eb) !important;
+            background: rgba(67, 136, 232, .2);
+            border-color: var(--sym-primary, #2563eb);
         }
 
         .trasee-item:hover {
-            border-color: var(--sym-primary, #2563eb) !important;
+            border-color: var(--sym-primary, #2563eb);
         }
 
         .trasee-google-import__icon,
         .trasee-item__icon {
-            background: rgba(67, 136, 232, .2) !important;
-            border-color: var(--sym-border, #374151) !important;
-            color: var(--sym-primary, #2563eb) !important;
+            background: rgba(67, 136, 232, .2);
+            border-color: var(--sym-border, #374151);
+            color: var(--sym-primary, #2563eb);
         }
 
         .trasee-import-form {
@@ -671,20 +677,20 @@ body.dark {
             input[type="url"],
             input[type="search"],
             input[type="file"] {
-                background-color: var(--sym-bg, #111827) !important;
-                color: var(--sym-text, #f9fafb) !important;
-                border-color: var(--sym-border, #374151) !important;
+                background-color: var(--sym-bg, #111827);
+                color: var(--sym-text, #f9fafb);
+                border-color: var(--sym-border, #374151);
                 color-scheme: dark;
 
                 &::placeholder {
-                    color: var(--sym-muted, #9ca3af) !important;
+                    color: var(--sym-muted, #9ca3af);
                 }
             }
 
             input[type="file"]::file-selector-button {
-                background-color: var(--sym-surface, #1f2937) !important;
-                color: var(--sym-text, #f9fafb) !important;
-                border: 1px solid var(--sym-border, #374151) !important;
+                background-color: var(--sym-surface, #1f2937);
+                color: var(--sym-text, #f9fafb);
+                border: 1px solid var(--sym-border, #374151);
             }
         }
 
@@ -692,27 +698,27 @@ body.dark {
             .btn-secondary,
             .btn-outline-primary,
             .btn-light {
-                background: rgba(255, 255, 255, .06) !important;
-                border-color: var(--sym-border, #374151) !important;
-                color: var(--sym-text, #f9fafb) !important;
+                background: rgba(255, 255, 255, .06);
+                border-color: var(--sym-border, #374151);
+                color: var(--sym-text, #f9fafb);
 
                 &:hover {
-                    background: rgba(67, 136, 232, .2) !important;
-                    border-color: var(--sym-primary, #2563eb) !important;
-                    color: var(--sym-primary, #2563eb) !important;
+                    background: rgba(67, 136, 232, .2);
+                    border-color: var(--sym-primary, #2563eb);
+                    color: var(--sym-primary, #2563eb);
                 }
             }
 
             .btn-danger,
             .btn-outline-danger {
-                background: rgba(220, 69, 69, .15) !important;
-                border-color: rgba(220, 69, 69, .3) !important;
-                color: #ff7777 !important;
+                background: rgba(220, 69, 69, .15);
+                border-color: rgba(220, 69, 69, .3);
+                color: #ff7777;
 
                 &:hover {
-                    background: #dc4545 !important;
-                    border-color: #dc4545 !important;
-                    color: #fff !important;
+                    background: #dc4545;
+                    border-color: #dc4545;
+                    color: #fff;
                 }
             }
         }
@@ -721,11 +727,10 @@ body.dark {
         #traseu_map_container,
         .traseu-map,
         .traseu-map-empty {
-            background: var(--sym-bg, #111827) !important;
-            color: var(--sym-muted, #9ca3af) !important;
+            color: var(--sym-muted, #9ca3af);
 
             span, p {
-                color: var(--sym-muted, #9ca3af) !important;
+                color: var(--sym-muted, #9ca3af);
             }
         }
     }
@@ -740,10 +745,6 @@ body.dark {
         min-height: auto;
     }
 
-    .trasee-map-container,
-    #traseu_map_container {
-        min-height: 420px;
-    }
 }
 
 @media (max-width: 575.98px) {
@@ -872,8 +873,8 @@ body.dark {
 
             > .form-control,
             > .btn {
-                width: 100% !important;
-                border-radius: 10px !important;
+                width: 100%;
+                border-radius: 10px !important; // see the .input-group note above
                 min-height: 46px;
             }
 
@@ -894,16 +895,10 @@ body.dark {
     }
 
     /* Harta pe mobil - înălțime optimizată ergonomic */
-    .trasee-map-container,
-    #traseu_map_container {
-        min-height: 360px;
-        height: 45vh;
-        height: 45dvh;
-        border-radius: 16px;
-    }
-
     .traseu-map {
+        height: 45vh;
         min-height: 360px;
+        flex-basis: 45vh;
     }
 
     .traseu-map-empty {
@@ -913,15 +908,10 @@ body.dark {
 
     /* Bara flotantă de acțiuni pe traseu selectat (Mobile-First Bottom Sheet style) */
     .traseu-selected-info {
-        right: .75rem;
-        bottom: .75rem;
-        left: .75rem;
         flex-direction: column;
         align-items: stretch;
         gap: .85rem;
         padding: 1rem;
-        border-radius: 12px;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, .2);
 
         &__details {
             strong {
@@ -936,7 +926,6 @@ body.dark {
         &__actions {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: .5rem;
             width: 100%;
 
             .btn {
@@ -945,110 +934,18 @@ body.dark {
                 font-size: .78rem;
                 padding: .5rem .4rem;
                 border-radius: 8px;
+                white-space: normal;
             }
         }
     }
 }
 @media (max-width: 767.98px) {
     .symbiot-content {
-        width: calc(100% - 10px) !important;
-        max-width: calc(100% - 10px) !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        padding-left: 0 !important;
-        padding-right: 0 !important;
+        width: calc(100% - 10px);
+        max-width: calc(100% - 10px);
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 0;
+        padding-right: 0;
     }
-}
-
-
-/* =========================================================
-   FIX: CARDUL TRASEULUI SUB HARTA
-   ========================================================= */
-
-/* Containerul hărții */
-.trasee-map-container,
-#traseu_map_container {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    height: auto !important;
-    min-height: 0 !important;
-    overflow: visible !important;
-}
-
-/* Harta */
-.traseu-map {
-    position: relative !important;
-    inset: auto !important;
-    width: 100%;
-    height: 500px !important;
-    min-height: 500px !important;
-    flex: 0 0 500px !important;
-    border-radius: 14px;
-    overflow: hidden;
-}
-
-/* Cardul traseului selectat */
-.traseu-selected-info {
-    position: relative !important;
-    z-index: 2;
-    inset: auto !important;
-    width: 100%;
-    margin: 0 !important;
-
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.25rem;
-
-    border-radius: 14px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, .12);
-}
-
-/* Detalii traseu */
-.traseu-selected-info__details {
-    flex: 1 1 auto;
-    min-width: 0;
-}
-
-/* Butoane */
-.traseu-selected-info__actions {
-    flex: 0 0 auto;
-    display: flex;
-    flex-wrap: wrap;
-    gap: .6rem;
-}
-
-/* Responsive */
-@media (max-width: 575.98px) {
-
-    .traseu-map {
-        height: 45vh !important;
-        min-height: 360px !important;
-        flex-basis: 45vh !important;
-    }
-
-    .traseu-selected-info {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 1rem;
-        gap: .85rem;
-    }
-
-    .traseu-selected-info__actions {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        width: 100%;
-    }
-
-    .traseu-selected-info__actions .btn {
-        width: 100%;
-        white-space: normal;
-    }
-}
-
-.symbiot-shell[data-theme=dark] .trasee-page .trasee-map-container, .symbiot-shell[data-theme=dark] .trasee-page #traseu_map_container, .symbiot-shell[data-theme=dark] .trasee-page .traseu-map, .symbiot-shell[data-theme=dark] .trasee-page .traseu-map-empty, [data-theme=dark] .trasee-page .trasee-map-container, [data-theme=dark] .trasee-page #traseu_map_container, [data-theme=dark] .trasee-page .traseu-map, [data-theme=dark] .trasee-page .traseu-map-empty, .dark .trasee-page .trasee-map-container, .dark .trasee-page #traseu_map_container, .dark .trasee-page .traseu-map, .dark .trasee-page .traseu-map-empty, body.dark .trasee-page .trasee-map-container, body.dark .trasee-page #traseu_map_container, body.dark .trasee-page .traseu-map, body.dark .trasee-page .traseu-map-empty {
-    background: unset !important;
 }

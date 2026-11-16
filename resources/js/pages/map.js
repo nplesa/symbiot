@@ -1224,6 +1224,8 @@ function showPoiTooltip(feature, coordinate) {
                 timetableSource: feature.get('train_timetable_source') || 'data.gov.ro',
                 timetableValidUntil: feature.get('train_timetable_valid_until') || null,
                 isTrainStation: featureType === 'train',
+                // The station board (live departures/arrivals) is loaded on demand by position.
+                coordinates: feature.get('coordinates') || null,
                 feature,
                 routesAvailable: feature.get('routes_available') !== false,
                 loading: false,

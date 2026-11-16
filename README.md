@@ -45,6 +45,16 @@ imports the Romania OSM extract (`osm:sync-romania`) and then keeps the schedule
 
 Without its key, the matching feature reports an error; the rest of the app is not affected.
 
+### Train departures and arrivals (Transitous)
+
+Clicking a railway station on the map shows its next departures and arrivals, worldwide, from
+[Transitous](https://transitous.org) (`/api/transit/rail-board`, live delays and platforms where the operator
+publishes them). No key is needed, but its [usage policy](https://transitous.org/api/) applies: open-source,
+non-commercial use only, a `User-Agent` naming the app and a contact (`TRANSITOUS_USER_AGENT`), and a visible link
+to [transitous.org/sources](https://transitous.org/sources/), which the station panel shows.
+For Romanian stations the published annual CFR timetable (data.gov.ro) is the fallback when Transitous is
+unavailable or has no trains. `TRANSITOUS_ENABLED=false` switches the live board off.
+
 ## Processes that must run
 
 ```bash
