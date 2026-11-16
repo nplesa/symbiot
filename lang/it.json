@@ -678,5 +678,12 @@
     "Loading weather forecast…": "Caricamento delle previsioni meteo…",
     "Weather forecast unavailable.": "Previsioni meteo non disponibili.",
     "Weather data by WeatherAPI.com": "Dati meteo forniti da WeatherAPI.com",
-    "Rain": "Pioggia"
+    "Rain": "Pioggia",
+    "Next :mode on :route: :time (:countdown) towards :headsign · GTFS timetable": "Prossimo :mode sulla :route: :time (:countdown) verso :headsign · orario GTFS",
+    "Next :mode on :route: :time (:countdown) · GTFS timetable": "Prossimo :mode sulla :route: :time (:countdown) · orario GTFS",
+    "Next metro train on :route: :time (:countdown) · GTFS timetable": "Prossimo treno della metropolitana sulla :route: alle :time (:countdown) · orario GTFS",
+    "Expected next metro train on :route: around :time (:countdown) · estimated from GTFS": "Prossimo treno della metropolitana sulla :route: previsto verso le :time (:countdown) · stima da GTFS",
+    "metro train": "treno della metropolitana",
+    "bus": "autobus",
+    "The published metro timetable is unavailable. Estimated next train: :from–:until (about a 5-minute interval).": "L'orario pubblicato della metropolitana non è disponibile. Prossimo treno stimato tra :from e :until (intervallo di circa 5 minuti)."
 }

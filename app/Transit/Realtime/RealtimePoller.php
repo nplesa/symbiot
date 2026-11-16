@@ -58,7 +58,10 @@ class RealtimePoller
         }
     }
 
-    /** @param list<array<string, mixed>> $vehicles */
+    /**
+     * @param  list<array<string, mixed>>  $vehicles
+     * @return list<array<string, mixed>>
+     */
     private function fresh(array $vehicles): array
     {
         $oldest = time() - (int) config('transit.realtime.max_vehicle_age_seconds');
@@ -69,7 +72,12 @@ class RealtimePoller
         ));
     }
 
-    /** Adds route name, colour and mode so the map needs no extra lookups. */
+    /**
+     * Adds route name, colour and mode so the map needs no extra lookups.
+     *
+     * @param  list<array<string, mixed>>  $vehicles
+     * @return list<array<string, mixed>>
+     */
     private function enrich(TransitFeed $feed, array $vehicles): array
     {
         $routes = DB::table('transit_routes')->where('feed_id', $feed->id)

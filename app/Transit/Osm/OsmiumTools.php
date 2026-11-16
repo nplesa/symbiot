@@ -48,6 +48,7 @@ class OsmiumTools
         ]);
     }
 
+    /** @param list<string> $arguments */
     private function run(array $arguments): void
     {
         $process = new Process(array_merge([(string) config('osm.romania.osmium_binary')], $arguments));

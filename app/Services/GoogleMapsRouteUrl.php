@@ -43,7 +43,10 @@ class GoogleMapsRouteUrl
         return 'https://www.google.com/maps/dir/?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
     }
 
-    /** @param list<array{0: float, 1: float}> $coordinates */
+    /**
+     * @param  list<array{0: float, 1: float}>  $coordinates
+     * @return list<array{0: float, 1: float}>
+     */
     private function sampleCoordinates(array $coordinates): array
     {
         if (count($coordinates) <= self::MAX_WAYPOINTS + 2) {

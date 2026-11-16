@@ -7,16 +7,30 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Livewire's JS must come from the installed package (its own route), not from a
- * copy published to public/vendor/livewire that goes stale on composer update.
+ * Livewire serves public/vendor/livewire when it has been published (php artisan livewire:publish
+ * --assets). That copy must match the installed package: a stale one breaks Livewire after
+ * composer update.
  */
 class LivewireAssetsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_pages_load_livewire_from_the_package_route(): void
+    public function test_published_livewire_assets_match_the_installed_package(): void
     {
-        $this->assertFileDoesNotExist(public_path('vendor/livewire/manifest.json'));
+        $published = public_path('vendor/livewire/manifest.json');
+        if (! file_exists($published)) {
+            $this->markTestSkipped('Livewire assets are not published; the package route serves them.');
+        }
+
+        $this->assertSame(
+            json_decode((string) file_get_contents(base_path('vendor/livewire/livewire/dist/manifest.json')), true),
+            json_decode((string) file_get_contents($published), true),
+            'public/vendor/livewire is out of date: run php artisan livewire:publish --assets',
+        );
+    }
+
+    public function test_pages_load_a_livewire_script_that_is_served(): void
+    {
         $this->withoutVite();
 
         $html = $this->actingAs(User::factory()->create())
@@ -24,12 +38,14 @@ class LivewireAssetsTest extends TestCase
             ->assertOk()
             ->getContent();
 
-        $this->assertMatchesRegularExpression('#<script src="[^"]*/livewire-[^"/]+/livewire(\.min)?\.js\?id=#', $html);
-        $this->assertStringNotContainsString('/vendor/livewire/', $html);
+        $this->assertMatchesRegularExpression('#<script src="([^"]*/livewire(?:\.min)?\.js)\?id=#', $html);
+        preg_match('#<script src="([^"]*/livewire(?:\.min)?\.js)\?id=#', $html, $match);
+        $path = (string) parse_url($match[1], PHP_URL_PATH);
 
-        preg_match('#<script src="([^"]*/livewire-[^"/]+/livewire(?:\.min)?\.js)\?id=#', $html, $match);
-        $this->get(parse_url($match[1], PHP_URL_PATH))
-            ->assertOk()
-            ->assertHeader('Content-Type', 'application/javascript; charset=utf-8');
+        if (str_starts_with($path, '/vendor/livewire/')) {
+            $this->assertFileExists(public_path(ltrim($path, '/')));
+        } else {
+            $this->get($path)->assertOk()->assertHeader('Content-Type', 'application/javascript; charset=utf-8');
+        }
     }
 }

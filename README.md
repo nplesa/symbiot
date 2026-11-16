@@ -27,6 +27,9 @@ php artisan migrate
 npm run build
 ```
 
+`composer install` / `composer update` also publish Livewire's front-end files to `public/vendor/livewire`
+(not in git), so they always match the installed Livewire version.
+
 On Linux, `scripts/setup-osm-linux.sh` installs osmium-tool if missing, runs the migrations,
 imports the Romania OSM extract (`osm:sync-romania`) and then keeps the scheduler running.
 

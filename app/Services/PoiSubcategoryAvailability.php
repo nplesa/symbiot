@@ -85,7 +85,10 @@ class PoiSubcategoryAvailability
         return $result;
     }
 
-    /** @param list<array<string, mixed>> $subcategories @return list<string> */
+    /**
+     * @param  list<array<string, mixed>>  $subcategories
+     * @return list<string>
+     */
     private function unconditionalIds(array $subcategories): array
     {
         return collect($subcategories)

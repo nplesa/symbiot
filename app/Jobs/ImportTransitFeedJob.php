@@ -25,6 +25,7 @@ class ImportTransitFeedJob implements ShouldBeUnique, ShouldQueue
 
     public function __construct(public int $feedId) {}
 
+    /** @return list<int> seconds to wait before each retry */
     public function backoff(): array
     {
         return [30, 120];

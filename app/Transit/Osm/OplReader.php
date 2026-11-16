@@ -4,11 +4,15 @@ namespace App\Transit\Osm;
 
 use Generator;
 
-/** Streams objects from an OSM OPL file. Spaces, commas and equals signs inside values are %hex%-escaped. */
+/**
+ * Streams objects from an OSM OPL file. Spaces, commas and equals signs inside values are %hex%-escaped.
+ *
+ * @phpstan-type OplObject array{type: string, id: int, tags: array<string, string>, lon?: float, lat?: float, nodes?: list<int>, members?: list<array{0: string, 1: int, 2: string}>}
+ */
 class OplReader
 {
     /**
-     * @return Generator<int, array{type: string, id: int, tags: array<string, string>, lon?: float, lat?: float, nodes?: list<int>, members?: list<array{0: string, 1: int, 2: string}>}>
+     * @return Generator<int, OplObject>
      */
     public static function read(string $path): Generator
     {
@@ -29,6 +33,7 @@ class OplReader
         }
     }
 
+    /** @return OplObject|null */
     public static function parse(string $line): ?array
     {
         $type = $line[0] ?? '';
@@ -74,6 +79,7 @@ class OplReader
             : $value;
     }
 
+    /** @return array<string, string> */
     private static function tags(string $value): array
     {
         $tags = [];
@@ -90,6 +96,7 @@ class OplReader
         return $tags;
     }
 
+    /** @return list<array{0: string, 1: int, 2: string}> [type n/w/r, id, role] */
     private static function members(string $value): array
     {
         $members = [];

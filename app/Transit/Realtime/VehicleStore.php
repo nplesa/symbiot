@@ -2,15 +2,21 @@
 
 namespace App\Transit\Realtime;
 
-use Illuminate\Redis\Connections\Connection;
+use Illuminate\Redis\Connections\PhpRedisConnection;
 use Illuminate\Support\Facades\Redis;
 
 /** Live vehicle positions, one Redis hash per feed. They expire on their own. */
 class VehicleStore
 {
-    private function redis(): Connection
+    /** replace() needs PhpRedisConnection::transaction(); the app runs on phpredis (REDIS_CLIENT=phpredis). */
+    private function redis(): PhpRedisConnection
     {
-        return Redis::connection(config('transit.realtime.connection'));
+        $connection = Redis::connection(config('transit.realtime.connection'));
+        if (! $connection instanceof PhpRedisConnection) {
+            throw new \RuntimeException('Live vehicles need the phpredis client (REDIS_CLIENT=phpredis).');
+        }
+
+        return $connection;
     }
 
     /** @param list<array<string, mixed>> $vehicles */

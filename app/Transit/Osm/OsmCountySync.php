@@ -72,6 +72,9 @@ class OsmCountySync
     /**
      * Joins the outer ways of the boundary into closed rings and thins them (~50 m), enough for border decisions.
      *
+     * @param  list<array{0: string, 1: int, 2: string}>  $members  relation members [type, id, role]
+     * @param  array<int, array{0: float, 1: float}>  $nodes  node id => [lon, lat]
+     * @param  array<int, list<int>>  $ways  way id => node ids
      * @return list<list<array{0: float, 1: float}>> rings of [lon, lat]
      */
     private function rings(array $members, array $nodes, array $ways): array
@@ -129,7 +132,12 @@ class OsmCountySync
         return $rings;
     }
 
-    /** @return array{0: float, 1: float, 2: float, 3: float}|null minLon, minLat, maxLon, maxLat */
+    /**
+     * @param  list<array{0: string, 1: int, 2: string}>  $members  relation members [type, id, role]
+     * @param  array<int, array{0: float, 1: float}>  $nodes  node id => [lon, lat]
+     * @param  array<int, list<int>>  $ways  way id => node ids
+     * @return array{0: float, 1: float, 2: float, 3: float}|null minLon, minLat, maxLon, maxLat
+     */
     private function bbox(array $members, array $nodes, array $ways): ?array
     {
         $box = null;

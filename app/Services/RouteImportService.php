@@ -670,7 +670,10 @@ class RouteImportService
         ];
     }
 
-    /** @param array<string, mixed> $parsed @return array<string, mixed> */
+    /**
+     * @param  array<string, mixed>  $parsed
+     * @return array<string, mixed>
+     */
     private function addMissingElevations(array $parsed): array
     {
         if (! config('services.geoapify.key') || empty($parsed['points'])) {

@@ -214,7 +214,7 @@ class OsmTransitRoutes
                     throw new \RuntimeException('OpenStreetMap transit route service returned an incomplete result.');
                 }
 
-                $candidateHasRoutes = collect($candidate['elements'] ?? [])
+                $candidateHasRoutes = collect(is_array($candidate['elements'] ?? null) ? $candidate['elements'] : [])
                     ->contains(fn (array $element): bool => isset($element['tags']['route']));
                 if ($subwayStationLookup && ! $candidateHasRoutes) {
                     // Try the next mirror when one returns the nearby stops but omits their

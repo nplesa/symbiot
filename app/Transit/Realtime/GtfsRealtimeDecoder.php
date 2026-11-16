@@ -5,11 +5,14 @@ namespace App\Transit\Realtime;
 /**
  * Decodes the VehiclePosition entities of a GTFS-Realtime FeedMessage.
  * Field numbers follow gtfs-realtime.proto.
+ *
+ * @phpstan-type Vehicle array{id: string, label: ?string, trip_id: ?string, route_id: ?string, direction_id: ?int, lat: float, lon: float, bearing: ?float, speed: ?float, stop_id: ?string, timestamp: ?int}
+ * @phpstan-type RawPosition array{id: string, vehicle_id: ?string, label: ?string, trip_id: ?string, route_id: ?string, direction_id: ?int, lat: ?float, lon: ?float, bearing: ?float, speed: ?float, stop_id: ?string, timestamp: ?int}
  */
 class GtfsRealtimeDecoder
 {
     /**
-     * @return list<array{id: string, label: ?string, trip_id: ?string, route_id: ?string, direction_id: ?int, lat: float, lon: float, bearing: ?float, speed: ?float, stop_id: ?string, timestamp: ?int}>
+     * @return list<Vehicle>
      */
     public function vehicles(string $payload): array
     {
@@ -32,6 +35,7 @@ class GtfsRealtimeDecoder
         return $vehicles;
     }
 
+    /** @return Vehicle|null null for deleted entities and missing or invalid positions */
     private function entity(string $bytes): ?array
     {
         $reader = new ProtobufReader($bytes);
@@ -64,6 +68,7 @@ class GtfsRealtimeDecoder
         return $position;
     }
 
+    /** @return RawPosition */
     private function vehiclePosition(string $bytes): array
     {
         $v = [
@@ -93,6 +98,7 @@ class GtfsRealtimeDecoder
         return $v;
     }
 
+    /** @param RawPosition $v */
     private function trip(string $bytes, array &$v): void
     {
         $reader = new ProtobufReader($bytes);
@@ -110,6 +116,7 @@ class GtfsRealtimeDecoder
         }
     }
 
+    /** @param RawPosition $v */
     private function position(string $bytes, array &$v): void
     {
         $reader = new ProtobufReader($bytes);
@@ -129,6 +136,7 @@ class GtfsRealtimeDecoder
         }
     }
 
+    /** @param RawPosition $v */
     private function descriptor(string $bytes, array &$v): void
     {
         $reader = new ProtobufReader($bytes);

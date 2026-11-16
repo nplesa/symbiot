@@ -46,7 +46,11 @@ class PublicUrlGuard
         }
     }
 
-    /** Guzzle `allow_redirects` options that re-check every redirect target. */
+    /**
+     * Guzzle `allow_redirects` options that re-check every redirect target.
+     *
+     * @return array{max: int, protocols: list<string>, on_redirect: \Closure}
+     */
     public function redirectOptions(int $max = 5): array
     {
         return [

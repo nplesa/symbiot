@@ -30,7 +30,10 @@ class FuelBrandAvailability
         });
     }
 
-    /** @param list<array<string, string>> $tagSets @return list<string> */
+    /**
+     * @param  list<array<string, string>>  $tagSets
+     * @return list<string>
+     */
     private function matchBrands(array $tagSets): array
     {
         $available = ['all'];

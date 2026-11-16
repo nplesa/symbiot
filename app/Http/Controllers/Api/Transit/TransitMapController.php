@@ -385,8 +385,8 @@ class TransitMapController extends Controller
             $tripTimepoints = $timepointsByTrip->get($time->trip_id, collect());
             $before = $tripTimepoints->last(fn ($point): bool => (int) $point->stop_sequence < (int) $time->stop_sequence);
             $after = $tripTimepoints->first(fn ($point): bool => (int) $point->stop_sequence > (int) $time->stop_sequence);
-            $beforeSeconds = $before?->departure_seconds ?? $before?->arrival_seconds;
-            $afterSeconds = $after?->arrival_seconds ?? $after?->departure_seconds;
+            $beforeSeconds = $before->departure_seconds ?? $before->arrival_seconds ?? null;
+            $afterSeconds = $after->arrival_seconds ?? $after->departure_seconds ?? null;
             $sequenceSpan = $after === null ? 0 : (int) $after->stop_sequence - (int) ($before->stop_sequence ?? 0);
 
             if ($beforeSeconds === null || $afterSeconds === null || (int) $afterSeconds <= (int) $beforeSeconds || $sequenceSpan <= 0) {
@@ -447,7 +447,7 @@ class TransitMapController extends Controller
 
         foreach ($frequencyRows as $frequency) {
             $origin = $originTimes->get($frequency->trip_id);
-            $originSeconds = $origin?->departure_seconds ?? $origin?->arrival_seconds;
+            $originSeconds = $origin->departure_seconds ?? $origin->arrival_seconds ?? null;
             if ($originSeconds === null || (int) $frequency->headway_secs <= 0) {
                 continue;
             }

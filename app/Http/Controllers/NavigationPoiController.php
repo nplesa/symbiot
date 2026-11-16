@@ -154,7 +154,11 @@ class NavigationPoiController extends Controller
         ], $chunks);
     }
 
-    /** @param list<array<string, mixed>> $elements @param list<array{box: array{minLat: float, minLon: float, maxLat: float, maxLon: float}, points: list<array{0: float, 1: float}>}> $chunks */
+    /**
+     * @param  list<array<string, mixed>>  $elements
+     * @param  list<array{box: array{minLat: float, minLon: float, maxLat: float, maxLon: float}, points: list<array{0: float, 1: float}>}>  $chunks
+     * @return list<array<string, mixed>>
+     */
     private function transform(array $elements, array $chunks): array
     {
         $pois = [];
@@ -211,7 +215,10 @@ class NavigationPoiController extends Controller
         return $this->catalog->categories()[$type]['label'];
     }
 
-    /** @param list<array{0: float, 1: float}> $coordinates */
+    /**
+     * @param  list<array{0: float, 1: float}>  $coordinates
+     * @return array{minLat: float, minLon: float, maxLat: float, maxLon: float}
+     */
     private function boundingBox(array $coordinates): array
     {
         $longitudes = array_column($coordinates, 0);
@@ -255,7 +262,10 @@ class NavigationPoiController extends Controller
         return $minimum;
     }
 
-    /** @param array{0: float, 1: float} $point @param list<array{0: float, 1: float}> $route */
+    /**
+     * @param  array{0: float, 1: float}  $point
+     * @param  list<array{0: float, 1: float}>  $route
+     */
     private function distanceToRoute(array $point, array $route): float
     {
         $minimum = INF;
@@ -310,7 +320,10 @@ class NavigationPoiController extends Controller
         return $result;
     }
 
-    /** @param array{0: float, 1: float} $from @param array{0: float, 1: float} $to */
+    /**
+     * @param  array{0: float, 1: float}  $from
+     * @param  array{0: float, 1: float}  $to
+     */
     private function meters(array $from, array $to): float
     {
         $longitudeScale = self::METERS_PER_DEGREE * cos(deg2rad(($from[1] + $to[1]) / 2));

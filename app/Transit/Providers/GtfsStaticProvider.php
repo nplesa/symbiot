@@ -475,6 +475,7 @@ class GtfsStaticProvider implements TransitProvider
         return substr($value, 0, 4) . '-' . substr($value, 4, 2) . '-' . substr($value, 6, 2);
     }
 
+    /** @param array<string, string> $row a calendar.txt row */
     private function daysMask(array $row): int
     {
         $mask = 0;

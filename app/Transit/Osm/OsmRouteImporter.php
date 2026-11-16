@@ -9,6 +9,15 @@ use Illuminate\Support\Facades\DB;
 /**
  * Turns OSM public-transport route relations (OPL) into the same transit_* tables
  * GTFS uses. OSM carries no timetables, so trips only hold the ordered stops.
+ *
+ * @phpstan-import-type OplObject from OplReader
+ * RouteNodes: node id => [lon, lat, name]; RouteWays: way id => [node ids, name];
+ * Members: relation members as [type n/w/r, id, role].
+ *
+ * @phpstan-type RouteNodes array<int, array{0: float, 1: float, 2: string}>
+ * @phpstan-type RouteWays array<int, array{0: list<int>, 1: string}>
+ * @phpstan-type Members list<array{0: string, 1: int, 2: string}>
+ * @phpstan-type Stop array{id: string, name: string, lat: float, lon: float}
  */
 class OsmRouteImporter
 {
@@ -55,7 +64,7 @@ class OsmRouteImporter
         ];
     }
 
-    /** @return array{0: array<int, array{0: float, 1: float, 2: string}>, 1: array<int, list<int>>, 2: list<array>} */
+    /** @return array{0: RouteNodes, 1: RouteWays, 2: list<OplObject>} */
     private function load(string $path): array
     {
         $nodes = [];
@@ -74,6 +83,12 @@ class OsmRouteImporter
         return [$nodes, $ways, $relations];
     }
 
+    /**
+     * @param  RouteNodes  $nodes
+     * @param  RouteWays  $ways
+     * @param  list<OplObject>  $relations
+     * @return array<string, list<array<string, mixed>>> table key => rows
+     */
     private function build(TransitFeed $feed, array $nodes, array $ways, array $relations): array
     {
         $id = $feed->id;
@@ -154,7 +169,12 @@ class OsmRouteImporter
         return array_map('array_values', $out);
     }
 
-    /** @return list<array{id: string, name: string, lat: float, lon: float}> */
+    /**
+     * @param  Members  $members
+     * @param  RouteNodes  $nodes
+     * @param  RouteWays  $ways
+     * @return list<Stop>
+     */
     private function stops(array $members, array $nodes, array $ways): array
     {
         $byRole = ['stop' => [], 'platform' => []];
@@ -172,6 +192,11 @@ class OsmRouteImporter
         return $byRole['stop'] !== [] ? $byRole['stop'] : $byRole['platform'];
     }
 
+    /**
+     * @param  RouteNodes  $nodes
+     * @param  RouteWays  $ways
+     * @return Stop|null
+     */
     private function stop(string $type, int $ref, array $nodes, array $ways): ?array
     {
         if ($type === 'n' && isset($nodes[$ref])) {
@@ -198,6 +223,9 @@ class OsmRouteImporter
      * Chains the route's ways into polylines. Pieces that cannot be joined stay separate,
      * longest first, so the first one is the main line.
      *
+     * @param  Members  $members
+     * @param  RouteNodes  $nodes
+     * @param  RouteWays  $ways
      * @return list<list<array{0: float, 1: float}>>
      */
     private function pieces(array $members, array $nodes, array $ways): array
@@ -253,6 +281,12 @@ class OsmRouteImporter
     /**
      * The extract is cut by bbox, so a route of a neighbouring area shows up with most of its
      * stops missing. Keep it only if most stops exist and lie inside this feed's bbox.
+     *
+     * @param  Members  $members
+     * @param  list<Stop>  $stops
+     * @param  list<list<array{0: float, 1: float}>>  $pieces
+     * @param  RouteNodes  $nodes
+     * @param  RouteWays  $ways
      */
     private function belongsHere(TransitFeed $feed, array $members, array $stops, array $pieces, array $nodes, array $ways): bool
     {
@@ -278,6 +312,7 @@ class OsmRouteImporter
         return $this->mostlyInside($feed, $points);
     }
 
+    /** @param list<array{lon: float, lat: float}> $points */
     private function mostlyInside(TransitFeed $feed, array $points): bool
     {
         if ($points === []) {

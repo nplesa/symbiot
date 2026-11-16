@@ -103,7 +103,7 @@ class FeedCatalogSync
             ];
 
             $existing = $existingByReference->get($reference);
-            $id = $existing?->id ?? $existingByUrl[$attributes['static_url']] ?? null;
+            $id = $existing->id ?? $existingByUrl[$attributes['static_url']] ?? null;
             if ($id !== null) {
                 $updates = $attributes + ['source_reference' => $reference];
                 if ($existing !== null
@@ -140,7 +140,10 @@ class FeedCatalogSync
         return ['feeds' => $count, 'realtime' => count($realtime)];
     }
 
-    /** @return array<string, mixed>|null */
+    /**
+     * @param  array<string, string>  $row  a Mobility Database catalog row
+     * @return array<string, mixed>|null
+     */
     private function staticFeed(array $row): ?array
     {
         $url = $row['urls.direct_download'];

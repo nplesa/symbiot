@@ -207,6 +207,7 @@ class FlightAwareProvider
     /**
      * Normalizează datele unui zbor.
      *
+     * @param  array<string, mixed>  $flight
      * @return array<string, mixed>
      */
     private function normalizeFlight(

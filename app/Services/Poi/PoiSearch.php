@@ -386,6 +386,7 @@ class PoiSearch
      * @param  list<array<string, mixed>>  $features
      * @param  list<array<string, mixed>>  $transitStops
      * @param  list<array<string, mixed>>  $transitRoutes
+     * @param  list<string>  $allowedTypes
      * @return list<array<string, mixed>>
      */
     private function transform(
