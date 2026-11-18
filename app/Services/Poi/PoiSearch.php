@@ -11,7 +11,10 @@ use Illuminate\Support\Facades\Log;
 /** Nearby POIs from Geoapify and OpenStreetMap, with the transit routes serving transport stops. */
 class PoiSearch
 {
-    public function __construct(private readonly OsmTransitRoutes $transitRoutes) {}
+    public function __construct(
+        private readonly OsmTransitRoutes $transitRoutes,
+        private readonly OsmAerodromes $aerodromes,
+    ) {}
 
     /**
      * @param  list<string>  $selectedFilters  keys of PoiCatalog::filters()
@@ -33,7 +36,7 @@ class PoiSearch
             ->values()
             ->all();
         $cacheKey = sprintf(
-            'transport_poi:v16:%s:%s:%s:%s:%s',
+            'transport_poi:v17:%s:%s:%s:%s:%s',
             round($lat, 4),
             round($lon, 4),
             $radius,
@@ -41,6 +44,15 @@ class PoiSearch
             $includeTransitRoutes ? 'routes' : 'no-routes'
         );
         $transitTypes = array_values(array_intersect($poiTypes, ['bus', 'subway', 'train', 'airport']));
+        // Geoapify misses many small airfields (e.g. Prejmer near Brașov): OSM aerodromes of the selected
+        // airport subcategories are always added (the whole "airport" filter selects all of them).
+        $airportSubcategories = $selected
+            ->filter(fn (array $filter): bool => $filter['type'] === 'airport')
+            ->flatMap(fn (array $filter): array => $filter['geoapify'] === ['airport'] ? OsmAerodromes::SUBCATEGORIES : $filter['geoapify'])
+            ->intersect(OsmAerodromes::SUBCATEGORIES)
+            ->unique()
+            ->values()
+            ->all();
 
         $data = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($lat, $lon, $radius, $categories, $osmSelectors, $selected, $transitTypes, $includeTransitRoutes) {
             $features = $categories !== ''
@@ -61,6 +73,8 @@ class PoiSearch
                 // relations are fetched lazily after a station is selected.
                 $missingTransitTypes = array_values(array_intersect($missingTransitTypes, ['subway']));
             }
+            // Aerodromes come from OsmAerodromes, with its own long-lived cache.
+            $missingTransitTypes = array_values(array_diff($missingTransitTypes, ['airport']));
             $transitFallbackSelectors = $selected
                 ->filter(fn (array $filter) => in_array($filter['type'], $missingTransitTypes, true))
                 ->flatMap(fn (array $filter) => $filter['osm'])
@@ -123,12 +137,87 @@ class PoiSearch
                 $data['transit_routes'] ?? [],
                 $data['transit_routes_available'] ?? false
             ),
+            $this->aerodromePois($lat, $lon, $radius, $airportSubcategories),
         );
+        $result = $this->withoutDuplicateAirports($result);
 
         // Train timetables are not attached here: the station panel loads them on click
         // from /api/transit/rail-board (Transitous, with the CFR annual timetable as fallback).
 
         return $result;
+    }
+
+    /**
+     * OSM aerodromes of the selected airport subcategories. An unreachable OSM only leaves
+     * the Geoapify airports.
+     *
+     * @param  list<string>  $subcategories
+     * @return list<array<string, mixed>>
+     */
+    private function aerodromePois(float $lat, float $lon, int $radius, array $subcategories): array
+    {
+        if ($subcategories === []) {
+            return [];
+        }
+
+        $label = app(PoiCatalog::class)->categories()['airport']['label'];
+        $pois = [];
+        foreach ($this->aerodromes->around($lat, $lon, $radius) ?? [] as $aerodrome) {
+            if (! in_array($aerodrome['subcategory'], $subcategories, true)) {
+                continue;
+            }
+            $meters = GeoDistance::meters($lat, $lon, $aerodrome['lat'], $aerodrome['lon']);
+            $pois[] = [
+                'id' => $aerodrome['id'],
+                'name' => $aerodrome['name'] ?? $label,
+                'type' => 'airport',
+                'subcategory' => $aerodrome['subcategory'],
+                'routes' => [],
+                'routes_available' => true,
+                'coordinates' => ['lat' => $aerodrome['lat'], 'lon' => $aerodrome['lon']],
+                'distance' => [
+                    'meters' => (int) round($meters),
+                    'km' => round($meters / 1000, 2),
+                    'formatted' => $meters < 1000 ? round($meters) . ' m' : round($meters / 1000, 1) . ' km',
+                ],
+                'address' => ['formatted' => $aerodrome['name'], 'city' => $aerodrome['tags']['addr:city'] ?? null, 'country' => $aerodrome['tags']['addr:country'] ?? null],
+                'details' => $this->extractAirportDetails($aerodrome['tags']),
+            ];
+        }
+
+        return $pois;
+    }
+
+    /** The same airport from Geoapify and OSM is shown once: the first one wins (Geoapify, richer details). */
+    public const SAME_AIRPORT_METERS = 1500;
+
+    /**
+     * @param  list<array<string, mixed>>  $pois
+     * @return list<array<string, mixed>>
+     */
+    private function withoutDuplicateAirports(array $pois): array
+    {
+        $kept = [];
+        $airports = [];
+        foreach ($pois as $poi) {
+            if (($poi['type'] ?? null) === 'airport') {
+                $name = mb_strtolower(trim((string) ($poi['name'] ?? '')));
+                // A terminal lies inside its airport: only the same name makes it a duplicate.
+                $terminal = ($poi['subcategory'] ?? null) === 'airport.terminal';
+                // Distance only matches the same place across sources (Geoapify vs OSM aerodromes).
+                $osm = isset($poi['subcategory']);
+                foreach ($airports as $airport) {
+                    if (($name !== '' && $name === $airport['name'])
+                        || ($osm !== $airport['osm'] && ! $terminal && ! $airport['terminal'] && GeoDistance::meters($poi['coordinates']['lat'], $poi['coordinates']['lon'], $airport['lat'], $airport['lon']) < self::SAME_AIRPORT_METERS)) {
+                        continue 2;
+                    }
+                }
+                $airports[] = ['name' => $name, 'terminal' => $terminal, 'osm' => $osm, 'lat' => $poi['coordinates']['lat'], 'lon' => $poi['coordinates']['lon']];
+            }
+            $kept[] = $poi;
+        }
+
+        return $kept;
     }
 
     /** @return list<array<string, mixed>> */

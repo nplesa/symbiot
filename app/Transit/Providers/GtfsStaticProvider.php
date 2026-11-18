@@ -2,14 +2,17 @@
 
 namespace App\Transit\Providers;
 
+use App\Jobs\PurgeFeedDataJob;
 use App\Support\PublicUrlGuard;
 use App\Transit\Contracts\TransitProvider;
 use App\Transit\Exceptions\GtfsFeedInvalidException;
 use App\Transit\Exceptions\GtfsFeedTooLargeException;
 use App\Transit\Models\TransitFeed;
+use App\Transit\Services\FeedData;
 use App\Transit\Services\FeedProgress;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
 use ZipArchive;
@@ -17,11 +20,6 @@ use ZipArchive;
 class GtfsStaticProvider implements TransitProvider
 {
     private const CHUNK = 500;
-
-    private const TABLES = [
-        'transit_shapes', 'transit_calendar_dates', 'transit_calendars', 'transit_frequencies', 'transit_stop_times',
-        'transit_trips', 'transit_routes', 'transit_stops', 'transit_agencies',
-    ];
 
     private ?FeedProgress $progress = null;
 
@@ -135,20 +133,32 @@ class GtfsStaticProvider implements TransitProvider
                 if ($this->totalBytes > (int) config('transit.max_uncompressed_mb') * 1024 * 1024) {
                     throw new GtfsFeedTooLargeException('The uncompressed GTFS feed exceeds the configured size limit.');
                 }
-                DB::transaction(function () use ($feed, $path): void {
-                    $this->clear($feed);
-                    $this->importAll($feed, $path);
-                });
+                // The new data goes under a hidden shadow feed row in small committed batches; the feed keeps
+                // serving its current data until the switch below (no transaction over millions of rows).
+                $this->purgeUnfinishedShadows($feed);
+                $this->progress->report($feed, 'preparing', 15);
+                $shadow = $this->createShadow($feed);
+                try {
+                    $this->importAll($shadow, $path);
+                } catch (Throwable $e) {
+                    PurgeFeedDataJob::dispatch($shadow->id, true)->onQueue(config('transit.queue'));
+                    throw $e;
+                }
             } finally {
                 $zip->close();
             }
 
-            $this->progress->report($feed, 'done', 100);
+            // The switch: one small update of transit_feeds. The replaced data is deleted afterwards, in batches.
+            $previousDataId = (int) ($feed->data_feed_id ?? $feed->id);
             $feed->forceFill([
+                'data_feed_id' => $shadow->id,
                 'static_hash' => $hash,
                 'import_status' => 'imported',
                 'last_imported_at' => now(),
             ])->save();
+            app(FeedData::class)->forget();
+            PurgeFeedDataJob::dispatch($previousDataId, $previousDataId !== $feed->id)->onQueue(config('transit.queue'));
+            $this->progress->report($feed, 'done', 100);
 
             return true;
         } catch (Throwable $e) {
@@ -176,18 +186,33 @@ class GtfsStaticProvider implements TransitProvider
     {
         $this->totalBytes = 0;
         $this->doneBytes = 0;
-        foreach (['agency.txt', 'stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt', 'frequencies.txt', 'calendar.txt', 'calendar_dates.txt', 'shapes.txt'] as $name) {
+        foreach (['agency.txt', 'fare_media.txt', 'stops.txt', 'routes.txt', 'trips.txt', 'stop_times.txt', 'frequencies.txt', 'calendar.txt', 'calendar_dates.txt', 'shapes.txt'] as $name) {
             $this->totalBytes += (int) ($zip->statName($name)['size'] ?? 0);
         }
         $this->totalBytes = max(1, $this->totalBytes);
     }
 
-    private function clear(TransitFeed $feed): void
+    /** Hidden feed row that receives the new data until the switch (see the data_feed_id migration). */
+    private function createShadow(TransitFeed $feed): TransitFeed
     {
-        $this->progress->report($feed, 'preparing', 15);
-        foreach (self::TABLES as $table) {
-            DB::table($table)->where('feed_id', $feed->id)->delete();
-        }
+        return TransitFeed::query()->forceCreate([
+            'slug' => 'shadow-' . $feed->id . '-' . Str::lower(Str::random(10)),
+            'name' => $feed->name,
+            'provider' => 'shadow',
+            'active' => false,
+            'shadow_of' => $feed->id,
+            'import_status' => 'importing',
+        ]);
+    }
+
+    /** Shadows left by an interrupted import (worker killed, timeout): delete their rows in batches. */
+    private function purgeUnfinishedShadows(TransitFeed $feed): void
+    {
+        TransitFeed::query()
+            ->where('shadow_of', $feed->id)
+            ->when($feed->data_feed_id !== null, fn ($query) => $query->whereKeyNot($feed->data_feed_id))
+            ->pluck('id')
+            ->each(fn (int $id) => PurgeFeedDataJob::dispatch($id, true)->onQueue(config('transit.queue')));
     }
 
     private function importAll(TransitFeed $feed, string $path): void
@@ -199,7 +224,15 @@ class GtfsStaticProvider implements TransitProvider
             'agency_id' => $r['agency_id'] ?? '',
             'name' => $r['agency_name'] ?? '',
             'url' => $this->nullable($r['agency_url'] ?? null),
+            'fare_url' => $this->nullable($r['agency_fare_url'] ?? null),
             'timezone' => $this->nullable($r['agency_timezone'] ?? null),
+        ]);
+        // GTFS-Fares v2: how riders can pay (contactless bank card, mobile app, ...). Optional file.
+        $this->load($path, 'fare_media.txt', 'transit_fare_media', fn (array $r): ?array => ($r['fare_media_id'] ?? '') === '' || ! is_numeric($r['fare_media_type'] ?? null) ? null : [
+            'feed_id' => $id,
+            'fare_media_id' => $r['fare_media_id'],
+            'name' => $this->nullable($r['fare_media_name'] ?? null),
+            'type' => (int) $r['fare_media_type'],
         ]);
 
         $this->load($path, 'stops.txt', 'transit_stops', function (array $r) use ($id): ?array {

@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Http;
  * and a visible link to https://transitous.org/sources/ wherever the data is shown.
  *
  * @phpstan-type RailStop array{id: string, name: string, lat: float, lon: float, timezone: ?string}
- * @phpstan-type BoardEntry array{time: ?string, scheduled_time: ?string, delay_minutes: ?int, realtime: bool, cancelled: bool, train: string, number: ?string, category: string, place: ?string, track: ?string, scheduled_track: ?string, operator: ?string}
+ * @phpstan-type BoardEntry array{time: ?string, scheduled_time: ?string, delay_minutes: ?int, realtime: bool, cancelled: bool, train: string, number: ?string, category: string, place: ?string, track: ?string, scheduled_track: ?string, operator: ?string, operator_url: ?string}
  */
 class TransitousClient
 {
@@ -60,7 +60,7 @@ class TransitousClient
      */
     public function board(string $stopId, string $type, int $limit = 12): array
     {
-        $key = 'transitous:board:v2:' . $type . ':' . $limit . ':' . sha1($stopId);
+        $key = 'transitous:board:v3:' . $type . ':' . $limit . ':' . sha1($stopId);
 
         return Cache::remember($key, now()->addMinute(), function () use ($stopId, $type, $limit): array {
             $response = $this->request()->get('/v5/stoptimes', [
@@ -158,7 +158,19 @@ class TransitousClient
             'track' => $this->string($place['track'] ?? null),
             'scheduled_track' => $this->string($place['scheduledTrack'] ?? null),
             'operator' => $this->string($stopTime['agencyName'] ?? null),
+            // Where to buy a ticket: the operator's site (third-party data, http(s) only).
+            'operator_url' => $this->httpUrl($stopTime['agencyUrl'] ?? null),
         ];
+    }
+
+    private function httpUrl(mixed $value): ?string
+    {
+        $url = $this->string($value);
+        if ($url === null || filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return null;
+        }
+
+        return in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true) ? $url : null;
     }
 
     private function string(mixed $value): ?string

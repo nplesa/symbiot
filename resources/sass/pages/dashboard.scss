@@ -582,6 +582,46 @@
 .dashboard-rail-status.is-cancelled { color: #dc3545; }
 .dashboard-rail-entry.is-cancelled .dashboard-stop-route-copy strong { text-decoration: line-through; }
 .dashboard-train-services-source a { color: inherit; text-decoration: underline; }
+/* Trip details card: a train, flight or line picked from the stop list (trip-card.js). */
+[data-mode] { --trip-color: #1769e0; }
+[data-mode="plane"] { --trip-color: #6f42c1; }
+[data-mode="train"] { --trip-color: #0f7b45; }
+[data-mode="bus"] { --trip-color: #1769e0; }
+[data-mode="trolleybus"] { --trip-color: #0c8599; }
+[data-mode="tram"] { --trip-color: #d9480f; }
+[data-mode="metro"] { --trip-color: #c2255c; }
+[data-mode="ferry"] { --trip-color: #1971c2; }
+.dashboard-trip-card { padding: 1rem 1.25rem 1.25rem; outline: none; }
+.dashboard-trip-card[hidden] { display: none; }
+.dashboard-trip-back { display: inline-flex; align-items: center; gap: .45rem; margin-bottom: .9rem; padding: .35rem .65rem; border: 1px solid var(--dashboard-line); border-radius: 999px; background: var(--dashboard-item-bg); color: var(--dashboard-ink); font-size: .8rem; font-weight: 700; }
+.dashboard-trip-back:hover, .dashboard-trip-back:focus-visible { border-color: #8bb8fb; background: var(--dashboard-blue-soft); }
+.dashboard-trip-mode { display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .75rem; padding: .3rem .7rem; border-radius: 999px; background: var(--trip-color, #1769e0); color: #fff; font-size: .72rem; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
+.dashboard-trip-badge[data-mode] { flex: 0 0 auto; width: auto; max-width: 9rem; padding: 0 .65rem; overflow: hidden; background: var(--trip-color); font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-trip-itinerary { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .6rem; margin: 1rem 0 .25rem; padding: .8rem .9rem; border: 1px solid var(--dashboard-line); border-radius: 12px; background: var(--dashboard-hover-bg); }
+.dashboard-trip-itinerary[hidden] { display: none; }
+.dashboard-trip-itinerary > i { color: var(--dashboard-muted); }
+.dashboard-trip-end { display: grid; gap: .1rem; min-width: 0; }
+.dashboard-trip-end:last-child { text-align: right; }
+.dashboard-trip-end small { color: var(--dashboard-muted); font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.dashboard-trip-end strong { color: var(--dashboard-ink); font-size: .9rem; overflow-wrap: anywhere; }
+.dashboard-trip-status { margin: .8rem 0 0; font-size: .86rem; font-weight: 800; color: var(--dashboard-muted); }
+.dashboard-trip-status.is-on_time, .dashboard-trip-status.is-early { color: #198754; }
+.dashboard-trip-status.is-late { color: #d63384; }
+.dashboard-trip-status.is-cancelled { color: #dc3545; }
+.dashboard-trip-facts { display: grid; gap: 0; margin: .8rem 0 0; }
+.dashboard-trip-facts > div { display: flex; justify-content: space-between; gap: 1rem; padding: .5rem 0; border-bottom: 1px solid var(--dashboard-line); }
+.dashboard-trip-facts dt { color: var(--dashboard-muted); font-size: .82rem; font-weight: 600; }
+.dashboard-trip-facts dd { margin: 0; color: var(--dashboard-ink); font-size: .85rem; font-weight: 750; text-align: right; overflow-wrap: anywhere; }
+.dashboard-trip-tickets { display: grid; gap: .45rem; margin-top: 1.1rem; }
+.dashboard-trip-tickets[hidden] { display: none; }
+.dashboard-trip-tickets h3 { margin: 0 0 .1rem; color: var(--dashboard-ink); font-size: .94rem; font-weight: 800; }
+.dashboard-trip-tickets h3 i { margin-right: .3rem; color: var(--dashboard-blue); }
+.dashboard-trip-ticket { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .6rem .9rem; border-radius: 10px; background: var(--dashboard-blue); color: #fff; font-size: .88rem; font-weight: 800; text-align: center; text-decoration: none; overflow-wrap: anywhere; }
+.dashboard-trip-ticket i { font-size: .75rem; }
+.dashboard-trip-ticket:hover, .dashboard-trip-ticket:focus-visible { background: #1257bd; color: #fff; }
+.dashboard-trip-ticket-note { color: var(--dashboard-muted); font-size: .78rem; line-height: 1.4; }
+.dashboard-trip-open { flex: 0 0 auto; margin-left: .25rem; color: var(--dashboard-muted); font-size: .75rem; }
+.dashboard-route-details .dashboard-trip-tickets { padding-top: 1rem; border-top: 1px solid var(--dashboard-line); }
 .dashboard-route-panel.has-stop-selection .dashboard-nearby-section { display: none; }
 
 .dashboard-nearby-section { margin: 0 1.1rem 1rem; padding-top: .95rem; border-top: 1px solid var(--dashboard-line); }
@@ -697,6 +737,8 @@
 }
 
 .dashboard-route-panel #mobility_card .poi-category-group.poi-category-hidden { display: none !important; }
+/* Categories with nothing in the chosen area (set by updateSubcategoryAvailability in map.js). */
+.dashboard-route-panel #mobility_card .poi-category-group.poi-category-unavailable { display: none; }
 
 .dashboard-route-panel #mobility_card .poi-filter-row {
     display: flex;
@@ -747,8 +789,18 @@
 .dashboard-route-panel #mobility_card .poi-filter-actions { display: flex; align-items: center; gap: .35rem; }
 .dashboard-route-panel #mobility_card .poi-filter-count { display: grid; place-items: center; min-width: 23px; height: 22px; padding: 0 .35rem; border-radius: 99px; background: var(--dashboard-blue-soft); color: var(--dashboard-muted); font-size: .65rem; font-weight: 700; }
 .dashboard-route-panel #mobility_card .fuel-best-button { padding: .22rem .38rem; border: 0; border-radius: 6px; background: #16845b; color: #fff; font-size: .6rem; font-weight: 800; }
-.dashboard-route-panel #mobility_card .poi-subcategory-toggle { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; padding: 0; border: 1px solid var(--dashboard-line); border-radius: 7px; background: var(--dashboard-control-bg); color: var(--dashboard-muted); font-size: .65rem; }
+/* Subcategory toggle: just an arrow, down when closed, up when open. */
+.dashboard-route-panel #mobility_card .poi-subcategory-toggle { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--dashboard-muted); font-size: .85rem; cursor: pointer; }
+.dashboard-route-panel #mobility_card .poi-subcategory-toggle:hover { background: var(--dashboard-hover-bg); color: var(--dashboard-blue); }
+.dashboard-route-panel #mobility_card .poi-subcategory-toggle:focus-visible { outline: 2px solid var(--dashboard-blue); outline-offset: 1px; }
+.dashboard-route-panel #mobility_card .poi-subcategory-toggle i { transition: transform .2s ease; }
+.dashboard-route-panel #mobility_card .poi-subcategory-toggle[aria-expanded="true"] { color: var(--dashboard-blue); }
+.dashboard-route-panel #mobility_card .poi-subcategory-toggle.is-loading { opacity: .45; cursor: progress; }
 .dashboard-route-panel #mobility_card .poi-subcategory-toggle[aria-expanded="true"] i { transform: rotate(180deg); }
+.dashboard-route-panel #mobility_card .poi-subcategory-empty { grid-column: 1 / -1; margin: 0; padding: .35rem .2rem; color: var(--dashboard-muted); font-size: .72rem; }
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-route-panel #mobility_card .poi-subcategory-toggle i { transition: none; }
+}
 .dashboard-route-panel #mobility_card .poi-subcategory-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; max-height: 190px; margin-top: .45rem; padding: .55rem .2rem .1rem; overflow-y: auto; border-top: 1px solid var(--dashboard-line); }
 .dashboard-route-panel #mobility_card .poi-subcategory-list.show { display: grid; }
 
@@ -839,6 +891,12 @@
 .symbiot-shell[data-theme="dark"] .dashboard-route-badge {
     background: var(--dashboard-blue-soft);
     color: #9bc4ff;
+}
+
+/* The trip card keeps the colour of its transport mode. */
+.symbiot-shell[data-theme="dark"] .dashboard-route-badge.dashboard-trip-badge[data-mode] {
+    background: var(--trip-color);
+    color: #fff;
 }
 
 .symbiot-shell[data-theme="dark"] .dashboard-next-trip {

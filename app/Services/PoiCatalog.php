@@ -34,7 +34,7 @@ class PoiCatalog
             $filters[$type] = [
                 'type' => $type,
                 'label' => $category['label'],
-                'geoapify' => $category['geoapify'],
+                'geoapify' => $this->geoapifyQuery($type),
                 'osm' => $category['osm'],
             ];
 
@@ -49,6 +49,31 @@ class PoiCatalog
         }
 
         return $filters;
+    }
+
+    /**
+     * Geoapify categories to ask for a whole category: its own, or a faster equivalent list
+     * ("geoapify_query", e.g. the parking subcategories instead of the slow root "parking").
+     *
+     * @return list<string>
+     */
+    public function geoapifyQuery(string $type): array
+    {
+        $category = config('poi.categories.' . $type, []);
+
+        return array_values((array) ($category['geoapify_query'] ?? $category['geoapify'] ?? []));
+    }
+
+    /**
+     * Whether a subcategory is ticked when its whole category is ("default_subcategories"; none set: all are).
+     *
+     * @param  array{geoapify?: list<string>}  $subcategory
+     */
+    public function isDefaultSubcategory(string $type, array $subcategory): bool
+    {
+        $defaults = (array) config('poi.categories.' . $type . '.default_subcategories', []);
+
+        return $defaults !== [] && array_intersect($subcategory['geoapify'] ?? [], $defaults) !== [];
     }
 
     /** @return list<array{id: string, type?: string, label: string, geoapify: list<string>, osm: list<array<string, ?string>>}> */

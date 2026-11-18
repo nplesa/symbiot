@@ -262,6 +262,7 @@ export function createTransitLayer(map) {
                     stopId,
                     stopName,
                     routes: data.routes,
+                    tickets: data.tickets,
                 },
             }));
         } catch {

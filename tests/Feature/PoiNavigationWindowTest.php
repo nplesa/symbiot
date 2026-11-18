@@ -202,6 +202,7 @@ class PoiNavigationWindowTest extends TestCase
     public function test_home_poi_search_uses_only_selected_categories(): void
     {
         Http::fake([
+            '*/api/interpreter*' => Http::response(['elements' => []]),
             '*' => Http::response(['features' => []]),
         ]);
 
@@ -225,6 +226,37 @@ class PoiNavigationWindowTest extends TestCase
             && str_contains($request['data'], 'aeroway'));
         Http::assertNotSent(fn ($request) => str_contains($request->url(), 'overpass-api.de')
             && $request->method() === 'POST');
+    }
+
+    public function test_airfields_missing_from_geoapify_are_added_from_osm_once(): void
+    {
+        Cache::flush();
+        config(['services.geoapify.key' => 'test-key']);
+        Http::fake([
+            'api.geoapify.com/*' => Http::response(['features' => [[
+                'type' => 'Feature',
+                'properties' => [
+                    'place_id' => 'geo-bv', 'name' => 'Aeroportul Internațional Brașov', 'categories' => ['airport', 'airport.international'],
+                    'lat' => 45.7054, 'lon' => 25.5231, 'datasource' => ['raw' => ['iata' => 'GHV']],
+                ],
+                'geometry' => ['type' => 'Point', 'coordinates' => [25.5231, 45.7054]],
+            ]]]),
+            '*/api/interpreter*' => Http::response(['elements' => [
+                // The same airport as Geoapify's, a few hundred metres away: shown once.
+                ['type' => 'way', 'id' => 1, 'center' => ['lat' => 45.7070, 'lon' => 25.5260], 'tags' => ['aeroway' => 'aerodrome', 'name' => 'Aeroportul Brașov-Ghimbav']],
+                // Missing from Geoapify: added.
+                ['type' => 'way', 'id' => 2, 'center' => ['lat' => 45.6977, 'lon' => 25.7797], 'tags' => ['aeroway' => 'aerodrome', 'name' => 'Aerodrom Prejmer']],
+            ]]),
+        ]);
+
+        $response = $this->actingAs(User::factory()->create())
+            ->getJson('/api/transport/airport?lat=45.6427&lon=25.5887&radius=20000')
+            ->assertOk();
+
+        $this->assertEqualsCanonicalizing(
+            ['Aeroportul Internațional Brașov', 'Aerodrom Prejmer'],
+            array_column($response->json(), 'name')
+        );
     }
 
     public function test_police_subcategory_filter_uses_its_own_poi_category(): void
@@ -658,7 +690,11 @@ class PoiNavigationWindowTest extends TestCase
                     'type' => 'relation',
                     'id' => 88,
                     'timestamp' => '2026-06-02T08:56:08Z',
-                    'tags' => ['type' => 'route', 'route' => 'bus', 'ref' => '5---'],
+                    'tags' => [
+                        'type' => 'route', 'route' => 'bus', 'ref' => '5---', 'name' => 'Bus 5: Triaj => Gară', 'from' => 'Triaj', 'to' => 'Gară',
+                        'operator' => 'RATBV', 'network' => 'Brașov', 'interval' => '00:15', 'opening_hours' => 'Mo-Su 05:00-23:00',
+                        'website' => 'javascript:alert(1)', 'operator:website' => 'https://ratbv.test',
+                    ],
                     'members' => [[
                         'type' => 'way',
                         'ref' => 77,
@@ -680,7 +716,17 @@ class PoiNavigationWindowTest extends TestCase
             ->assertJsonPath('0.routes.0.label', 'Autobuz 5')
             ->assertJsonPath('0.routes.0.id', 'relation/88')
             ->assertJsonPath('0.routes.0.updated_at', '2026-06-02T08:56:08Z')
-            ->assertJsonPath('0.routes.0.status', 'listed_in_osm');
+            ->assertJsonPath('0.routes.0.status', 'listed_in_osm')
+            // Details of the line card.
+            ->assertJsonPath('0.routes.0.mode', 'bus')
+            ->assertJsonPath('0.routes.0.ref', '5')
+            ->assertJsonPath('0.routes.0.from', 'Triaj')
+            ->assertJsonPath('0.routes.0.to', 'Gară')
+            ->assertJsonPath('0.routes.0.operator', 'RATBV')
+            ->assertJsonPath('0.routes.0.interval', '00:15')
+            ->assertJsonPath('0.routes.0.opening_hours', 'Mo-Su 05:00-23:00')
+            // A script link in "website" is dropped: the next valid web link is used.
+            ->assertJsonPath('0.routes.0.website', 'https://ratbv.test');
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'overpass-api.de')
             && str_contains($request['data'], '["public_transport"~"^(platform|stop_position|station)$"]')
@@ -908,7 +954,12 @@ class PoiNavigationWindowTest extends TestCase
             ];
             $elements = [];
 
+            // The POI query (GET) asks only for aerodromes here; the route lookup (POST) gets everything.
+            $poiQuery = $request->method() === 'GET';
             foreach ($stops as [$elementType, $id, $lon, $tags]) {
+                if ($poiQuery && ! isset($tags['aeroway'])) {
+                    continue;
+                }
                 $elements[] = $elementType === 'node'
                     ? ['type' => $elementType, 'id' => $id, 'lat' => 45.65, 'lon' => $lon, 'tags' => $tags]
                     : ['type' => $elementType, 'id' => $id, 'center' => ['lat' => 45.65, 'lon' => $lon], 'tags' => $tags];

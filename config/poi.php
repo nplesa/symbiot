@@ -68,6 +68,10 @@ return [
             'label' => 'Parking', 'icon' => 'P', 'default' => true,
             'group' => 'services', 'distance' => 500,
             'geoapify' => ['parking'],
+            // Asked by its subcategories: the root "parking" took Geoapify 6-12 s (20+ s for 500 places).
+            'geoapify_query' => ['parking.bicycles', 'parking.cars', 'parking.motorcycle', 'parking.multistorey', 'parking.rooftop', 'parking.surface', 'parking.underground'],
+            // Ticking the category selects only these subcategories (the others are ticked by hand).
+            'default_subcategories' => ['parking.cars'],
             'osm' => [['amenity' => 'parking']],
         ],
         'restaurant' => [

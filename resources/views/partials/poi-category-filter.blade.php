@@ -58,6 +58,7 @@
                     id="poi-subcategory-{{ $categoryIndex }}-{{ $loop->index }}"
                     data-type="{{ $subcategory['type'] ?? $location }}"
                     data-filter="{{ $subcategory['id'] }}"
+                    @if (app(\App\Services\PoiCatalog::class)->isDefaultSubcategory($location, $subcategory)) data-default-subcategory @endif
                 >
                 <span>{{ $subcategory['label'] }}</span>
             </label>

@@ -15,12 +15,17 @@ class GtfsStaticImportTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function zipBody(string $routeName = '1'): string
+    private function zipBody(string $routeName = '1', bool $fares = false): string
     {
         $path = tempnam(sys_get_temp_dir(), 'gz');
         $zip = new ZipArchive;
         $zip->open($path, ZipArchive::OVERWRITE);
-        $zip->addFromString('agency.txt', "agency_id,agency_name,agency_url,agency_timezone\nA,Test,https://x.test,Europe/Bucharest\n");
+        $zip->addFromString('agency.txt', $fares
+            ? "agency_id,agency_name,agency_url,agency_timezone,agency_fare_url\nA,Test,https://x.test,Europe/Bucharest,https://x.test/bilete\n"
+            : "agency_id,agency_name,agency_url,agency_timezone\nA,Test,https://x.test,Europe/Bucharest\n");
+        if ($fares) {
+            $zip->addFromString('fare_media.txt', "fare_media_id,fare_media_name,fare_media_type\ncemv,Card contactless,3\napp,Test Pay,4\n");
+        }
         $zip->addFromString('stops.txt', "\xEF\xBB\xBFstop_id,stop_name,stop_lat,stop_lon\nS1,Gara,45.15,26.82\nS2,Centru,45.16,26.83\nBAD,Fara coord,,\n");
         $zip->addFromString('routes.txt', "route_id,agency_id,route_short_name,route_long_name,route_type,route_color\nR1,A,{$routeName},Linia,3,#ff0000\n");
         $zip->addFromString('trips.txt', "route_id,service_id,trip_id,trip_headsign,direction_id,shape_id\nR1,WK,T1,Centru,0,SH1\n");
@@ -72,6 +77,22 @@ class GtfsStaticImportTest extends TestCase
         $progress = app(FeedProgress::class)->get($feed);
         $this->assertSame('done', $progress['stage']);
         $this->assertSame(100, $progress['percent']);
+    }
+
+    public function test_imports_the_fare_page_and_fare_media(): void
+    {
+        $this->serve($this->zipBody(fares: true));
+        $feed = $this->feed();
+
+        $this->assertTrue(app(GtfsStaticProvider::class)->importStatic($feed));
+
+        $data = (int) ($feed->fresh()->data_feed_id ?? $feed->id);
+        $this->assertSame('https://x.test/bilete', DB::table('transit_agencies')->where('feed_id', $data)->value('fare_url'));
+        $this->assertSame(
+            [['name' => 'Card contactless', 'type' => 3], ['name' => 'Test Pay', 'type' => 4]],
+            DB::table('transit_fare_media')->where('feed_id', $data)->orderBy('type')->get(['name', 'type'])
+                ->map(fn ($m): array => ['name' => $m->name, 'type' => (int) $m->type])->all()
+        );
     }
 
     public function test_unchanged_archives_are_skipped_and_changed_ones_replace_data(): void

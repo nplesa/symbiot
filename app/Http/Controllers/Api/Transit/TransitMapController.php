@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\Transit;
 use App\Support\GeoDistance;
 use App\Http\Controllers\Controller;
 use App\Transit\Models\TransitFeed;
+use App\Transit\Services\FeedData;
 use App\Transit\Services\FeedDiscovery;
+use App\Transit\Services\TicketInfo;
 use DateTimeZone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,6 +17,9 @@ class TransitMapController extends Controller
 {
     /** Nearest schedule candidates checked by nearestNextDeparture (each one runs several queries). */
     private const MAX_DEPARTURE_CANDIDATES = 10;
+
+    /** Clients always see public feed ids; the GTFS rows live under each feed's data feed id. */
+    public function __construct(private readonly FeedData $feedData) {}
 
     /**
      * SQL ORDER BY expression for the squared equirectangular distance to ($lat, $lon).
@@ -52,6 +57,8 @@ class TransitMapController extends Controller
         $feedIds = $discovery->coverageWithinRadius($lat, $lon, $radius)
             ->filter(fn (TransitFeed $feed): bool => $feed->static_hash !== null)
             ->pluck('id');
+        $dataIds = $this->feedData->dataIds($feedIds);
+        $publicIds = $this->feedData->publicIds($dataIds);
         $dLat = $radius / 111320;
         $dLon = $radius / (111320 * max(0.1, cos(deg2rad($lat))));
         $maxStops = max(1, (int) config('transit.max_map_stops'));
@@ -59,7 +66,7 @@ class TransitMapController extends Controller
 
         // Nearest first with a SQL LIMIT, so dense areas never load every stop of the
         // search square; one extra row tells whether the result was truncated.
-        $stopsQuery = DB::table('transit_stops as s')->whereIn('s.feed_id', $feedIds);
+        $stopsQuery = DB::table('transit_stops as s')->whereIn('s.feed_id', array_values($dataIds));
         if ($routeTypes !== null) {
             // Return a stop only when it is served by the selected mode. GTFS feeds
             // can overlap (for example a railway feed and a regional bus feed).
@@ -105,7 +112,7 @@ class TransitMapController extends Controller
 
         return response()->json([
             'stops' => $stops->map(fn ($s): array => [
-                'feed_id' => (int) $s->feed_id,
+                'feed_id' => $publicIds[(int) $s->feed_id] ?? (int) $s->feed_id,
                 'stop_id' => $s->stop_id,
                 'name' => $s->name,
                 'lat' => (float) $s->lat,
@@ -115,8 +122,9 @@ class TransitMapController extends Controller
         ]);
     }
 
-    public function stopRoutes(int $feed, string $stop): JsonResponse
+    public function stopRoutes(int $feed, string $stop, TicketInfo $tickets): JsonResponse
     {
+        $feed = $this->feedData->dataId($feed);
         // Stations (location_type 1) have no stop_times; their platforms do.
         $stopIds = DB::table('transit_stops')->where('feed_id', $feed)->where('parent_station', $stop)->pluck('stop_id')->push($stop)->all();
 
@@ -129,16 +137,20 @@ class TransitMapController extends Controller
             ->orderBy('r.route_type')
             ->orderBy('r.short_name')
             ->limit(80)
-            ->get(['r.route_id', 'r.short_name', 'r.long_name', 'r.route_type', 'r.color', 'r.text_color']);
+            ->get(['r.route_id', 'r.short_name', 'r.long_name', 'r.route_type', 'r.color', 'r.text_color', 'r.agency_id']);
 
         return response()->json([
-            'routes' => $routes->map(fn ($r): array => [
+            // Where to buy tickets: links to the operators, from the feed (the app never sells tickets).
+            'tickets' => $tickets->forStop($feed, $routes->pluck('agency_id')->unique()->values()->all()),
+            'routes' => $routes->unique('route_id')->values()->map(fn ($r): array => [
                 'route_id' => $r->route_id,
                 'short_name' => $r->short_name,
                 'long_name' => $r->long_name,
                 'route_type' => (int) $r->route_type,
                 'color' => $r->color,
                 'text_color' => $r->text_color,
+                // Matches tickets.operators[].agency_id: the line's own ticket links in its details card.
+                'agency_id' => $r->agency_id,
             ])->all(),
         ]);
     }
@@ -181,6 +193,8 @@ class TransitMapController extends Controller
 
             return response()->json(['departure' => null, 'reason' => $reason]);
         }
+        $dataIds = $this->feedData->dataIds($feedIds);
+        $publicIds = $this->feedData->publicIds($dataIds);
 
         $radius = 500;
         $dLat = $radius / 111320;
@@ -192,7 +206,7 @@ class TransitMapController extends Controller
             ->join('transit_stop_times as st', fn ($join) => $join->on('st.feed_id', '=', 's.feed_id')->on('st.stop_id', '=', 's.stop_id'))
             ->join('transit_trips as t', fn ($join) => $join->on('t.feed_id', '=', 'st.feed_id')->on('t.trip_id', '=', 'st.trip_id'))
             ->join('transit_routes as r', fn ($join) => $join->on('r.feed_id', '=', 't.feed_id')->on('r.route_id', '=', 't.route_id'))
-            ->whereIn('s.feed_id', $feedIds)
+            ->whereIn('s.feed_id', array_values($dataIds))
             ->whereBetween('s.lat', [$lat - $dLat, $lat + $dLat])
             ->whereBetween('s.lon', [$lon - $dLon, $lon + $dLon])
             ->where(function ($query) use ($routeRefs): void {
@@ -216,7 +230,8 @@ class TransitMapController extends Controller
 
         foreach ($candidates as $candidate) {
             $scheduleRequest = Request::create('/', 'GET', ['route_id' => $candidate['route_id']]);
-            $schedule = $this->nextDeparture($scheduleRequest, (int) $candidate['feed_id'], (string) $candidate['stop_id'])->getData(true);
+            $candidateFeed = $publicIds[(int) $candidate['feed_id']] ?? (int) $candidate['feed_id'];
+            $schedule = $this->nextDeparture($scheduleRequest, $candidateFeed, (string) $candidate['stop_id'])->getData(true);
             if ($schedule['departure'] === null) {
                 continue;
             }
@@ -240,9 +255,11 @@ class TransitMapController extends Controller
             'route_id' => 'required|string|max:100',
         ]);
 
+        $feedRecord = TransitFeed::query()->find($feed);
+        $feed = $this->feedData->dataId($feedRecord ?? $feed);
+
         // OSM route relations provide geometry and stop order, but never a timetable.
         // If the clicked OSM route has a matching GTFS route nearby, use its schedule.
-        $feedRecord = TransitFeed::query()->find($feed);
         if ($feedRecord?->provider === 'osm') {
             $osmRoute = DB::table('transit_routes')
                 ->where('feed_id', $feed)
@@ -265,12 +282,14 @@ class TransitMapController extends Controller
                     ->where('min_lon', '<=', (float) $osmStop->lon)
                     ->where('max_lon', '>=', (float) $osmStop->lon)
                     ->pluck('id');
+                $gtfsDataIds = $this->feedData->dataIds($gtfsFeedIds);
+                $gtfsPublicIds = $this->feedData->publicIds($gtfsDataIds);
 
                 $matchingStops = DB::table('transit_stops as s')
                     ->join('transit_stop_times as st', fn ($join) => $join->on('st.feed_id', '=', 's.feed_id')->on('st.stop_id', '=', 's.stop_id'))
                     ->join('transit_trips as t', fn ($join) => $join->on('t.feed_id', '=', 'st.feed_id')->on('t.trip_id', '=', 'st.trip_id'))
                     ->join('transit_routes as r', fn ($join) => $join->on('r.feed_id', '=', 't.feed_id')->on('r.route_id', '=', 't.route_id'))
-                    ->whereIn('s.feed_id', $gtfsFeedIds)
+                    ->whereIn('s.feed_id', array_values($gtfsDataIds))
                     ->whereBetween('s.lat', [(float) $osmStop->lat - $dLat, (float) $osmStop->lat + $dLat])
                     ->whereBetween('s.lon', [(float) $osmStop->lon - $dLon, (float) $osmStop->lon + $dLon])
                     ->whereRaw('LOWER(TRIM(r.short_name)) = ?', [mb_strtolower(trim($osmRoute->short_name))])
@@ -286,7 +305,8 @@ class TransitMapController extends Controller
                 $next = null;
                 foreach ($matchingStops as $candidate) {
                     $scheduleRequest = Request::create('/', 'GET', ['route_id' => $candidate['route_id']]);
-                    $schedule = $this->nextDeparture($scheduleRequest, (int) $candidate['feed_id'], (string) $candidate['stop_id'])->getData(true);
+                    $candidateFeed = $gtfsPublicIds[(int) $candidate['feed_id']] ?? (int) $candidate['feed_id'];
+                    $schedule = $this->nextDeparture($scheduleRequest, $candidateFeed, (string) $candidate['stop_id'])->getData(true);
                     if ($schedule['departure'] !== null
                         && ($next === null || $schedule['departure']['minutes_until'] < $next['departure']['minutes_until'])) {
                         $next = $schedule;
@@ -441,7 +461,7 @@ class TransitMapController extends Controller
                 if ($departure->lt($now) || ($next !== null && ! $departure->lt($next['at']))) {
                     continue;
                 }
-                $next = ['at' => $departure, 'headsign' => $time->headsign, 'estimated' => $estimated];
+                $next = ['at' => $departure, 'headsign' => $time->headsign, 'estimated' => $estimated, 'trip_id' => $time->trip_id];
             }
         }
 
@@ -472,11 +492,12 @@ class TransitMapController extends Controller
                     if ($departure->lt($now) || ($next !== null && ! $departure->lt($next['at']))) {
                         continue;
                     }
-                $next = [
+                    $next = [
                         'at' => $departure,
                         'headsign' => $time->headsign,
-                    'estimated' => (int) $frequency->exact_times !== 1
-                        || isset($interpolatedSeconds[$time->trip_id . '|' . $time->stop_sequence]),
+                        'estimated' => (int) $frequency->exact_times !== 1
+                            || isset($interpolatedSeconds[$time->trip_id . '|' . $time->stop_sequence]),
+                        'trip_id' => $time->trip_id,
                     ];
                 }
             }
@@ -486,6 +507,8 @@ class TransitMapController extends Controller
             return response()->json(['departure' => null]);
         }
 
+        [$origin, $destination] = $this->tripEnds($feed, (string) $next['trip_id']);
+
         return response()->json([
             'departure' => [
                 'time' => $next['at']->format('H:i'),
@@ -493,12 +516,33 @@ class TransitMapController extends Controller
                 'headsign' => $next['headsign'],
                 'timezone' => $timezone,
                 'estimated' => $next['estimated'],
+                // Where the trip starts and ends, for the details card ("from X to Y").
+                'origin' => $origin,
+                'destination' => $destination,
             ],
         ]);
     }
 
+    /**
+     * Names of the first and last stop of a trip (null when unknown).
+     *
+     * @return array{0: ?string, 1: ?string}
+     */
+    private function tripEnds(int $feed, string $tripId): array
+    {
+        $ends = fn (string $direction): ?string => DB::table('transit_stop_times as st')
+            ->join('transit_stops as s', fn ($join) => $join->on('s.feed_id', '=', 'st.feed_id')->on('s.stop_id', '=', 'st.stop_id'))
+            ->where('st.feed_id', $feed)
+            ->where('st.trip_id', $tripId)
+            ->orderBy('st.stop_sequence', $direction)
+            ->value('s.name');
+
+        return [$ends('asc'), $ends('desc')];
+    }
+
     public function routeShape(Request $request, int $feed, string $route): JsonResponse
     {
+        $feed = $this->feedData->dataId($feed);
         $tripShapes = DB::table('transit_trips as t')
             ->where('t.feed_id', $feed)
             ->where('t.route_id', $route)

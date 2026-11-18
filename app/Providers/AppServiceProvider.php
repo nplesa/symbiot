@@ -17,6 +17,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(TrafficProvider::class, TomTomTrafficProvider::class);
+        // Per request/job: the public feed id => data feed id map must not outlive a GTFS switch in a long-running worker.
+        $this->app->scoped(\App\Transit\Services\FeedData::class);
     }
 
     public function boot(): void

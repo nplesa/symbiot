@@ -50,7 +50,7 @@ class FlightAwareProvider
         }
 
         // Versiune nouă pentru invalidarea cache-ului anterior.
-        $cacheKey = 'flightaware:airport-board:v3:'
+        $cacheKey = 'flightaware:airport-board:v4:'
             . $airport . ':'
             . now()->utc()->format('YmdH');
 
@@ -205,6 +205,26 @@ class FlightAwareProvider
     }
 
     /**
+     * Name and website of the flight's airline, from its IATA code (operator_iata, else the flight number prefix).
+     *
+     * @param  array<string, mixed>  $flight
+     * @return array{operator_name: ?string, operator_url: ?string}
+     */
+    private function airline(array $flight): array
+    {
+        $code = strtoupper(trim((string) ($flight['operator_iata'] ?? '')));
+        if (! preg_match('/^[A-Z0-9]{2}$/', $code) && preg_match('/^([A-Z0-9]{2})\d/', strtoupper((string) ($flight['ident_iata'] ?? '')), $m)) {
+            $code = $m[1];
+        }
+        $airline = preg_match('/^[A-Z0-9]{2}$/', $code) ? config('airlines.' . $code) : null;
+
+        return [
+            'operator_name' => is_array($airline) ? (string) $airline['name'] : null,
+            'operator_url' => is_array($airline) ? (string) $airline['url'] : null,
+        ];
+    }
+
+    /**
      * Normalizează datele unui zbor.
      *
      * @param  array<string, mixed>  $flight
@@ -264,6 +284,9 @@ class FlightAwareProvider
             'operator' => $flight['operator_iata']
                 ?? $flight['operator']
                 ?? null,
+
+            // The airline's own site (config/airlines.php), for buying tickets there.
+            ...$this->airline($flight),
 
             'origin' => $originCode,
             'origin_name' => $origin['name']

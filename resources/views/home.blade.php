@@ -328,11 +328,19 @@
             <div class="dashboard-stop-routes-list" id="dashboard-stop-routes-list"></div>
         </section>
 
+        {{-- Details of a train or flight picked from the list (filled by dashboard.js from trip-card.js). --}}
+        <section class="dashboard-trip-card" id="dashboard-trip-card" hidden aria-labelledby="dashboard-trip-title" tabindex="-1">
+            <button type="button" class="dashboard-trip-back" id="dashboard-trip-back"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> {{ __('Back to the list') }}</button>
+            <div id="dashboard-trip-body"></div>
+        </section>
+
         <section class="dashboard-route-details" id="dashboard-route-details" hidden>
+            <span class="dashboard-trip-mode" id="dashboard-route-mode"><i class="fa-solid fa-route" aria-hidden="true"></i><span>{{ __('Public transport') }}</span></span>
             <div class="dashboard-route-title-row">
                 <span class="dashboard-route-badge" id="dashboard-route-badge">—</span>
-                <div><span class="dashboard-eyebrow" id="dashboard-route-mode">{{ __('Public transport') }}</span><h2 id="dashboard-route-title">{{ __('Route') }}</h2><p id="dashboard-route-subtitle"></p></div>
+                <div><h2 id="dashboard-route-title">{{ __('Route') }}</h2><p id="dashboard-route-subtitle"></p></div>
             </div>
+            <div class="dashboard-trip-itinerary" id="dashboard-route-itinerary" hidden></div>
             <div class="dashboard-route-metrics">
                 <div><i class="fa-solid fa-route" aria-hidden="true"></i><span>{{ __('Distance') }}</span><strong id="dashboard-route-distance">—</strong></div>
                 <div><i class="fa-regular fa-clock" aria-hidden="true"></i><span>{{ __('Departure') }}</span><strong id="dashboard-route-departure">{{ __('Searching...') }}</strong></div>
@@ -347,6 +355,7 @@
                 <div class="dashboard-section-title"><h3>{{ __('Route on map') }}</h3><button type="button" id="dashboard-fit-route" aria-label="{{ __('Show the whole route') }}"><i class="fa-solid fa-expand" aria-hidden="true"></i></button></div>
                 <p id="dashboard-route-shape-status">{{ __('The selected line is highlighted on the map.') }}</p>
             </section>
+            <section class="dashboard-trip-tickets" id="dashboard-route-tickets" hidden aria-label="{{ __('Tickets') }}"></section>
             <a href="{{ route('app.trasee.index') }}" class="dashboard-routes-link"><i class="fa-solid fa-list" aria-hidden="true"></i> {{ __('Open my routes') }}</a>
         </section>
 

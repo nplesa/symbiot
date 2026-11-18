@@ -40,7 +40,7 @@ class RailBoardTest extends TestCase
             'mode' => 'HIGHSPEED_RAIL', 'realTime' => true, 'cancelled' => false, 'tripCancelled' => false,
             'displayName' => 'ICE 856', 'tripShortName' => '856', 'headsign' => 'Köln Hbf',
             'tripFrom' => ['name' => 'Berlin Ostbahnhof'], 'tripTo' => ['name' => 'Köln Hbf'],
-            'agencyName' => 'DB Fernverkehr AG',
+            'agencyName' => 'DB Fernverkehr AG', 'agencyUrl' => 'https://www.bahn.de',
         ], $overrides);
     }
 
@@ -89,7 +89,7 @@ class RailBoardTest extends TestCase
     {
         $this->fakeTransitous([
             $this->stopTime(),
-            $this->stopTime(['displayName' => 'RE3', 'tripShortName' => '3309', 'headsign' => 'Wittenberg', 'realTime' => false, 'cancelled' => true]),
+            $this->stopTime(['displayName' => 'RE3', 'tripShortName' => '3309', 'headsign' => 'Wittenberg', 'realTime' => false, 'cancelled' => true, 'agencyUrl' => 'javascript:alert(1)']),
         ]);
 
         $this->board(self::BERLIN + ['name' => 'Berlin Hbf'])
@@ -106,6 +106,8 @@ class RailBoardTest extends TestCase
             ->assertJsonPath('live.items.0.delay_minutes', 5)
             ->assertJsonPath('live.items.0.track', '8')
             ->assertJsonPath('live.items.0.operator', 'DB Fernverkehr AG')
+            ->assertJsonPath('live.items.0.operator_url', 'https://www.bahn.de')
+            ->assertJsonPath('live.items.1.operator_url', null)
             ->assertJsonPath('live.items.1.delay_minutes', null)
             ->assertJsonPath('live.items.1.cancelled', true)
             ->assertJsonPath('live_failed', false)

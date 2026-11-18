@@ -82,6 +82,44 @@ class TransitMapApiTest extends TestCase
             ->assertJsonPath('routes.0.route_type', 1);
     }
 
+    public function test_stop_routes_link_to_the_ticket_pages_of_their_operators(): void
+    {
+        $feed = $this->seedFeed();
+        DB::table('transit_agencies')->insert([
+            ['feed_id' => $feed->id, 'agency_id' => 'STB', 'name' => 'STB', 'url' => 'https://stb.test', 'fare_url' => 'https://stb.test/bilete'],
+            ['feed_id' => $feed->id, 'agency_id' => 'MET', 'name' => 'Metrorex', 'url' => 'https://metrorex.test', 'fare_url' => null],
+            ['feed_id' => $feed->id, 'agency_id' => 'BAD', 'name' => 'Bad', 'url' => 'javascript:alert(1)', 'fare_url' => null],
+        ]);
+        DB::table('transit_routes')->where('route_id', 'M1')->update(['agency_id' => 'MET']);
+        DB::table('transit_fare_media')->insert([
+            ['feed_id' => $feed->id, 'fare_media_id' => 'card', 'name' => 'Card bancar', 'type' => 3],
+            ['feed_id' => $feed->id, 'fare_media_id' => 'app', 'name' => '24pay', 'type' => 4],
+            ['feed_id' => $feed->id, 'fare_media_id' => 'paper', 'name' => 'Bilet hârtie', 'type' => 1],
+        ]);
+        $this->actingAs(User::factory()->create());
+
+        // Only the operator of the lines at this stop: its home page when the feed has no fare page.
+        $this->getJson("/api/transit/stops/{$feed->id}/A%2F1/routes")
+            ->assertOk()
+            ->assertJsonPath('tickets.operators', [['agency_id' => 'MET', 'name' => 'Metrorex', 'url' => 'https://metrorex.test', 'fare_page' => false]])
+            ->assertJsonPath('tickets.contactless', true)
+            ->assertJsonPath('tickets.apps', ['24pay']);
+
+        DB::table('transit_routes')->where('route_id', 'M1')->update(['agency_id' => 'STB']);
+        $this->getJson("/api/transit/stops/{$feed->id}/A%2F1/routes")
+            ->assertJsonPath('tickets.operators.0.url', 'https://stb.test/bilete')
+            ->assertJsonPath('tickets.operators.0.fare_page', true);
+    }
+
+    public function test_stop_routes_without_ticket_data_have_empty_tickets(): void
+    {
+        $feed = $this->seedFeed();
+
+        $this->actingAs(User::factory()->create())
+            ->getJson("/api/transit/stops/{$feed->id}/A%2F1/routes")
+            ->assertJsonPath('tickets', ['operators' => [], 'contactless' => false, 'apps' => []]);
+    }
+
     public function test_station_routes_include_the_lines_of_its_platforms(): void
     {
         $feed = $this->seedFeed();
@@ -118,6 +156,8 @@ class TransitMapApiTest extends TestCase
             'arrival_seconds' => 10 * 3600 + 30 * 60,
             'departure_seconds' => 10 * 3600 + 31 * 60,
         ]);
+        // t1 runs on from "Aproape" (A/1) to "Departe" (B): the trip ends of the details card.
+        DB::table('transit_stop_times')->insert(['feed_id' => $feed->id, 'trip_id' => 't1', 'stop_id' => 'B', 'stop_sequence' => 2, 'arrival_seconds' => 10 * 3600 + 40 * 60]);
 
         try {
             $this->actingAs(User::factory()->create())
@@ -126,7 +166,9 @@ class TransitMapApiTest extends TestCase
                 ->assertJsonPath('departure.time', '10:15')
                 ->assertJsonPath('departure.minutes_until', 15)
                 ->assertJsonPath('departure.headsign', 'Centru')
-                ->assertJsonPath('departure.timezone', 'UTC');
+                ->assertJsonPath('departure.timezone', 'UTC')
+                ->assertJsonPath('departure.origin', 'Aproape')
+                ->assertJsonPath('departure.destination', 'Departe');
         } finally {
             Carbon::setTestNow();
         }

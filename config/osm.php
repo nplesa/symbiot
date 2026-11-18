@@ -7,6 +7,10 @@ return [
         'https://overpass.private.coffee/api/interpreter',
         'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
     ],
+    // OpenStreetMap search; fallback for the aerodromes when every Overpass server is busy.
+    // Usage policy: at most 1 request/s, results cached (see OsmAerodromes).
+    'nominatim_url' => env('OSM_NOMINATIM_URL', 'https://nominatim.openstreetmap.org'),
+
     // Europe-only mirror; used first for European station lookups, then global mirrors.
     'overpass_europe_endpoint' => 'https://ovp.dresel.systems/api/interpreter',
 

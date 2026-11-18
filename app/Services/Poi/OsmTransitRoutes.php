@@ -314,6 +314,19 @@ class OsmTransitRoutes
                             : null,
                         'updated_at' => $route['timestamp'] ?? null,
                         'status' => $this->routeStatus($tags),
+                        // For the details card of the line (OSM has no timetable or ticket data).
+                        'mode' => $this->tag($tags, 'route'),
+                        'ref' => $routeRef,
+                        'name' => $this->tag($tags, 'name'),
+                        'from' => $this->tag($tags, 'from'),
+                        'to' => $this->tag($tags, 'to'),
+                        'operator' => $this->tag($tags, 'operator'),
+                        'network' => $this->tag($tags, 'network'),
+                        'interval' => $this->tag($tags, 'interval'),
+                        'opening_hours' => $this->tag($tags, 'opening_hours'),
+                        'website' => collect(['website', 'url', 'operator:website'])
+                            ->map(fn (string $key): ?string => $this->webUrl($this->tag($tags, $key)))
+                            ->first(fn (?string $url): bool => $url !== null),
                     ];
                 }
             }
@@ -530,6 +543,24 @@ class OsmTransitRoutes
                 ->all(),
             'available' => $available,
         ];
+    }
+
+    /** @param array<string, mixed> $tags */
+    private function tag(array $tags, string $key): ?string
+    {
+        $value = trim((string) ($tags[$key] ?? ''));
+
+        return $value !== '' ? $value : null;
+    }
+
+    /** OSM tags are user-edited: only plain http(s) links are passed on. */
+    private function webUrl(?string $url): ?string
+    {
+        if ($url === null || filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return null;
+        }
+
+        return in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true) ? $url : null;
     }
 
     /** @param array<string, mixed> $tags */

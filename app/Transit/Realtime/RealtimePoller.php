@@ -80,7 +80,9 @@ class RealtimePoller
      */
     private function enrich(TransitFeed $feed, array $vehicles): array
     {
-        $routes = DB::table('transit_routes')->where('feed_id', $feed->id)
+        // The routes/trips of the data currently served for this feed (see FeedData).
+        $dataFeedId = (int) ($feed->data_feed_id ?? $feed->id);
+        $routes = DB::table('transit_routes')->where('feed_id', $dataFeedId)
             ->get(['route_id', 'short_name', 'long_name', 'route_type', 'color', 'text_color'])
             ->keyBy('route_id');
 
@@ -89,7 +91,7 @@ class RealtimePoller
             $vehicles,
         )));
         $tripRoutes = $needsTrip === [] ? collect() : DB::table('transit_trips')
-            ->where('feed_id', $feed->id)->whereIn('trip_id', $needsTrip)->pluck('route_id', 'trip_id');
+            ->where('feed_id', $dataFeedId)->whereIn('trip_id', $needsTrip)->pluck('route_id', 'trip_id');
 
         return array_map(function (array $v) use ($feed, $routes, $tripRoutes): array {
             $routeId = $v['route_id'] ?? ($v['trip_id'] !== null ? $tripRoutes[$v['trip_id']] ?? null : null);
