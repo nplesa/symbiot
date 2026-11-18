@@ -14,6 +14,19 @@ export function createTripCardView({ stopRoutesPanel, routeDetails }) {
     const tripCardBody = document.getElementById('dashboard-trip-body');
     // The list row that opened the trip card: focus goes back to it.
     let tripCardTrigger = null;
+    // Latest next-departure text per line (OSM lines): the lookup starts with the line and answers later.
+    const departures = new Map();
+
+    window.addEventListener('symbiot:osm-route-departure', (event) => {
+        const { routeKey, text } = event.detail ?? {};
+        if (!routeKey || typeof text !== 'string') return;
+        departures.set(routeKey, text);
+        tripCard?.querySelectorAll('.dashboard-trip-departure').forEach((section) => {
+            if (section.dataset.routeKey !== routeKey) return;
+            const paragraph = section.querySelector('p');
+            if (paragraph) paragraph.textContent = text;
+        });
+    });
 
     const renderModeChip = (element, mode) => {
         if (!element) return;
@@ -27,7 +40,8 @@ export function createTripCardView({ stopRoutesPanel, routeDetails }) {
         element.replaceChildren(icon, label);
     };
 
-    const renderItinerary = (container, from, to) => {
+    /** From → to; for a line listed for both directions, its two ends (⇄) without a direction. */
+    const renderItinerary = (container, from, to, bidirectional = false) => {
         if (!container) return;
         container.replaceChildren();
         container.hidden = !from && !to;
@@ -43,9 +57,13 @@ export function createTripCardView({ stopRoutesPanel, routeDetails }) {
             return wrap;
         };
         const arrow = document.createElement('i');
-        arrow.className = 'fa-solid fa-arrow-right';
+        arrow.className = bidirectional ? 'fa-solid fa-arrows-left-right' : 'fa-solid fa-arrow-right';
         arrow.setAttribute('aria-hidden', 'true');
-        container.append(end(t('From'), from), arrow, end(t('To'), to));
+        container.append(
+            end(bidirectional ? t('Terminus') : t('From'), from),
+            arrow,
+            end(bidirectional ? t('Terminus') : t('To'), to),
+        );
     };
 
     /** Ticket links (third-party pages, new tab) and payment notes; the app never sells tickets. */
@@ -113,7 +131,7 @@ export function createTripCardView({ stopRoutesPanel, routeDetails }) {
 
         const itinerary = document.createElement('div');
         itinerary.className = 'dashboard-trip-itinerary';
-        renderItinerary(itinerary, model.from, model.to);
+        renderItinerary(itinerary, model.from, model.to, model.bidirectional);
 
         const parts = [mode, titleRow, itinerary];
         if (model.status) {
@@ -121,6 +139,22 @@ export function createTripCardView({ stopRoutesPanel, routeDetails }) {
             status.className = `dashboard-trip-status is-${model.status.state}`;
             status.textContent = model.status.text;
             parts.push(status);
+        }
+        if (model.departure) {
+            // Same look as the next departure of a GTFS line.
+            const section = document.createElement('section');
+            section.className = 'dashboard-next-trip dashboard-trip-departure';
+            section.dataset.routeKey = model.departure.routeKey ?? '';
+            section.setAttribute('aria-live', 'polite');
+            const heading = document.createElement('h3');
+            const icon = document.createElement('i');
+            icon.className = 'fa-solid fa-clock';
+            icon.setAttribute('aria-hidden', 'true');
+            heading.append(icon, ` ${t('Next departure')}`);
+            const text = document.createElement('p');
+            text.textContent = departures.get(model.departure.routeKey) ?? model.departure.text;
+            section.append(heading, text);
+            parts.push(section);
         }
         if (model.rows.length > 0) {
             const facts = document.createElement('dl');

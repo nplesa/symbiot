@@ -12,6 +12,7 @@ use DateTimeZone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class TransitMapController extends Controller
 {
@@ -162,6 +163,8 @@ class TransitMapController extends Controller
             'lon' => 'required|numeric|between:-180,180',
             'route_ref' => 'required|string|max:100',
             'mode' => 'nullable|in:subway',
+            // The end the chosen line runs to (OSM "to"): a train in that direction is preferred.
+            'towards' => 'nullable|string|max:150',
         ]);
         $lat = (float) $data['lat'];
         $lon = (float) $data['lon'];
@@ -228,19 +231,33 @@ class TransitMapController extends Controller
             ->sortBy('distance')
             ->values();
 
+        // The nearest stop with a departure; with "towards", the nearest one in that direction (a station
+        // often has one platform per direction), else the nearest in any direction.
+        $fallback = null;
         foreach ($candidates as $candidate) {
-            $scheduleRequest = Request::create('/', 'GET', ['route_id' => $candidate['route_id']]);
+            $scheduleRequest = Request::create('/', 'GET', array_filter([
+                'route_id' => $candidate['route_id'],
+                'towards' => $data['towards'] ?? null,
+            ]));
             $candidateFeed = $publicIds[(int) $candidate['feed_id']] ?? (int) $candidate['feed_id'];
             $schedule = $this->nextDeparture($scheduleRequest, $candidateFeed, (string) $candidate['stop_id'])->getData(true);
             if ($schedule['departure'] === null) {
                 continue;
             }
 
-            return response()->json([
+            $found = [
                 'departure' => $schedule['departure'],
                 'stop_name' => $candidate['name'],
                 'distance_meters' => (int) round($candidate['distance']),
-            ]);
+            ];
+            if (($schedule['departure']['direction_matched'] ?? null) !== false) {
+                return response()->json($found);
+            }
+            $fallback ??= $found;
+        }
+
+        if ($fallback !== null) {
+            return response()->json($fallback);
         }
 
         return response()->json([
@@ -253,6 +270,7 @@ class TransitMapController extends Controller
     {
         $data = $request->validate([
             'route_id' => 'required|string|max:100',
+            'towards' => 'nullable|string|max:150',
         ]);
 
         $feedRecord = TransitFeed::query()->find($feed);
@@ -304,7 +322,10 @@ class TransitMapController extends Controller
 
                 $next = null;
                 foreach ($matchingStops as $candidate) {
-                    $scheduleRequest = Request::create('/', 'GET', ['route_id' => $candidate['route_id']]);
+                    $scheduleRequest = Request::create('/', 'GET', array_filter([
+                        'route_id' => $candidate['route_id'],
+                        'towards' => $data['towards'] ?? null,
+                    ]));
                     $candidateFeed = $gtfsPublicIds[(int) $candidate['feed_id']] ?? (int) $candidate['feed_id'];
                     $schedule = $this->nextDeparture($scheduleRequest, $candidateFeed, (string) $candidate['stop_id'])->getData(true);
                     if ($schedule['departure'] !== null
@@ -383,6 +404,17 @@ class TransitMapController extends Controller
                 'st.departure_seconds',
                 'st.stop_sequence',
             ]);
+
+        // Only the trips running towards the chosen end, when some do (else every direction, flagged).
+        $directionMatched = null;
+        $towards = $this->placeKey($data['towards'] ?? null);
+        if ($towards !== '') {
+            $towardsTrips = $this->tripsTowards($feed, $times, $towards);
+            $directionMatched = $towardsTrips !== [];
+            if ($directionMatched) {
+                $times = $times->filter(fn ($time): bool => isset($towardsTrips[$time->trip_id]))->values();
+            }
+        }
 
         $timesByTrip = $times->groupBy('trip_id');
         $timepointsByTrip = collect();
@@ -512,15 +544,77 @@ class TransitMapController extends Controller
         return response()->json([
             'departure' => [
                 'time' => $next['at']->format('H:i'),
-                'minutes_until' => (int) ceil($now->diffInSeconds($next['at']) / 60),
+                // Whole clock minutes between now and the shown time, both cut to the minute: two trains shown
+                // at 15:58 always say the same "in N min" (and the same minute as now is "now").
+                'minutes_until' => max(0, intdiv($next['at']->getTimestamp(), 60) - intdiv($now->getTimestamp(), 60)),
                 'headsign' => $next['headsign'],
                 'timezone' => $timezone,
                 'estimated' => $next['estimated'],
                 // Where the trip starts and ends, for the details card ("from X to Y").
                 'origin' => $origin,
                 'destination' => $destination,
+                // Only when a direction was asked for: false = no trip runs towards it, this one runs elsewhere.
+                ...($directionMatched === null ? [] : ['direction_matched' => $directionMatched]),
             ],
         ]);
+    }
+
+    /**
+     * A place name to compare: lowercase, without diacritics, punctuation or repeated spaces.
+     */
+    private function placeKey(?string $name): string
+    {
+        $ascii = Str::lower(Str::ascii((string) $name));
+
+        return trim((string) preg_replace('/[^a-z0-9]+/', ' ', $ascii));
+    }
+
+    private function samePlace(string $a, string $b): bool
+    {
+        if ($a === '' || $b === '') {
+            return false;
+        }
+
+        return $a === $b
+            || (strlen($b) >= 3 && str_contains($a, $b))
+            || (strlen($a) >= 3 && str_contains($b, $a));
+    }
+
+    /**
+     * The trips (of the given stop times) that run towards the place: their headsign, else the name of
+     * their last stop, matches it.
+     *
+     * @param  \Illuminate\Support\Collection<int, \stdClass>  $times
+     * @return array<string, true>
+     */
+    private function tripsTowards(int $feed, \Illuminate\Support\Collection $times, string $towards): array
+    {
+        $matching = [];
+        $withoutHeadsign = [];
+        foreach ($times->unique('trip_id') as $time) {
+            $headsign = $this->placeKey($time->headsign ?? null);
+            if ($headsign === '') {
+                $withoutHeadsign[] = (string) $time->trip_id;
+            } elseif ($this->samePlace($headsign, $towards)) {
+                $matching[(string) $time->trip_id] = true;
+            }
+        }
+
+        foreach (array_chunk($withoutHeadsign, 500) as $tripIds) {
+            $lastStops = DB::table('transit_stop_times as st')
+                ->join('transit_stops as s', fn ($join) => $join->on('s.feed_id', '=', 'st.feed_id')->on('s.stop_id', '=', 'st.stop_id'))
+                ->where('st.feed_id', $feed)
+                ->whereIn('st.trip_id', $tripIds)
+                ->whereRaw('st.stop_sequence = (SELECT MAX(x.stop_sequence) FROM transit_stop_times x WHERE x.feed_id = st.feed_id AND x.trip_id = st.trip_id)')
+                ->get(['st.trip_id', 's.name']);
+            foreach ($lastStops as $lastStop) {
+                if ($this->samePlace($this->placeKey($lastStop->name), $towards)) {
+                    $matching[(string) $lastStop->trip_id] = true;
+                }
+            }
+        }
+
+        return $matching;
     }
 
     /**

@@ -125,8 +125,9 @@ test('OSM lines: mode from the route tag, else from the label of older payloads'
     assert.equal(osmMode({ label: 'Rută X' }), 'transit');
 });
 
-test('an OSM line card lists what the map knows, both directions and no timetable', () => {
+test('an OSM line card lists what the map knows, both directions and its next departure', () => {
     const card = osmRouteCard({
+        key: 'autobuz 5',
         label: 'Autobuz 5',
         routes: [
             { mode: 'bus', ref: '5', name: 'Bus 5', from: 'Triaj', to: 'Gară', direction: 'Triaj → Gară', operator: 'RATBV', network: 'RATBV', interval: '00:15', opening_hours: 'Mo-Su 05:00-23:00', website: 'https://ratbv.test', updated_at: '2026-05-01T10:00:00Z', status: 'listed_in_osm' },
@@ -140,7 +141,9 @@ test('an OSM line card lists what the map knows, both directions and no timetabl
     assert.equal(card.subtitle, 'RATBV');
     assert.equal(card.from, 'Triaj');
     assert.equal(card.to, 'Gară');
-    assert.equal(card.status.state, 'scheduled');
+    // No status line for an active line: the next departure section says what the timetable has.
+    assert.equal(card.status, null);
+    assert.deepEqual(card.departure, { routeKey: 'autobuz 5', text: 'Searching for the next departure…' });
     assert.equal(fact(card, 'Stop'), 'Livada Poștei');
     assert.equal(fact(card, 'Directions'), 'Triaj → Gară · Gară → Triaj');
     assert.equal(fact(card, 'Frequency'), '00:15');
@@ -156,4 +159,29 @@ test('an OSM line with only a label still gets a card; an inactive one is flagge
     assert.equal(card.status.state, 'late');
     assert.deepEqual(card.tickets, []);
     assert.equal(card.emptyTickets, 'OpenStreetMap does not list a ticket link for this line.');
+});
+
+test('an OSM line takes its ends from a variant that has both, else from its direction', () => {
+    const fromVariant = osmRouteCard({ key: 'm2', label: 'Metrou M2', routes: [
+        { mode: 'subway', ref: 'M2', to: 'Tudor Arghezi' },
+        { mode: 'subway', ref: 'M2', from: 'Pipera', to: 'Tudor Arghezi', direction: 'Pipera → Tudor Arghezi' },
+    ] }, 'Universitate');
+    assert.equal(fromVariant.from, 'Pipera');
+    assert.equal(fromVariant.to, 'Tudor Arghezi');
+
+    const fromDirection = osmRouteCard({ key: 'm2', label: 'Metrou M2', routes: [
+        { mode: 'subway', ref: 'M2', direction: 'Berceni → Pipera' },
+    ] }, 'Universitate');
+    assert.equal(fromDirection.from, 'Berceni');
+    assert.equal(fromDirection.to, 'Pipera');
+});
+
+test('a line listed for both directions shows its two ends without a direction', () => {
+    const card = osmRouteCard({ key: 'metrou m2', label: 'Metrou M2', routes: [
+        { mode: 'subway', ref: 'M2', name: 'Magistrala 2 (Pipera → Tudor Arghezi)', to: 'Tudor Arghezi' },
+        { mode: 'subway', ref: 'M2', from: 'Tudor Arghezi', to: 'Pipera', direction: 'Tudor Arghezi → Pipera' },
+    ] }, 'Universitate');
+
+    assert.equal(card.bidirectional, true);
+    assert.deepEqual([card.from, card.to], ['Tudor Arghezi', 'Pipera']);
 });

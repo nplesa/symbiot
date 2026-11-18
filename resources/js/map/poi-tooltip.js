@@ -582,21 +582,55 @@ export async function loadBusArrival(feature, group, statusElement) {
     const coordinates = feature.get('coordinates') || {};
     const mode = feature.get('type') === 'subway' ? 'subway' : 'bus';
     const routeRef = group.label.replace(/^(Autobuz|Troleibuz|Metrou)\s+/i, '').trim();
-    statusElement.textContent = t('Searching for the next departure…');
+    // The text is shown only in the line's details card (this event); the status element under the line in
+    // the stop list just tells which line the latest lookup is for, so an older answer is dropped.
+    const show = (text) => {
+        window.dispatchEvent(new CustomEvent('symbiot:osm-route-departure', { detail: { routeKey: group.key, text } }));
+    };
     statusElement.dataset.routeKey = group.key;
-    statusElement.hidden = false;
+    show(t('Searching for the next departure…'));
 
-    try {
+    const lookup = (towards = null) => {
         const params = new URLSearchParams({
             lat: String(coordinates.lat),
             lon: String(coordinates.lon),
             route_ref: routeRef,
         });
         if (mode === 'subway') params.set('mode', mode);
-        const result = await fetchJson(`/api/transit/stops/nearest-next-departure?${params}`);
+        if (towards) params.set('towards', towards);
+        return fetchJson(`/api/transit/stops/nearest-next-departure?${params}`);
+    };
+    const countdownOf = (departure) => (departure.minutes_until === 0 ? t('now') : t('in :minutes min', { minutes: departure.minutes_until }));
+
+    try {
+        // The ends the line's OSM variants run to: one (a direction was picked) or both directions.
+        const ends = [...new Set(group.routes.map((route) => route.to).filter(Boolean))];
+
+        if (ends.length >= 2) {
+            // Both directions in one line of the list: the next train towards each end.
+            const results = await Promise.all(ends.slice(0, 2).map((end) => lookup(end)
+                .then((result) => ({ end, result }))
+                .catch(() => ({ end, result: null }))));
+            if (statusElement.dataset.routeKey !== group.key) return;
+            if (results.every(({ result }) => result === null)) throw new Error('timetable');
+
+            const found = results.filter(({ result }) => result?.departure && result.departure.direction_matched !== false);
+            if (found.length > 0) {
+                show([
+                    t('Next departures on :route · GTFS timetable', { route: routeRef }),
+                    ...results.map(({ end, result }) => (result?.departure && result.departure.direction_matched !== false
+                        ? t('Towards :place: :time (:countdown)', { place: end, time: result.departure.time, countdown: countdownOf(result.departure) })
+                        : t('Towards :place: no departure found', { place: end }))),
+                ].join('\n'));
+                return;
+            }
+            // No train matched either end: the plain answer below (the first lookup's).
+        }
+
+        const result = await lookup(ends.length === 1 ? ends[0] : null);
         if (statusElement.dataset.routeKey !== group.key) return;
         if (!result.departure) {
-            statusElement.textContent = result.reason === 'no_upcoming_departure'
+            show(result.reason === 'no_upcoming_departure'
                 ? t('There are no departures scheduled in the next few days.')
                 : result.reason === 'feed_importing'
                     ? t('The city timetable is being prepared. Try again in a few moments.')
@@ -604,19 +638,24 @@ export async function loadBusArrival(feature, group, statusElement) {
                     ? t('Downloading the timetable for the selected city failed. Try again later.')
                     : result.reason === 'no_schedule_feed'
                         ? t('There is no GTFS timetable available for this area.')
-                        : t('No timetable found for this line at the selected stop.');
+                        : t('No timetable found for this line at the selected stop.'));
             return;
         }
 
         const departure = result.departure;
-        const countdown = departure.minutes_until === 0 ? t('now') : t('in :minutes min', { minutes: departure.minutes_until });
+        const countdown = countdownOf(departure);
         const modeLabel = mode === 'subway' ? t('metro train') : t('bus');
-        statusElement.textContent = departure.headsign
-            ? t('Next :mode on :route: :time (:countdown) towards :headsign · GTFS timetable', { mode: modeLabel, route: routeRef, time: departure.time, countdown, headsign: departure.headsign })
+        // Feeds without headsigns still name where the trip ends.
+        const headsign = departure.headsign || departure.destination;
+        const text = headsign
+            ? t('Next :mode on :route: :time (:countdown) towards :headsign · GTFS timetable', { mode: modeLabel, route: routeRef, time: departure.time, countdown, headsign })
             : t('Next :mode on :route: :time (:countdown) · GTFS timetable', { mode: modeLabel, route: routeRef, time: departure.time, countdown });
+        show(departure.direction_matched === false && ends.length === 1
+            ? `${t('No departure towards :place.', { place: ends[0] })} ${text}`
+            : text);
     } catch {
         if (statusElement.dataset.routeKey === group.key) {
-            statusElement.textContent = t('The timetable could not be loaded.');
+            show(t('The timetable could not be loaded.'));
         }
     }
 }

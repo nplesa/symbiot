@@ -748,7 +748,6 @@
     "Directions": "Direzioni",
     "Frequency": "Frequenza",
     "Last updated": "Ultimo aggiornamento",
-    "No timetable: the line is known from OpenStreetMap.": "Nessun orario: la linea è nota da OpenStreetMap.",
     "OpenStreetMap does not list a ticket link for this line.": "OpenStreetMap non indica un link per i biglietti di questa linea.",
     "Operating hours": "Orario di servizio",
     "Stop": "Fermata",
@@ -757,5 +756,10 @@
     "The route has :count points; the limit is :max. Split it into smaller routes or ask the administrator to raise the limit.": "Il percorso ha :count punti; il limite è :max. Dividilo in percorsi più piccoli o chiedi all'amministratore di aumentare il limite.",
     "Route import progress": "Avanzamento dell'importazione del percorso",
     "Uploading the file: :percent% · :time": "Caricamento del file: :percent% · :time",
-    "Importing the route… :time": "Importazione del percorso… :time"
+    "Importing the route… :time": "Importazione del percorso… :time",
+    "No departure towards :place.": "Nessuna partenza verso :place.",
+    "Next departures on :route · GTFS timetable": "Prossime partenze sulla :route · orario GTFS",
+    "Towards :place: :time (:countdown)": "Verso :place: :time (:countdown)",
+    "Towards :place: no departure found": "Verso :place: nessuna partenza trovata",
+    "Terminus": "Capolinea"
 }

@@ -52,7 +52,7 @@ Route::name('app.')->middleware(['auth', 'approved'])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
     Route::post('/location/update', [LocationController::class, 'update'])->name('location.update');
     Route::get('/api/location/city', CityLocationController::class)->middleware('throttle:30,1')->name('api.location.city');
-    Route::get('/api/location/city-boundary', CityBoundaryController::class)->middleware('throttle:10,1')->name('api.location.city-boundary');
+    Route::get('/api/location/city-boundary', CityBoundaryController::class)->middleware('throttle:120,1')->name('api.location.city-boundary');
     Route::get('/api/transport/airport/{airport}/flights', AirportFlightsController::class)
         ->where('airport', '[A-Za-z0-9]{3,4}')
         ->middleware('throttle:30,1')->name('api.transport.airport.flights');

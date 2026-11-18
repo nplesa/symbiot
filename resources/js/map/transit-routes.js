@@ -176,8 +176,9 @@ window.addEventListener('symbiot:osm-route-toggle', (event) => {
     button.querySelector('.dashboard-stop-route-badge')?.style.setProperty('--transit-route-color', getTransitRouteColor(group.key, transitRouteColors));
     button.querySelector('.dashboard-stop-route-badge')?.style.setProperty('background-color', getTransitRouteColor(group.key, transitRouteColors));
     checkbox.checked = true;
-    status.textContent = t('Loading route…');
-    status.hidden = false;
+    // Nothing under the line while it loads: the next departure is shown in the line's details card;
+    // only a missing route geometry is reported here.
+    status.hidden = true;
     window.dispatchEvent(new CustomEvent('symbiot:osm-route-state', {
         detail: { routeKey: group.key, selected: true, color: getTransitRouteColor(group.key, transitRouteColors) },
     }));

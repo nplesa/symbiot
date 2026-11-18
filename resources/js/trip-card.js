@@ -18,6 +18,7 @@ import { delayStatus, trainLabel } from './rail-board.js';
  *   from: string|null, to: string|null,
  *   status: {text: string, state: string}|null,
  *   rows: CardRow[], tickets: CardTicket[], notes: string[], emptyTickets: string,
+ *   departure: {routeKey: string|null, text: string}|null, bidirectional: boolean,
  * }} TripCard
  */
 
@@ -117,6 +118,8 @@ function card(mode, fields) {
         from: null,
         to: null,
         status: null,
+        departure: null,
+        bidirectional: false,
         notes: [],
         tickets: [],
         emptyTickets: t('No ticket link is published for this trip.'),
@@ -264,6 +267,16 @@ export function osmRouteCard(group, stopName) {
     const pick = (key) => routes.map((route) => route[key]).find((value) => typeof value === 'string' && value.trim() !== '') ?? null;
     const ref = pick('ref') || String(group?.label ?? '').replace(/^\S+\s+/, '') || t('Line');
     const directions = [...new Set(routes.map((route) => route.direction).filter(Boolean))];
+    const complete = routes.find((route) => route.from && route.to);
+    const [directionFrom, directionTo] = String(directions[0] ?? '').split('→').map((part) => part.trim());
+    // Variants running to different ends: the line is listed for both directions at this stop.
+    const terminals = [...new Set(routes.map((route) => route.to).filter(Boolean))];
+    const bidirectional = terminals.length >= 2;
+    const ends = bidirectional
+        ? { from: terminals[0], to: terminals[1] }
+        : complete
+            ? { from: complete.from, to: complete.to }
+            : { from: first.from ?? (directionFrom || null), to: first.to ?? (directionTo || null) };
     const updated = routes.map((route) => route.updated_at).filter(Boolean).sort().pop() ?? null;
     const inactive = routes.some((route) => route.status === 'possibly_inactive');
     const website = pick('website');
@@ -274,11 +287,17 @@ export function osmRouteCard(group, stopName) {
         badge: ref,
         title: t('Line :line', { line: ref }),
         subtitle: [operator, pick('network')].filter(Boolean).filter((value, index, all) => all.indexOf(value) === index).join(' · '),
-        from: first.from ?? null,
-        to: first.to ?? null,
+        // Both directions: the two ends (no direction implied). One direction: from a variant that has
+        // both tags, else from its "A → B" direction.
+        from: ends.from,
+        to: ends.to,
+        bidirectional,
         status: inactive
             ? { text: t('The line may no longer run (marked so in OpenStreetMap).'), state: 'late' }
-            : { text: t('No timetable: the line is known from OpenStreetMap.'), state: 'scheduled' },
+            : null,
+        // The next departure at this stop, from the city's GTFS timetable when there is one (metro, buses):
+        // filled in by the 'symbiot:osm-route-departure' event of the lookup started with the line.
+        departure: { routeKey: group?.key ?? null, text: t('Searching for the next departure…') },
         rows: [
             row(t('Stop'), stopName),
             row(t('Route name'), pick('name')),

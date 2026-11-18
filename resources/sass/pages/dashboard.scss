@@ -562,7 +562,9 @@
 .dashboard-stop-route-copy strong { overflow: hidden; color: var(--dashboard-ink); font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }
 .dashboard-stop-route-copy small { color: var(--dashboard-muted); font-size: .7rem; }
 .dashboard-stop-route-option > i { color: var(--dashboard-muted); font-size: .75rem; }
-.dashboard-stop-route-status { padding: 0 .75rem .35rem; color: var(--dashboard-muted); font-size: .72rem; }
+.dashboard-stop-route-status { padding: 0 .75rem .35rem; color: var(--dashboard-muted); font-size: .72rem;; white-space: pre-line; }
+/* The next departure of an OSM line: one line per direction. */
+.dashboard-trip-departure p { white-space: pre-line; }
 .dashboard-stop-routes-empty { margin: 0; padding: .8rem; border-radius: 8px; background: var(--dashboard-hover-bg); color: var(--dashboard-muted); font-size: .82rem; }
 
 /* Live station board (departures / arrivals) */

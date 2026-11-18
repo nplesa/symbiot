@@ -748,7 +748,6 @@
     "Directions": "Sensuri",
     "Frequency": "Frecvență",
     "Last updated": "Actualizat ultima dată",
-    "No timetable: the line is known from OpenStreetMap.": "Fără orar: linia este cunoscută din OpenStreetMap.",
     "OpenStreetMap does not list a ticket link for this line.": "OpenStreetMap nu are un link de bilete pentru această linie.",
     "Operating hours": "Program de funcționare",
     "Stop": "Stația",
@@ -757,5 +756,10 @@
     "The route has :count points; the limit is :max. Split it into smaller routes or ask the administrator to raise the limit.": "Traseul are :count de puncte, iar limita este de :max. Împarte-l în trasee mai mici sau cere administratorului mărirea limitei.",
     "Route import progress": "Progresul importului traseului",
     "Uploading the file: :percent% · :time": "Se încarcă fișierul: :percent% · :time",
-    "Importing the route… :time": "Se importă traseul… :time"
+    "Importing the route… :time": "Se importă traseul… :time",
+    "No departure towards :place.": "Nicio plecare spre :place.",
+    "Next departures on :route · GTFS timetable": "Următoarele plecări pe :route · orar GTFS",
+    "Towards :place: :time (:countdown)": "Spre :place: :time (:countdown)",
+    "Towards :place: no departure found": "Spre :place: nicio plecare găsită",
+    "Terminus": "Capăt de linie"
 }

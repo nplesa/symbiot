@@ -345,6 +345,107 @@ class TransitMapApiTest extends TestCase
         $this->assertMatchesRegularExpression('/order by .*s\.lat - \?.*limit 10/s', $candidateQueries[0]);
     }
 
+    /** M1 at one station: towards Pantelimon at 10:05, towards Dristor 2 at 10:10 (headsign) and 10:20 (no headsign). */
+    private function seedTwoDirections(): TransitFeed
+    {
+        $feed = $this->seedStopLine(1);
+        DB::table('transit_stops')->insert([
+            ['feed_id' => $feed->id, 'stop_id' => 'EAST', 'name' => 'Dristor 2', 'lat' => 45.01, 'lon' => 26.01, 'location_type' => 0],
+            ['feed_id' => $feed->id, 'stop_id' => 'WEST', 'name' => 'Pantelimon', 'lat' => 44.99, 'lon' => 25.99, 'location_type' => 0],
+        ]);
+        DB::table('transit_agencies')->insert(['feed_id' => $feed->id, 'agency_id' => 'a', 'name' => 'Metrorex', 'timezone' => 'UTC']);
+        DB::table('transit_calendars')->insert([
+            'feed_id' => $feed->id, 'service_id' => 's', 'days_mask' => 127, 'start_date' => '2026-10-01', 'end_date' => '2026-10-10',
+        ]);
+        DB::table('transit_routes')->insert(['feed_id' => $feed->id, 'route_id' => 'M1', 'short_name' => 'M1', 'route_type' => 1]);
+        DB::table('transit_trips')->insert([
+            ['feed_id' => $feed->id, 'trip_id' => 'west', 'route_id' => 'M1', 'service_id' => 's', 'direction_id' => 1, 'headsign' => 'Pantelimon'],
+            ['feed_id' => $feed->id, 'trip_id' => 'east', 'route_id' => 'M1', 'service_id' => 's', 'direction_id' => 0, 'headsign' => 'Dristor 2'],
+            ['feed_id' => $feed->id, 'trip_id' => 'east-late', 'route_id' => 'M1', 'service_id' => 's', 'direction_id' => 0, 'headsign' => null],
+        ]);
+        $at = fn (int $minutes): int => 10 * 3600 + $minutes * 60;
+        DB::table('transit_stop_times')->insert([
+            ['feed_id' => $feed->id, 'trip_id' => 'west', 'stop_id' => 'S0', 'stop_sequence' => 1, 'arrival_seconds' => $at(5), 'departure_seconds' => $at(5)],
+            ['feed_id' => $feed->id, 'trip_id' => 'west', 'stop_id' => 'WEST', 'stop_sequence' => 2, 'arrival_seconds' => $at(15), 'departure_seconds' => $at(15)],
+            ['feed_id' => $feed->id, 'trip_id' => 'east', 'stop_id' => 'S0', 'stop_sequence' => 1, 'arrival_seconds' => $at(10), 'departure_seconds' => $at(10)],
+            ['feed_id' => $feed->id, 'trip_id' => 'east', 'stop_id' => 'EAST', 'stop_sequence' => 2, 'arrival_seconds' => $at(18), 'departure_seconds' => $at(18)],
+            ['feed_id' => $feed->id, 'trip_id' => 'east-late', 'stop_id' => 'S0', 'stop_sequence' => 1, 'arrival_seconds' => $at(20), 'departure_seconds' => $at(20)],
+            ['feed_id' => $feed->id, 'trip_id' => 'east-late', 'stop_id' => 'EAST', 'stop_sequence' => 2, 'arrival_seconds' => $at(28), 'departure_seconds' => $at(28)],
+        ]);
+
+        return $feed;
+    }
+
+    public function test_nearest_departure_runs_towards_the_chosen_end(): void
+    {
+        $this->seedTwoDirections();
+        Carbon::setTestNow('2026-10-05 10:00:00');
+        $this->actingAs(User::factory()->create());
+        $nearest = fn (array $query) => $this->getJson('/api/transit/stops/nearest-next-departure?' . http_build_query(['lat' => 45.0, 'lon' => 26.0, 'route_ref' => 'M1', 'mode' => 'subway', ...$query]));
+
+        try {
+            // Any direction: the first train, without a direction flag.
+            $nearest([])->assertOk()->assertJsonPath('departure.time', '10:05')->assertJsonMissingPath('departure.direction_matched');
+
+            // Towards Dristor 2, spelled differently from the feed ("dristor-2"): its train, not Pantelimon's.
+            $nearest(['towards' => 'dristor-2'])
+                ->assertJsonPath('departure.time', '10:10')
+                ->assertJsonPath('departure.headsign', 'Dristor 2')
+                ->assertJsonPath('departure.direction_matched', true);
+            $nearest(['towards' => 'Pantelimon'])->assertJsonPath('departure.time', '10:05');
+
+            // No train towards that end: the first train, flagged.
+            $nearest(['towards' => 'Pipera'])
+                ->assertJsonPath('departure.time', '10:05')
+                ->assertJsonPath('departure.direction_matched', false);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_trains_shown_at_the_same_minute_say_the_same_minutes_until(): void
+    {
+        $feed = $this->seedTwoDirections();
+        // Both shown as 10:05: one at 10:05:10, the other at 10:05:50.
+        DB::table('transit_stop_times')->where('feed_id', $feed->id)->where('stop_id', 'S0')->where('trip_id', 'east')
+            ->update(['arrival_seconds' => 10 * 3600 + 5 * 60 + 10, 'departure_seconds' => 10 * 3600 + 5 * 60 + 10]);
+        DB::table('transit_stop_times')->where('feed_id', $feed->id)->where('stop_id', 'S0')->where('trip_id', 'west')
+            ->update(['arrival_seconds' => 10 * 3600 + 5 * 60 + 50, 'departure_seconds' => 10 * 3600 + 5 * 60 + 50]);
+        Carbon::setTestNow('2026-10-05 10:03:10');
+        $this->actingAs(User::factory()->create());
+        $nearest = fn (string $towards) => $this->getJson('/api/transit/stops/nearest-next-departure?lat=45.0&lon=26.0&route_ref=M1&mode=subway&towards=' . urlencode($towards));
+
+        try {
+            // Rounding the seconds up gave "in 2 min" and "in 3 min" for the same shown time.
+            $nearest('Dristor 2')->assertJsonPath('departure.time', '10:05')->assertJsonPath('departure.minutes_until', 2);
+            $nearest('Pantelimon')->assertJsonPath('departure.time', '10:05')->assertJsonPath('departure.minutes_until', 2);
+
+            // In the shown minute itself: "now".
+            Carbon::setTestNow('2026-10-05 10:05:05');
+            $nearest('Dristor 2')->assertJsonPath('departure.time', '10:05')->assertJsonPath('departure.minutes_until', 0);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_a_trip_without_headsign_is_matched_by_its_last_stop(): void
+    {
+        $this->seedTwoDirections();
+        Carbon::setTestNow('2026-10-05 10:12:00');
+
+        try {
+            // After 10:10, the next one towards Dristor 2 is the trip without headsign (last stop: Dristor 2).
+            $this->actingAs(User::factory()->create())
+                ->getJson('/api/transit/stops/nearest-next-departure?lat=45.0&lon=26.0&route_ref=M1&mode=subway&towards=Dristor%202')
+                ->assertOk()
+                ->assertJsonPath('departure.time', '10:20')
+                ->assertJsonPath('departure.destination', 'Dristor 2')
+                ->assertJsonPath('departure.direction_matched', true);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
     public function test_nearest_metro_departure_interpolates_a_blank_intermediate_stop_time(): void
     {
         $feed = $this->seedFeed();
