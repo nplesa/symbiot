@@ -570,6 +570,8 @@
 .dashboard-stop-route-item { display: grid; gap: .2rem; }
 .dashboard-stop-route-option { display: flex; align-items: center; gap: .75rem; width: 100%; min-width: 0; padding: .65rem .75rem; border: 1px solid var(--dashboard-line); border-radius: 10px; background: var(--dashboard-item-bg); color: var(--dashboard-ink); text-align: left; cursor: pointer; }
 .dashboard-stop-route-option:hover,.dashboard-stop-route-option.is-selected { border-color: #8bb8fb; background: var(--dashboard-blue-soft); box-shadow: 0 3px 10px rgba(23, 105, 224, .08); }
+/* An almost white line colour: an outline keeps the badge visible on the white row. */
+.dashboard-stop-route-badge.is-light { box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .28); }
 .dashboard-stop-route-badge { display: grid; place-items: center; flex: 0 0 auto; min-width: 38px; max-width: 132px; height: 34px; padding: 0 .45rem; overflow: hidden; border-radius: 8px; background: var(--dashboard-blue); color: #fff; font-size: .74rem; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
 .dashboard-stop-route-copy { display: grid; flex: 1; min-width: 0; gap: .12rem; }
 .dashboard-stop-route-copy strong { overflow: hidden; color: var(--dashboard-ink); font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }

@@ -12,6 +12,7 @@ import Style from 'ol/style/Style.js';
 import { fetchJson, HttpError } from '../http.js';
 import { t } from '../i18n.js';
 import { assignTransitRouteColors, getTransitRouteColor } from './poi-map-interactions.js';
+import { paintLineBadge } from '../route-colors.js';
 import { loadBusArrival, updateMetroArrivalEstimate } from './poi-tooltip.js';
 import {
     activeTransitRoutes,
@@ -174,7 +175,7 @@ window.addEventListener('symbiot:osm-route-toggle', (event) => {
     checkbox._routeButton = button;
     button.classList.add('is-selected');
     button.querySelector('.dashboard-stop-route-badge')?.style.setProperty('--transit-route-color', getTransitRouteColor(group.key, transitRouteColors));
-    button.querySelector('.dashboard-stop-route-badge')?.style.setProperty('background-color', getTransitRouteColor(group.key, transitRouteColors));
+    paintLineBadge(button.querySelector('.dashboard-stop-route-badge'), getTransitRouteColor(group.key, transitRouteColors), null);
     checkbox.checked = true;
     // Nothing under the line while it loads: the next departure is shown in the line's details card;
     // only a missing route geometry is reported here.

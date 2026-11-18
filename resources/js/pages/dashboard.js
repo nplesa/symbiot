@@ -1,6 +1,7 @@
 import { notify } from '../notify.js';
 import { formatNumber, intlLocale, t } from '../i18n.js';
 import { haversineMeters } from '../geo.js';
+import { paintLineBadge } from '../route-colors.js';
 import { flightCard, gtfsMode, gtfsTickets, osmRouteCard } from '../trip-card.js';
 import { createRailBoardView } from '../dashboard/rail-board-view.js';
 import { createTripCardView } from '../dashboard/trip-card-view.js';
@@ -737,10 +738,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const routeModeLabel = (type) => ({
         0: t('Tram'), 1: t('Metro'), 2: t('Train'), 3: t('Bus'), 11: t('Trolleybus'),
     }[type] ?? (type >= 100 && type < 200 ? t('Train') : t('Public transport')));
-    const gtfsColor = (value, fallback) => {
-        const color = String(value ?? '').replace(/^#/, '');
-        return /^[0-9a-f]{6}$/i.test(color) ? `#${color}` : fallback;
-    };
     const routePresentation = (route) => {
         const shortName = String(route.short_name ?? '').trim();
         const longName = String(route.long_name ?? '').trim();
@@ -802,8 +799,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const presentation = routePresentation(route);
             badge.textContent = presentation.publicName;
             badge.title = presentation.publicName;
-            badge.style.backgroundColor = gtfsColor(route.color, '#1769e0');
-            badge.style.color = gtfsColor(route.text_color, '#ffffff');
+            paintLineBadge(badge, route.color, route.text_color, '#1769e0');
             const copy = document.createElement('span');
             copy.className = 'dashboard-stop-route-copy';
             const name = document.createElement('strong');
@@ -1044,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.detail?.routeKey) {
             const button = stopRoutesList?.querySelector(`[data-route-key="${CSS.escape(event.detail.routeKey)}"]`);
             button?.classList.toggle('is-selected', Boolean(event.detail.selected));
-            if (event.detail.color) button?.querySelector('.dashboard-stop-route-badge')?.style.setProperty('background-color', event.detail.color);
+            if (event.detail.color) paintLineBadge(button?.querySelector('.dashboard-stop-route-badge'), event.detail.color, null);
         }
     });
 

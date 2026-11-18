@@ -13,6 +13,7 @@ import { fromLonLat } from 'ol/proj.js';
 import { movedFarEnough } from '../vehicle-center.js';
 import { shouldReloadStops } from '../transit-follow.js';
 import { t } from '../i18n.js';
+import { isVeryLight, lineBadgeColors, normalizeHex } from '../route-colors.js';
 
 const ROUTE_PALETTE = ['#e6194b', '#3cb44b', '#0d6efd', '#f58231', '#911eb4', '#008080', '#f032e6', '#9a6324', '#800000', '#808000', '#000075', '#e6a800'];
 
@@ -90,18 +91,22 @@ export function createTransitLayer(map) {
         source: vehicleSource,
         zIndex: 42,
         minZoom: 11.5,
-        style: (feature) => new Style({
-            image: new CircleStyle({
-                radius: 11,
-                fill: new Fill({ color: feature.get('color') ? `#${feature.get('color')}` : '#dc3545' }),
-                stroke: new Stroke({ color: '#fff', width: 2 }),
-            }),
-            text: new Text({
-                text: String(feature.get('routeName') || ''),
-                font: 'bold 10px sans-serif',
-                fill: new Fill({ color: feature.get('textColor') ? `#${feature.get('textColor')}` : '#fff' }),
-            }),
-        }),
+        style: (feature) => {
+            // Readable route number; a white vehicle gets a dark ring instead of the white one.
+            const colors = lineBadgeColors(feature.get('color'), feature.get('textColor'), '#dc3545');
+            return new Style({
+                image: new CircleStyle({
+                    radius: 11,
+                    fill: new Fill({ color: colors.background }),
+                    stroke: new Stroke({ color: colors.light ? '#334155' : '#fff', width: 2 }),
+                }),
+                text: new Text({
+                    text: String(feature.get('routeName') || ''),
+                    font: 'bold 10px sans-serif',
+                    fill: new Fill({ color: colors.text }),
+                }),
+            });
+        },
     });
     [shapeLayer, stopLayer, vehicleLayer].forEach((layer) => {
         layer.setVisible(false);
@@ -116,9 +121,10 @@ export function createTransitLayer(map) {
         return `${feed}:${route.route_id}`;
     }
 
+    /** The line's colour on the map: the feed's, unless missing or almost white (not seen on the map). */
     function routeColor(route, key) {
-        const supplied = String(route.color ?? '').replace(/^#/, '');
-        if (/^[0-9a-f]{6}$/i.test(supplied)) return `#${supplied}`;
+        const supplied = normalizeHex(route.color);
+        if (supplied && !isVeryLight(supplied)) return supplied;
 
         let hash = 0;
         for (let index = 0; index < key.length; index++) {
