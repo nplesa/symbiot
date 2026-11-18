@@ -17,6 +17,10 @@ export function createTripCardView({ stopRoutesPanel, routeDetails }) {
     // Latest next-departure text per line (OSM lines): the lookup starts with the line and answers later.
     const departures = new Map();
 
+    // A new location: the departures of the previous one's lines are dropped.
+    window.addEventListener('symbiot:location-changing', () => departures.clear());
+    window.addEventListener('symbiot:location-set', () => departures.clear());
+
     window.addEventListener('symbiot:osm-route-departure', (event) => {
         const { routeKey, text } = event.detail ?? {};
         if (!routeKey || typeof text !== 'string') return;

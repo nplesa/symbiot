@@ -490,6 +490,10 @@ document.addEventListener('DOMContentLoaded', () => {
         stopRoutesList.replaceChildren();
         setText('dashboard-stop-routes-count', t('0 lines'));
         routeDetails.hidden = true;
+        // A new location: nothing of the previous one stays (the details card, the POI counters).
+        closeTripCard();
+        setText('dashboard-panel-poi-count', '0 POI');
+        setText('dashboard-poi-count', '0');
         routePanel.classList.remove('is-open', 'has-stop-selection');
         poiFiltersCard?.classList.add('d-none');
         routeEmpty.hidden = !changing;
