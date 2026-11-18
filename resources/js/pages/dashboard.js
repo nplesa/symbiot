@@ -668,7 +668,17 @@ document.addEventListener('DOMContentLoaded', () => {
         cityForm.requestSubmit();
     });
 
+    // "Explore Brașov" once a city is set; just "Explore" while changing and in GPS mode (no city name).
+    const setPanelTitle = (place = null, label = null) => {
+        const title = byId('dashboard-panel-title');
+        if (!title) return;
+        title.textContent = place ? t('Explore :place', { place }) : t('Explore');
+        if (label) title.title = label;
+        else title.removeAttribute('title');
+    };
+
     window.addEventListener('symbiot:location-set', (event) => {
+        setPanelTitle(event.detail?.place ?? null, event.detail?.label ?? null);
         searchStatus.textContent = t('Map centered on :place.', { place: event.detail?.label ?? t('the selected locality') });
         resetDashboardLocationState();
     });
@@ -677,6 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setPoiAccordionOpen(true);
     });
     window.addEventListener('symbiot:location-changing', (event) => {
+        setPanelTitle();
         resetDashboardLocationState(true);
         if (searchInput) searchInput.value = '';
         searchSelect?.replaceChildren(new Option(t('Choose locality'), ''));

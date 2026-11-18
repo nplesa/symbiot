@@ -255,14 +255,22 @@
         </div>
 
         <section class="dashboard-weather d-none" id="dashboard-weather" data-url="{{ route('app.api.weather.forecast') }}" aria-labelledby="dashboard-weather-title" aria-live="polite">
-            <div class="dashboard-weather-heading">
-                <h2 id="dashboard-weather-title"><i class="fa-solid fa-cloud-sun" aria-hidden="true"></i> {{ __('Weather forecast') }}</h2>
-                <span>{{ __('3 days') }}</span>
+            {{-- Collapsed by default: the heading shows the current temperature; weather.js remembers the choice. --}}
+            <h2 class="dashboard-weather-heading" id="dashboard-weather-title">
+                <button type="button" class="dashboard-weather-toggle" id="dashboard-weather-toggle" aria-expanded="false" aria-controls="dashboard-weather-body">
+                    <i class="fa-solid fa-cloud-sun" aria-hidden="true"></i>
+                    <span class="dashboard-weather-name">{{ __('Weather forecast') }}</span>
+                    <span class="dashboard-weather-summary" id="dashboard-weather-summary"></span>
+                    <span class="dashboard-weather-range">{{ __('3 days') }}</span>
+                    <i class="fa-solid fa-chevron-down dashboard-weather-chevron" aria-hidden="true"></i>
+                </button>
+            </h2>
+            <div class="dashboard-weather-body" id="dashboard-weather-body" hidden>
+                <div class="dashboard-weather-current" id="dashboard-weather-current"></div>
+                <p class="dashboard-weather-status" id="dashboard-weather-status" role="status">{{ __('Loading weather forecast…') }}</p>
+                <div class="dashboard-weather-days" id="dashboard-weather-days"></div>
+                <a class="dashboard-weather-attribution" href="https://www.weatherapi.com/" target="_blank" rel="noopener noreferrer">{{ __('Weather data by WeatherAPI.com') }}</a>
             </div>
-            <div class="dashboard-weather-current" id="dashboard-weather-current"></div>
-            <p class="dashboard-weather-status" id="dashboard-weather-status" role="status">{{ __('Loading weather forecast…') }}</p>
-            <div class="dashboard-weather-days" id="dashboard-weather-days"></div>
-            <a class="dashboard-weather-attribution" href="https://www.weatherapi.com/" target="_blank" rel="noopener noreferrer">{{ __('Weather data by WeatherAPI.com') }}</a>
         </section>
 
         <section class="dashboard-radius-control d-none" id="dashboard-radius-control" aria-labelledby="dashboard-radius-label">

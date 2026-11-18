@@ -187,6 +187,8 @@ export function bindCitySearch(page) {
             window.dispatchEvent(new CustomEvent('symbiot:location-set', {
                 detail: {
                     label: result.label || result.name || city,
+                    // The locality alone ("Brașov"), for the panel title.
+                    place: result.name || city,
                     lat: result.lat,
                     lon: result.lon,
                     deferPoiCategories: true,

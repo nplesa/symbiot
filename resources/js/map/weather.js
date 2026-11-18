@@ -5,6 +5,11 @@ const dashboardWeather = document.getElementById('dashboard-weather');
 const dashboardWeatherCurrent = document.getElementById('dashboard-weather-current');
 const dashboardWeatherStatus = document.getElementById('dashboard-weather-status');
 const dashboardWeatherDays = document.getElementById('dashboard-weather-days');
+const dashboardWeatherToggle = document.getElementById('dashboard-weather-toggle');
+const dashboardWeatherBody = document.getElementById('dashboard-weather-body');
+const dashboardWeatherSummary = document.getElementById('dashboard-weather-summary');
+// Collapsed unless the user opened it (remembered in this browser).
+const WEATHER_OPEN_KEY = 'symbiot-weather-open';
 let weatherRequestId = 0;
 let weatherRequestController = null;
 
@@ -17,12 +22,36 @@ function appendWeatherIcon(container, iconUrl, description) {
     container.appendChild(image);
 }
 
+function setWeatherOpen(open, remember = false) {
+    if (!dashboardWeather || !dashboardWeatherToggle || !dashboardWeatherBody) return;
+    dashboardWeather.classList.toggle('is-open', open);
+    dashboardWeatherToggle.setAttribute('aria-expanded', String(open));
+    dashboardWeatherBody.hidden = !open;
+    if (remember) {
+        try { localStorage.setItem(WEATHER_OPEN_KEY, open ? '1' : '0'); } catch { /* the choice is just not kept */ }
+    }
+}
+
+let weatherOpen = false;
+try { weatherOpen = localStorage.getItem(WEATHER_OPEN_KEY) === '1'; } catch { /* collapsed */ }
+setWeatherOpen(weatherOpen);
+dashboardWeatherToggle?.addEventListener('click', () => {
+    setWeatherOpen(dashboardWeatherToggle.getAttribute('aria-expanded') !== 'true', true);
+});
+
 function renderWeatherForecast(data) {
     if (!dashboardWeatherCurrent || !dashboardWeatherDays) return;
     dashboardWeatherCurrent.replaceChildren();
     dashboardWeatherDays.replaceChildren();
 
     const current = data.current ?? {};
+    if (dashboardWeatherSummary) {
+        const hasTemperature = current.temperature_c !== null && current.temperature_c !== undefined && Number.isFinite(Number(current.temperature_c));
+        dashboardWeatherSummary.textContent = [
+            hasTemperature ? `${formatNumber(Math.round(Number(current.temperature_c)))}°` : null,
+            current.condition || null,
+        ].filter(Boolean).join(' ');
+    }
     appendWeatherIcon(dashboardWeatherCurrent, current.icon, current.condition);
     if (current.temperature_c !== null && current.temperature_c !== undefined && Number.isFinite(Number(current.temperature_c))) {
         const temperature = document.createElement('strong');
@@ -81,6 +110,7 @@ export async function loadWeatherForecast(lat, lon) {
     dashboardWeather.classList.remove('d-none');
     dashboardWeatherCurrent?.replaceChildren();
     dashboardWeatherDays?.replaceChildren();
+    if (dashboardWeatherSummary) dashboardWeatherSummary.textContent = '…';
     if (dashboardWeatherStatus) dashboardWeatherStatus.textContent = t('Loading weather forecast…');
 
     try {
@@ -95,6 +125,7 @@ export async function loadWeatherForecast(lat, lon) {
         if (dashboardWeatherStatus) dashboardWeatherStatus.textContent = forecast.days?.length ? '' : t('Weather forecast unavailable.');
     } catch (error) {
         if (error.name === 'AbortError' || requestId !== weatherRequestId) return;
+        if (dashboardWeatherSummary) dashboardWeatherSummary.textContent = '';
         if (dashboardWeatherStatus) dashboardWeatherStatus.textContent = t('Weather forecast unavailable.');
     }
 }

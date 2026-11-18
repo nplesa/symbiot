@@ -378,10 +378,18 @@
     background: var(--dashboard-panel-bg);
     color: var(--dashboard-ink);
 }
-.dashboard-weather-heading { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-.dashboard-weather-heading h2 { display: flex; align-items: center; gap: .45rem; margin: 0; font-size: .84rem; font-weight: 800; }
-.dashboard-weather-heading h2 i { color: var(--dashboard-blue); }
-.dashboard-weather-heading > span { color: var(--dashboard-muted); font-size: .7rem; }
+.dashboard-weather-heading { margin: 0; font-size: .84rem; font-weight: 800; }
+.dashboard-weather-toggle { display: flex; align-items: center; gap: .45rem; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.dashboard-weather-toggle:focus-visible { outline: 2px solid var(--dashboard-blue); outline-offset: 3px; border-radius: 6px; }
+.dashboard-weather-toggle > .fa-cloud-sun { color: var(--dashboard-blue); }
+.dashboard-weather-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Collapsed: the current temperature next to the title; open: "3 days". */
+.dashboard-weather-summary { margin-left: auto; color: var(--dashboard-muted); font-size: .74rem; font-weight: 650; white-space: nowrap; }
+.dashboard-weather-range { display: none; margin-left: auto; color: var(--dashboard-muted); font-size: .7rem; font-weight: 500; }
+.dashboard-weather-chevron { flex: 0 0 auto; font-size: .8rem; transition: transform .2s ease; }
+.dashboard-weather.is-open .dashboard-weather-summary { display: none; }
+.dashboard-weather.is-open .dashboard-weather-range { display: inline; }
+.dashboard-weather.is-open .dashboard-weather-chevron { transform: rotate(180deg); }
 .dashboard-weather-current { display: flex; align-items: center; gap: .45rem; min-height: 38px; margin-top: .35rem; }
 .dashboard-weather-current img { width: 36px; height: 36px; }
 .dashboard-weather-current strong { color: var(--dashboard-ink); font-size: 1.35rem; line-height: 1; }
@@ -715,6 +723,13 @@
 .dashboard-route-panel .dashboard-poi-disclosure .accordion-button { display: flex; gap: .65rem; padding: .8rem .9rem; background: var(--dashboard-panel-bg); color: var(--dashboard-ink); font-size: .82rem; font-weight: 750; box-shadow: none; }
 .dashboard-route-panel .dashboard-poi-disclosure .accordion-button:not(.collapsed) { background: var(--dashboard-panel-bg); color: var(--dashboard-ink); }
 .dashboard-route-panel .dashboard-poi-disclosure .accordion-button::after { margin-left: auto; }
+/* Dark theme: the open/closed arrow takes the button's text colour (Bootstrap's icon is a dark SVG). */
+.symbiot-shell[data-theme="dark"] .dashboard-route-panel .dashboard-poi-disclosure .accordion-button::after {
+    background-image: none;
+    background-color: currentColor;
+    -webkit-mask: var(--bs-accordion-btn-icon) center / var(--bs-accordion-btn-icon-width) no-repeat;
+    mask: var(--bs-accordion-btn-icon) center / var(--bs-accordion-btn-icon-width) no-repeat;
+}
 .dashboard-route-panel .dashboard-poi-disclosure .accordion-body { padding: .75rem; }
 .dashboard-route-panel .dashboard-poi-count { margin-left: auto; padding: .2rem .5rem; border-radius: 999px; background: var(--dashboard-blue-soft); color: var(--dashboard-blue); font-size: .68rem; }
 .dashboard-route-panel .dashboard-poi-disclosure .accordion-button.collapsed .dashboard-poi-count { display: none; }
@@ -1239,8 +1254,16 @@
 }
 .middle-heading {
     width: 100%;
+    min-width: 0;
     position: relative;
     display: grid;
+}
+/* "Explore <city>": a long name is cut with "…" instead of pushing the POI counter out. */
+#dashboard-panel-title {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .dashboard-search-status {
