@@ -18,7 +18,7 @@ class PlannedRouteController extends Controller
                 'required',
                 'array',
                 'min:2',
-                'max:' . (int) config('tracking.planned_route_max_coordinates', 10000),
+                'max:' . (int) config('tracking.planned_route_max_coordinates', 50000),
             ],
             'coordinates.*' => ['required', 'array', 'size:2'],
             'coordinates.*.0' => ['required', 'numeric', 'between:-180,180'],
@@ -66,7 +66,9 @@ class PlannedRouteController extends Controller
                     'sequence' => $sequence,
                     'latitude' => $coordinate[1],
                     'longitude' => $coordinate[0],
-                    'tracked_at' => $now,
+                    // One second apart, in route order: a route that passes the same point twice (out and back)
+                    // must not hit the unique (session, tracked_at, latitude, longitude) index.
+                    'tracked_at' => $now->copy()->addSeconds($sequence),
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];

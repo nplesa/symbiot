@@ -1,5 +1,74 @@
 import { t } from '../i18n.js';
 
+// An import taking longer than this shows a progress bar: the real percentage while the file uploads,
+// then an animated bar with the elapsed time while the server processes the route (no percentage
+// exists for that step; it usually takes a couple of seconds).
+const PROGRESS_AFTER_MS = 20_000;
+
+function createImportProgress() {
+    let startedAt = 0;
+    let timer = null;
+    let phase = 'upload';
+    let percent = 0;
+
+    const elapsed = () => {
+        const seconds = Math.floor((performance.now() - startedAt) / 1000);
+        return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+    };
+    // The elements are looked up each time: Livewire may re-render the form around them.
+    const render = () => {
+        const box = document.getElementById('route-file-import-progress');
+        const bar = document.getElementById('route-file-import-progress-bar');
+        const text = document.getElementById('route-file-import-progress-text');
+        if (!box || !bar || timer === null || performance.now() - startedAt < PROGRESS_AFTER_MS) return;
+
+        box.hidden = false;
+        const progress = bar.parentElement;
+        if (phase === 'upload') {
+            bar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+            bar.style.width = `${percent}%`;
+            progress?.setAttribute('aria-valuenow', String(percent));
+            if (text) text.textContent = t('Uploading the file: :percent% · :time', { percent, time: elapsed() });
+        } else {
+            bar.classList.add('progress-bar-striped', 'progress-bar-animated');
+            bar.style.width = '100%';
+            progress?.removeAttribute('aria-valuenow');
+            if (text) text.textContent = t('Importing the route… :time', { time: elapsed() });
+        }
+    };
+
+    return {
+        start() {
+            window.clearInterval(timer);
+            startedAt = performance.now();
+            phase = 'upload';
+            percent = 0;
+            timer = window.setInterval(render, 500);
+        },
+        uploading(value) {
+            percent = value;
+            render();
+        },
+        importing() {
+            phase = 'import';
+            render();
+        },
+        stop() {
+            window.clearInterval(timer);
+            timer = null;
+            const box = document.getElementById('route-file-import-progress');
+            const bar = document.getElementById('route-file-import-progress-bar');
+            if (box) box.hidden = true;
+            if (bar) {
+                bar.style.width = '0%';
+                bar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+            }
+        },
+    };
+}
+
+const importProgress = createImportProgress();
+
 (() => {
     if (window.__routeFileImportBoundV4) return;
     window.__routeFileImportBoundV4 = true;
@@ -56,6 +125,7 @@ import { t } from '../i18n.js';
             window.__traseeRouteImportFailedDuringCall = false;
             if (button) button.disabled = true;
             if (status) { status.textContent = t('Uploading file...'); status.className = 'text-secondary small'; }
+            importProgress.start();
             // Livewire 4 expune setter-ul public ca $set().
             // Nu folosim component.$wire.set('name', ...) aici: `name` este
             // și proprietate read-only a funcției Proxy folosite de $wire.
@@ -67,6 +137,7 @@ import { t } from '../i18n.js';
                 nameInput?.dispatchEvent(new Event('change', { bubbles: true }));
             }
             component.upload('file', file, async () => {
+                importProgress.importing();
                 try {
                     if (status) { status.textContent = t('File uploaded. Importing the route...'); status.className = 'text-secondary small'; }
                     if (component.$wire && typeof component.$wire.importRoute === 'function') {
@@ -84,10 +155,12 @@ import { t } from '../i18n.js';
                     console.error('[trasee] file import', error);
                     if (status) { status.textContent = error?.message || t('Route import failed.'); status.className = 'text-danger small'; }
                 } finally {
+                    importProgress.stop();
                     window.__traseeFileImportInFlight = false;
                     if (button) button.disabled = false;
                 }
             }, (error) => {
+                importProgress.stop();
                 window.__traseeFileImportInFlight = false;
                 console.error('[trasee] file upload', error);
                 if (status) { status.textContent = t('File upload failed.'); status.className = 'text-danger small'; }
@@ -95,6 +168,7 @@ import { t } from '../i18n.js';
             }, (event) => {
                 const percent = Math.round((event.loaded / Math.max(event.total || 1, 1)) * 100);
                 if (status) status.textContent = t('Uploading file... :percent%', { percent });
+                importProgress.uploading(percent);
             });
         });
     };

@@ -753,5 +753,9 @@
     "Operating hours": "Operating hours",
     "Stop": "Stop",
     "The line may no longer run (marked so in OpenStreetMap).": "The line may no longer run (marked so in OpenStreetMap).",
-    "Checking what is in the area…": "Checking what is in the area…"
+    "Checking what is in the area…": "Checking what is in the area…",
+    "The route has :count points; the limit is :max. Split it into smaller routes or ask the administrator to raise the limit.": "The route has :count points; the limit is :max. Split it into smaller routes or ask the administrator to raise the limit.",
+    "Route import progress": "Route import progress",
+    "Uploading the file: :percent% · :time": "Uploading the file: :percent% · :time",
+    "Importing the route… :time": "Importing the route… :time"
 }

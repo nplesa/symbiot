@@ -753,5 +753,9 @@
     "Operating hours": "Program de funcționare",
     "Stop": "Stația",
     "The line may no longer run (marked so in OpenStreetMap).": "Este posibil ca linia să nu mai circule (așa e marcată în OpenStreetMap).",
-    "Checking what is in the area…": "Se verifică ce există în zonă…"
+    "Checking what is in the area…": "Se verifică ce există în zonă…",
+    "The route has :count points; the limit is :max. Split it into smaller routes or ask the administrator to raise the limit.": "Traseul are :count de puncte, iar limita este de :max. Împarte-l în trasee mai mici sau cere administratorului mărirea limitei.",
+    "Route import progress": "Progresul importului traseului",
+    "Uploading the file: :percent% · :time": "Se încarcă fișierul: :percent% · :time",
+    "Importing the route… :time": "Se importă traseul… :time"
 }

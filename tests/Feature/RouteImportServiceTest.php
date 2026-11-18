@@ -90,4 +90,29 @@ class RouteImportServiceTest extends TestCase
 
         app(RouteImportService::class)->import($path, 'kmz');
     }
+
+    public function test_a_route_of_18241_points_is_imported_whole(): void
+    {
+        config(['services.geoapify.key' => null]);
+
+        $parsed = app(RouteImportService::class)->import($this->gpxFile(18241), 'gpx');
+
+        $this->assertCount(18241, $parsed['geometry']['coordinates']);
+    }
+
+    public function test_a_route_over_the_limit_is_refused_with_the_numbers_and_no_point_dropped(): void
+    {
+        config(['services.geoapify.key' => null, 'tracking.planned_route_max_coordinates' => 1000]);
+        app()->setLocale('ro');
+
+        try {
+            app(RouteImportService::class)->import($this->gpxFile(1500), 'gpx');
+            $this->fail('A route over the limit must be refused.');
+        } catch (UserFacingException $exception) {
+            $this->assertSame(
+                'Traseul are 1.500 de puncte, iar limita este de 1.000. Împarte-l în trasee mai mici sau cere administratorului mărirea limitei.',
+                $exception->getMessage()
+            );
+        }
+    }
 }

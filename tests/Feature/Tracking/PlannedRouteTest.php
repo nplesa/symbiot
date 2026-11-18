@@ -43,6 +43,22 @@ class PlannedRouteTest extends TestCase
         ]);
     }
 
+    public function test_a_route_passing_the_same_point_twice_keeps_every_point_in_order(): void
+    {
+        $user = User::factory()->create();
+        // Out and back along the same road: the first point comes again at the end.
+        $coordinates = [[25.60, 45.65], [25.61, 45.66], [25.62, 45.67], [25.61, 45.66], [25.60, 45.65]];
+
+        $this->actingAs($user)
+            ->postJson('/api/v1/tracking/planned', ['coordinates' => $coordinates])
+            ->assertCreated();
+
+        $session = TrackingSession::query()->where('user_id', $user->id)->sole();
+        $points = $session->trackings()->orderBy('tracked_at')->get(['sequence', 'longitude', 'latitude']);
+        $this->assertSame([0, 1, 2, 3, 4], $points->pluck('sequence')->map(fn ($s): int => (int) $s)->all());
+        $this->assertEquals($coordinates, $points->map(fn ($p): array => [(float) $p->longitude, (float) $p->latitude])->all());
+    }
+
     public function test_planned_route_requires_at_least_two_coordinates(): void
     {
         $user = User::factory()->create();
@@ -58,7 +74,8 @@ class PlannedRouteTest extends TestCase
     public function test_planned_route_rejects_excessive_coordinate_count(): void
     {
         $user = User::factory()->create();
-        $coordinates = array_fill(0, 10001, [25.60, 45.65]);
+        config(['tracking.planned_route_max_coordinates' => 100]);
+        $coordinates = array_map(fn (int $i): array => [25.60 + $i / 10000, 45.65], range(0, 100));
 
         $this->actingAs($user)
             ->postJson('/api/v1/tracking/planned', [

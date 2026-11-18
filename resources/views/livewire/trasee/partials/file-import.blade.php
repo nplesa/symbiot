@@ -17,4 +17,11 @@
         </button>
         <span id="route-file-import-status" class="text-muted small">{{ __('Fill in the route name and select the file, then click "Import route".') }}</span>
     </div>
+    {{-- Shown by resources/js/trasee/file-import.js when an import takes longer than 20 seconds. --}}
+    <div class="trasee-import-progress mt-3" id="route-file-import-progress" hidden wire:ignore>
+        <div class="progress" role="progressbar" aria-label="{{ __('Route import progress') }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" id="route-file-import-progress-bar" style="width: 0%"></div>
+        </div>
+        <small class="text-muted d-block mt-1" id="route-file-import-progress-text" aria-live="polite"></small>
+    </div>
 </form>

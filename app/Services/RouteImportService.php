@@ -563,7 +563,7 @@ class RouteImportService
      */
     private function normalizeSegments(array $segments, string $format): array
     {
-        $max = (int) config('tracking.planned_route_max_coordinates', 10000);
+        $max = (int) config('tracking.planned_route_max_coordinates', 50000);
         $max = max(2, $max);
 
         $validSegments = [];
@@ -584,15 +584,12 @@ class RouteImportService
             );
         }
 
+        // Points are never dropped silently: a longer route is refused with the numbers.
         if ($totalPoints > $max) {
-            throw new UserFacingException(
-                sprintf(
-                    'Traseul conține %d puncte, iar limita configurată este %d. '
-                    . 'Nu am eliminat puncte. Mărește tracking.planned_route_max_coordinates pentru a importa geometria completă.',
-                    $totalPoints,
-                    $max
-                )
-            );
+            throw new UserFacingException(__(
+                'The route has :count points; the limit is :max. Split it into smaller routes or ask the administrator to raise the limit.',
+                ['count' => $this->formatCount($totalPoints), 'max' => $this->formatCount($max)]
+            ));
         }
 
         $geometryCoordinates = [];
@@ -668,6 +665,14 @@ class RouteImportService
             'elevation_gain' => $hasElevation ? $gain : null,
             'elevation_loss' => $hasElevation ? $loss : null,
         ];
+    }
+
+    /** 18241 as "18,241" in English and "18.241" in Romanian and Italian. */
+    private function formatCount(int $count): string
+    {
+        return app()->getLocale() === 'en'
+            ? number_format($count)
+            : number_format($count, 0, ',', '.');
     }
 
     /**
