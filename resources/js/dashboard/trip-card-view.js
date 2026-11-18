@@ -119,11 +119,6 @@ export function createTripCardView({ stopRoutesPanel, routeDetails }) {
 
         const titleRow = document.createElement('div');
         titleRow.className = 'dashboard-route-title-row';
-        const badge = document.createElement('span');
-        badge.className = 'dashboard-route-badge dashboard-trip-badge';
-        badge.dataset.mode = model.mode;
-        badge.textContent = model.badge;
-        badge.title = model.badge;
         const heading = document.createElement('div');
         const title = document.createElement('h2');
         title.id = 'dashboard-trip-title';
@@ -131,7 +126,7 @@ export function createTripCardView({ stopRoutesPanel, routeDetails }) {
         const subtitle = document.createElement('p');
         subtitle.textContent = model.subtitle;
         heading.append(title, subtitle);
-        titleRow.append(badge, heading);
+        titleRow.append(heading);
 
         const itinerary = document.createElement('div');
         itinerary.className = 'dashboard-trip-itinerary';

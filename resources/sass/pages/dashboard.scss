@@ -524,7 +524,6 @@
 
 .dashboard-routes-link { display: inline-flex; align-items: center; gap: .5rem; margin-top: .35rem; color: var(--dashboard-blue); font-size: .84rem; font-weight: 700; text-decoration: none; }
 .dashboard-route-title-row { display: flex; align-items: center; gap: .8rem; padding-bottom: 1rem; border-bottom: 1px solid var(--dashboard-line); }
-.dashboard-route-badge { display: grid; place-items: center; flex: 0 0 48px; min-width: 48px; height: 48px; padding: 0 .35rem; border-radius: 12px; color: #fff; font-weight: 800; box-shadow: 0 4px 10px rgba(19, 64, 134, .2); }
 .dashboard-route-title-row h2 { margin: 0; color: var(--dashboard-ink); font-size: 1.18rem; font-weight: 800; }
 .dashboard-route-title-row p { margin: .2rem 0 0; color: var(--dashboard-muted); font-size: .84rem; }
 .dashboard-route-metrics { display: grid; grid-template-columns: 1fr 1fr; padding: 1rem 0; border-bottom: 1px solid var(--dashboard-line); }
@@ -598,7 +597,6 @@
 .dashboard-trip-back { display: inline-flex; align-items: center; gap: .45rem; margin-bottom: .9rem; padding: .35rem .65rem; border: 1px solid var(--dashboard-line); border-radius: 999px; background: var(--dashboard-item-bg); color: var(--dashboard-ink); font-size: .8rem; font-weight: 700; }
 .dashboard-trip-back:hover, .dashboard-trip-back:focus-visible { border-color: #8bb8fb; background: var(--dashboard-blue-soft); }
 .dashboard-trip-mode { display: inline-flex; align-items: center; gap: .4rem; margin-bottom: .75rem; padding: .3rem .7rem; border-radius: 999px; background: var(--trip-color, #1769e0); color: #fff; font-size: .72rem; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
-.dashboard-trip-badge[data-mode] { flex: 0 0 auto; width: auto; max-width: 9rem; padding: 0 .65rem; overflow: hidden; background: var(--trip-color); font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
 .dashboard-trip-itinerary { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .6rem; margin: 1rem 0 .25rem; padding: .8rem .9rem; border: 1px solid var(--dashboard-line); border-radius: 12px; background: var(--dashboard-hover-bg); }
 .dashboard-trip-itinerary[hidden] { display: none; }
 .dashboard-trip-itinerary > i { color: var(--dashboard-muted); }
@@ -895,16 +893,9 @@
 
 .symbiot-shell[data-theme="dark"] .dashboard-empty-illustration,
 .symbiot-shell[data-theme="dark"] .dashboard-panel-icon,
-.symbiot-shell[data-theme="dark"] .dashboard-nearby-icon,
-.symbiot-shell[data-theme="dark"] .dashboard-route-badge {
+.symbiot-shell[data-theme="dark"] .dashboard-nearby-icon {
     background: var(--dashboard-blue-soft);
     color: #9bc4ff;
-}
-
-/* The trip card keeps the colour of its transport mode. */
-.symbiot-shell[data-theme="dark"] .dashboard-route-badge.dashboard-trip-badge[data-mode] {
-    background: var(--trip-color);
-    color: #fff;
 }
 
 .symbiot-shell[data-theme="dark"] .dashboard-next-trip {
@@ -963,7 +954,6 @@
     .dashboard-panel-toolbar { min-height: 100px; padding: .7rem 1.1rem; }
     .dashboard-route-details { padding: 1rem 1.25rem; }
     .dashboard-route-title-row { gap: 1rem; padding-bottom: 1.1rem; }
-    .dashboard-route-badge { flex-basis: 58px; min-width: 58px; height: 58px; border-radius: 50%; font-size: 1.1rem; }
     .dashboard-route-title-row h2 { font-size: 1.35rem; }
     .dashboard-route-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 1rem 0; }
     .dashboard-route-metrics > div { min-height: 52px; }

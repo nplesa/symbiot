@@ -337,7 +337,6 @@
         <section class="dashboard-route-details" id="dashboard-route-details" hidden>
             <span class="dashboard-trip-mode" id="dashboard-route-mode"><i class="fa-solid fa-route" aria-hidden="true"></i><span>{{ __('Public transport') }}</span></span>
             <div class="dashboard-route-title-row">
-                <span class="dashboard-route-badge" id="dashboard-route-badge">—</span>
                 <div><h2 id="dashboard-route-title">{{ __('Route') }}</h2><p id="dashboard-route-subtitle"></p></div>
             </div>
             <div class="dashboard-trip-itinerary" id="dashboard-route-itinerary" hidden></div>
