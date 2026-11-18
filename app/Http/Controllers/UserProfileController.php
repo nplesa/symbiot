@@ -41,14 +41,6 @@ class UserProfileController extends Controller
                 'max:255',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
-            'username' => [
-                'nullable',
-                'string',
-                'max:50',
-                'alpha_dash',
-                Rule::unique('user_profiles', 'username')
-                    ->ignore($user->profile?->id),
-            ],
             'phone' => ['nullable', 'string', 'max:30'],
             'birth_date' => ['nullable', 'date', 'before:today'],
             'address_country' => ['nullable', 'string', 'max:100'],
@@ -67,7 +59,6 @@ class UserProfileController extends Controller
         $user->profile()->updateOrCreate(
             ['user_id' => $user->id],
             Arr::only($validated, [
-                'username',
                 'phone',
                 'birth_date',
                 'address_country',

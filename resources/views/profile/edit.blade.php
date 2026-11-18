@@ -157,36 +157,27 @@
                     </div>
 
                     <div class="profile-field">
-                        <label for="username">{{ __('Username') }}</label>
-                        <input
-                            id="username"
-                            name="username"
-                            type="text"
-                            value="{{ old('username', $profile->username) }}"
-                            maxlength="50"
-                            autocomplete="username"
-                        >
-                    </div>
-
-                    <div class="profile-field">
                         <label for="email">{{ __('Email address') }}</label>
                         <input
                             id="email"
                             name="email"
                             type="email"
                             value="{{ old('email', $user->email) }}"
+                            data-current-email="{{ $user->email }}"
                             maxlength="255"
                             required
                         >
                     </div>
 
-                    <div class="profile-field">
+                    {{-- Only to change the e-mail: hidden until the e-mail field differs from the account's (profile.js). --}}
+                    <div class="profile-field" id="profile-current-password-field" @if (! $errors->has('current_password') && old('email', $user->email) === $user->email) hidden @endif>
                         <label for="profile_current_password">{{ __('Current password') }}</label>
                         <input
                             id="profile_current_password"
                             name="current_password"
                             type="password"
-                            autocomplete="current-password"
+                            {{-- Not a login: with "current-password" the browser filled this form with the saved login (GHOST). --}}
+                            autocomplete="new-password"
                             aria-describedby="profile_current_password_hint"
                         >
                         <small id="profile_current_password_hint" class="profile-help mt-1">

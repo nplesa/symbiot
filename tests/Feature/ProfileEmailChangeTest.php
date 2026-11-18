@@ -37,6 +37,31 @@ class ProfileEmailChangeTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    public function test_the_profile_form_has_no_username_and_saving_keeps_the_stored_one(): void
+    {
+        $this->withoutVite();
+        $user = $this->user();
+        $user->profile()->create(['username' => 'ana_m']);
+
+        // The field is gone; the password is asked only once the e-mail is changed (hidden at first).
+        $page = $this->actingAs($user)->get(route('app.profile.edit'))
+            ->assertOk()
+            ->assertDontSee('name="username"', false)
+            ->getContent();
+        $this->assertMatchesRegularExpression('/id="profile-current-password-field"\s+hidden/', (string) $page);
+
+        // A "username" sent anyway is ignored; the stored one stays.
+        $this->actingAs($user)->put(route('app.profile.update'), [
+            'name' => 'Ana',
+            'email' => 'old@example.test',
+            'username' => 'other',
+            'phone' => '0712345678',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('ana_m', $user->fresh()->profile->username);
+        $this->assertSame('0712345678', $user->fresh()->profile->phone);
+    }
+
     public function test_email_change_requires_the_current_password(): void
     {
         Notification::fake();
