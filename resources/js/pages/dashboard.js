@@ -1083,19 +1083,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const routeTickets = gtfsTickets(stopTickets, route.agency_id ?? null);
         renderTickets(byId('dashboard-route-tickets'), routeTickets.tickets, routeTickets.notes, t('No ticket link is published for this line.'));
         setText('dashboard-route-title', t('Route :route', { route: label }));
-        setText('dashboard-route-subtitle', [presentation.secondaryName, detail.stopName ? t('Stop :stop', { stop: detail.stopName }) : null].filter(Boolean).join(' · ')
-            || route.long_name || t('Stop :stop', { stop: detail.stopName || '' }));
-        setText('dashboard-route-stop', detail.stopName ? t('Stop :stop', { stop: detail.stopName }) : t('Stop selected on the map'));
+        renderRouteStop(detail);
         setText('dashboard-route-distance', t('Calculating...'));
-        setText('dashboard-route-departure', t('Searching...'));
-        setText('dashboard-route-countdown', t('Searching timetable...'));
-        setText('dashboard-route-headsign', '');
         setText('dashboard-route-shape-status', t('Loading the route geometry...'));
     };
 
+    /** The stop part of the line's card: its name and, until the answer comes, a pending next departure. */
+    const renderRouteStop = (detail) => {
+        const route = detail.route ?? {};
+        const presentation = routePresentation(route);
+        setText('dashboard-route-subtitle', [presentation.secondaryName, detail.stopName ? t('Stop :stop', { stop: detail.stopName }) : null].filter(Boolean).join(' · ')
+            || route.long_name || t('Stop :stop', { stop: detail.stopName || '' }));
+        setText('dashboard-route-stop', detail.stopName ? t('Stop :stop', { stop: detail.stopName }) : t('Stop selected on the map'));
+        setText('dashboard-route-departure', t('Searching...'));
+        setText('dashboard-route-countdown', t('Searching timetable...'));
+        setText('dashboard-route-headsign', '');
+    };
+
     window.addEventListener('symbiot:transit-route-selected', (event) => showRoute(event.detail));
+    // Another stop of the selected line: only the card changes, the list and the line stay.
+    window.addEventListener('symbiot:transit-route-stop', (event) => {
+        const detail = event.detail;
+        if (!selectedRoute || detail?.feed !== selectedRoute.feed || detail?.route?.route_id !== selectedRoute.route?.route_id) return;
+        selectedRoute = { ...selectedRoute, stopId: detail.stopId, stopName: detail.stopName };
+        renderRouteStop(detail);
+    });
     window.addEventListener('symbiot:transit-route-schedule', (event) => {
         if (!selectedRoute || event.detail?.feed !== selectedRoute.feed || event.detail?.route?.route_id !== selectedRoute.route?.route_id) return;
+        // An answer for a stop of the line that is no longer the chosen one.
+        if (event.detail?.stopId && selectedRoute.stopId && event.detail.stopId !== selectedRoute.stopId) return;
         const departure = event.detail.departure;
         if (!departure) {
             setText('dashboard-route-departure', t('Unavailable'));

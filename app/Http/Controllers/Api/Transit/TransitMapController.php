@@ -636,6 +636,7 @@ class TransitMapController extends Controller
 
     public function routeShape(Request $request, int $feed, string $route): JsonResponse
     {
+        $publicFeed = $feed;
         $feed = $this->feedData->dataId($feed);
         $tripShapes = DB::table('transit_trips as t')
             ->where('t.feed_id', $feed)
@@ -689,6 +690,54 @@ class TransitMapController extends Controller
             ->filter()
             ->values();
 
-        return response()->json(['shapes' => $shapes->all()]);
+        return response()->json([
+            'shapes' => $shapes->all(),
+            'stops' => $this->routeStops($feed, $route, $publicFeed),
+        ]);
+    }
+
+    /**
+     * The stops of a line, as the map shows them: those of its longest trip in each direction, in order,
+     * without repeats (a stop served in both directions appears once).
+     *
+     * @return list<array{feed_id: int, stop_id: string, name: string|null, lat: float, lon: float}>
+     */
+    private function routeStops(int $feed, string $route, int $publicFeed): array
+    {
+        $trips = DB::table('transit_trips as t')
+            ->join('transit_stop_times as st', fn ($join) => $join
+                ->on('st.feed_id', '=', 't.feed_id')
+                ->on('st.trip_id', '=', 't.trip_id'))
+            ->where('t.feed_id', $feed)
+            ->where('t.route_id', $route)
+            ->groupBy('t.trip_id', 't.direction_id')
+            ->select('t.trip_id', 't.direction_id', DB::raw('count(*) as stops'))
+            ->orderByDesc('stops')
+            ->orderBy('t.trip_id')
+            ->get()
+            ->unique(fn ($row) => (string) $row->direction_id)
+            ->pluck('trip_id')
+            ->all();
+        if ($trips === []) return [];
+
+        return DB::table('transit_stop_times as st')
+            ->join('transit_stops as s', fn ($join) => $join
+                ->on('s.feed_id', '=', 'st.feed_id')
+                ->on('s.stop_id', '=', 'st.stop_id'))
+            ->where('st.feed_id', $feed)
+            ->whereIn('st.trip_id', $trips)
+            ->orderBy('st.trip_id')
+            ->orderBy('st.stop_sequence')
+            ->get(['s.stop_id', 's.name', 's.lat', 's.lon'])
+            ->unique('stop_id')
+            ->map(fn ($s): array => [
+                'feed_id' => $publicFeed,
+                'stop_id' => (string) $s->stop_id,
+                'name' => $s->name,
+                'lat' => (float) $s->lat,
+                'lon' => (float) $s->lon,
+            ])
+            ->values()
+            ->all();
     }
 }

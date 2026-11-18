@@ -28,8 +28,14 @@ function fetchJson(url) {
 export function createTransitLayer(map) {
     const stopSource = new VectorSource();
     const stopClusterSource = new Cluster({ distance: 36, minDistance: 12, source: stopSource });
+    // While a line is selected the map shows only its stops (allStopFeatures keeps the area's stops).
+    let allStopFeatures = null;
+    // The selected line: {feed, route, key, color, stopId}.
+    let selectedLine = null;
+    // Each click on a stop of the selected line; an older next-departure answer is dropped.
+    let routeStopRun = 0;
     const updateStopClusterDistance = () => {
-        const individualStopsZoom = (map.getView().getZoom() ?? 0) >= 16;
+        const individualStopsZoom = allStopFeatures !== null || (map.getView().getZoom() ?? 0) >= 16;
         stopClusterSource.setDistance(individualStopsZoom ? 0 : 36);
         stopClusterSource.setMinDistance(individualStopsZoom ? 0 : 12);
     };
@@ -39,9 +45,11 @@ export function createTransitLayer(map) {
     const shapeLayer = new VectorLayer({
         source: shapeSource,
         zIndex: 40,
-        style: (feature) => new Style({
-            stroke: new Stroke({ color: feature.get('color'), width: 5, lineCap: 'round', lineJoin: 'round' }),
-        }),
+        style: (feature) => [
+            new Style({ stroke: new Stroke({ color: 'rgba(15, 23, 42, 0.85)', width: 12, lineCap: 'round', lineJoin: 'round' }) }),
+            new Style({ stroke: new Stroke({ color: '#ffffff', width: 9, lineCap: 'round', lineJoin: 'round' }) }),
+            new Style({ stroke: new Stroke({ color: feature.get('color'), width: 6, lineCap: 'round', lineJoin: 'round' }) }),
+        ],
     });
     const stopLayer = new VectorLayer({
         source: stopClusterSource,
@@ -49,6 +57,19 @@ export function createTransitLayer(map) {
         style: (feature) => {
             const stops = feature.get('features') || [];
             const count = stops.length;
+            const lineColor = stops[0]?.get('routeColor');
+            if (lineColor) {
+                // A stop of the selected line: white ringed in the line's colour; the chosen stop is larger.
+                const current = stops[0].get('stopId') === selectedLine?.stopId;
+                return new Style({
+                    image: new CircleStyle({
+                        radius: current ? 9 : 6,
+                        fill: new Fill({ color: current ? lineColor : '#ffffff' }),
+                        stroke: new Stroke({ color: current ? '#ffffff' : lineColor, width: 3 }),
+                    }),
+                    zIndex: current ? 2 : 1,
+                });
+            }
             const showIndividualStops = (map.getView().getZoom() ?? 0) >= 16;
             return new Style({
                 image: new CircleStyle({
@@ -118,6 +139,7 @@ export function createTransitLayer(map) {
         if (active) {
             active.features.forEach((line) => shapeSource.removeFeature(line));
             activeRoutes.delete(key);
+            restoreAllStops();
             paintChip(button, null);
             schedule.hidden = true;
             window.dispatchEvent(new CustomEvent('symbiot:transit-route-selected', {
@@ -135,6 +157,7 @@ export function createTransitLayer(map) {
         const color = routeColor(route, key);
         const entry = { color, features: [] };
         activeRoutes.set(key, entry);
+        selectedLine = { feed, route, key, color, stopId };
         paintChip(button, color);
         const routeDetail = {
             selected: true,
@@ -187,6 +210,7 @@ export function createTransitLayer(map) {
                 entry.features.push(line);
                 shapeSource.addFeature(line);
             });
+            if (Array.isArray(data.stops) && data.stops.length > 0) showRouteStops(data.stops, color);
             window.dispatchEvent(new CustomEvent('symbiot:transit-route-shape', {
                 detail: { ...routeDetail, shapes: data.shapes },
             }));
@@ -199,9 +223,60 @@ export function createTransitLayer(map) {
         }
     }
 
+    /** Only the stops of the selected line on the map; the area's stops are kept for later. */
+    function showRouteStops(stops, color) {
+        if (allStopFeatures === null) allStopFeatures = stopSource.getFeatures();
+        stopSource.clear();
+        stopSource.addFeatures(stops.map((stop) => {
+            const feature = new Feature(new Point(fromLonLat([stop.lon, stop.lat])));
+            feature.setProperties({ name: stop.name, feedId: stop.feed_id, stopId: stop.stop_id, routeColor: color });
+            return feature;
+        }));
+        updateStopClusterDistance();
+    }
+
+    function restoreAllStops() {
+        selectedLine = null;
+        routeStopRun++;
+        if (allStopFeatures === null) return;
+        stopSource.clear();
+        stopSource.addFeatures(allStopFeatures);
+        allStopFeatures = null;
+        updateStopClusterDistance();
+    }
+
+    /**
+     * A stop of the selected line was clicked: only the line's card changes (stop, next departure,
+     * direction); the line, its stops and the panel's list stay as they are.
+     */
+    function showRouteStop(feature) {
+        const { feed, route, color } = selectedLine;
+        const stopId = feature.get('stopId');
+        const stopName = feature.get('name');
+        selectedLine.stopId = stopId;
+        stopSource.changed();
+        const run = ++routeStopRun;
+        const routeDetail = { selected: true, feed, stopId, stopName, route, color };
+        window.dispatchEvent(new CustomEvent('symbiot:transit-route-stop', { detail: routeDetail }));
+        fetchJson(`/api/transit/stops/${encodeURIComponent(feed)}/${encodeURIComponent(stopId)}/next-departure?route_id=${encodeURIComponent(route.route_id)}`)
+            .then(({ departure, reason }) => {
+                if (run !== routeStopRun) return;
+                window.dispatchEvent(new CustomEvent('symbiot:transit-route-schedule', {
+                    detail: { ...routeDetail, departure: departure ?? null, reason },
+                }));
+            })
+            .catch(() => {
+                if (run !== routeStopRun) return;
+                window.dispatchEvent(new CustomEvent('symbiot:transit-route-schedule', {
+                    detail: { ...routeDetail, departure: null, reason: 'schedule_unavailable' },
+                }));
+            });
+    }
+
     function clearRoutes() {
         activeRoutes.clear();
         shapeSource.clear();
+        restoreAllStops();
         window.dispatchEvent(new CustomEvent('symbiot:transit-route-selected', {
             detail: { selected: false },
         }));
@@ -216,6 +291,8 @@ export function createTransitLayer(map) {
         stopLayer.setVisible(false);
         vehicleLayer.setVisible(false);
         shapeLayer.setVisible(false);
+        // The previous area's stops are not brought back.
+        allStopFeatures = null;
         stopSource.clear();
         vehicleSource.clear();
         clearRoutes();
@@ -299,6 +376,10 @@ export function createTransitLayer(map) {
             return;
         }
 
+        if (selectedLine && feature.get('routeColor')) {
+            showRouteStop(feature);
+            return;
+        }
         showStop(feature);
     });
 
@@ -433,13 +514,18 @@ export function createTransitLayer(map) {
         if (run !== loadRun) {
             return false;
         }
-        stopSource.clear();
-        stopSource.addFeatures(data.stops.map((stop) => {
+        const areaStops = data.stops.map((stop) => {
             const feature = new Feature(new Point(fromLonLat([stop.lon, stop.lat])));
             feature.setProperties({ name: stop.name, feedId: stop.feed_id, stopId: stop.stop_id });
 
             return feature;
-        }));
+        });
+        if (allStopFeatures !== null) {
+            allStopFeatures = areaStops;
+        } else {
+            stopSource.clear();
+            stopSource.addFeatures(areaStops);
+        }
 
         updateStopClusterDistance();
         if (!quiet && data.stops.length > 0 && (map.getView().getZoom() ?? 0) < 16) {

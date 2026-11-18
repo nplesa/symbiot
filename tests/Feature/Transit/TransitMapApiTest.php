@@ -256,6 +256,34 @@ class TransitMapApiTest extends TestCase
             ->assertJsonPath('shapes.0.0', [26.1, 44.4]);
     }
 
+    public function test_route_shape_lists_the_line_stops_of_its_longest_trip_per_direction(): void
+    {
+        $feed = $this->seedFeed();
+        $id = $feed->id;
+        DB::table('transit_stops')->insert([
+            ['feed_id' => $id, 'stop_id' => 'C', 'name' => 'Centru', 'lat' => 44.45, 'lon' => 26.15, 'location_type' => 0],
+            ['feed_id' => $id, 'stop_id' => 'X', 'name' => 'Alta linie', 'lat' => 44.46, 'lon' => 26.16, 'location_type' => 0],
+        ]);
+        // t1 (direction 0) runs A/1 → C → B, t2 only A/1; t3 (direction 1) runs B → C → A/1.
+        DB::table('transit_stop_times')->insert([
+            ['feed_id' => $id, 'trip_id' => 't1', 'stop_id' => 'C', 'stop_sequence' => 2],
+            ['feed_id' => $id, 'trip_id' => 't1', 'stop_id' => 'B', 'stop_sequence' => 3],
+            ['feed_id' => $id, 'trip_id' => 't3', 'stop_id' => 'B', 'stop_sequence' => 1],
+            ['feed_id' => $id, 'trip_id' => 't3', 'stop_id' => 'C', 'stop_sequence' => 2],
+            ['feed_id' => $id, 'trip_id' => 't3', 'stop_id' => 'A/1', 'stop_sequence' => 3],
+        ]);
+
+        $stops = $this->actingAs(User::factory()->create())
+            ->getJson("/api/transit/routes/{$id}/M1/shape")
+            ->assertOk()
+            ->assertJsonPath('stops.0.feed_id', $id)
+            ->json('stops');
+
+        // Each stop once, in the order of the first direction; the stop of another line is not listed.
+        $this->assertSame(['A/1', 'C', 'B'], array_column($stops, 'stop_id'));
+        $this->assertSame('Centru', $stops[1]['name']);
+    }
+
     public function test_map_endpoints_require_authentication_and_valid_input(): void
     {
         $this->getJson('/api/transit/stops?lat=44&lon=26')->assertUnauthorized();
