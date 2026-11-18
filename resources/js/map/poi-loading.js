@@ -379,6 +379,45 @@ function showAvailableSubcategoryCount(group) {
     }
 }
 
+// Categories whose availability is still being checked are dimmed ("poi-category-checking"): from the moment
+// a new location is being determined until the check answers, so a category (e.g. the metro) never looks
+// available in an area that has not been checked yet. The background "details" step keeps its categories dimmed.
+let detailsChecking = new Set();
+// A new location is being determined (GPS fix, city search) and has not been checked yet.
+let awaitingLocation = false;
+
+/** Dims what is unknown right now: everything while a location or the fast step is pending, else the details. */
+function refreshChecking() {
+    const fastRunning = mapState.subcategoriesPendingKey !== null;
+    setCategoriesChecking(type => awaitingLocation || fastRunning || detailsChecking.has(type));
+}
+
+function setCategoriesChecking(isChecking) {
+    document.querySelectorAll('.poi-category-group').forEach(group => {
+        const checking = typeof isChecking === 'function' ? isChecking(group.dataset.type) : isChecking;
+        group.classList.toggle('poi-category-checking', checking);
+        if (checking) {
+            group.setAttribute('aria-busy', 'true');
+            group.title = t('Checking what is in the area…');
+        } else {
+            group.removeAttribute('aria-busy');
+            group.removeAttribute('title');
+        }
+    });
+}
+
+/** A new location is being determined (GPS, city search): every category is unknown until it is checked. */
+export function markAvailabilityChecking() {
+    awaitingLocation = true;
+    refreshChecking();
+}
+
+/** The location could not be set (or waits for a choice): back to the last known state. */
+export function clearAvailabilityChecking() {
+    awaitingLocation = false;
+    refreshChecking();
+}
+
 // Subcategories are limited to the ones that actually have places around the chosen location, in two
 // steps (see PoiSubcategoryAvailability): "fast" (existence checks) is waited for; "details" (subcategories
 // of the dense categories, Overpass, Nominatim: slow) completes the pending categories in the background.
@@ -388,8 +427,16 @@ const SUBCATEGORY_DETAILS_TIMEOUT_MS = 22_000;
 
 export async function updateSubcategoryAvailability(lat, lon, signal = null) {
     const key = `${lat.toFixed(2)}:${lon.toFixed(2)}:${mapState.app_radius}`;
-    if (key === mapState.subcategoriesKey || key === mapState.subcategoriesPendingKey) return;
+    if (key === mapState.subcategoriesPendingKey) return;
+    if (key === mapState.subcategoriesKey) {
+        // Already checked (e.g. the same city again): only the background step may still be running.
+        clearAvailabilityChecking();
+        return;
+    }
     mapState.subcategoriesPendingKey = key;
+    awaitingLocation = false;
+    detailsChecking = new Set();
+    refreshChecking();
     setSubcategoryButtonsLoading(true);
 
     // loadNearby() waits for this behind the loading modal: never let it hang.
@@ -423,13 +470,17 @@ export async function updateSubcategoryAvailability(lat, lon, signal = null) {
         // Unknown here (timeout, error): show everything rather than keep the previous area's answer
         // (e.g. a subway hidden in Brașov must not stay hidden in Bucharest). The key is not
         // remembered, so the next search asks again.
+        // Simply unknown now (visible, not dimmed), unless a newer location or check is pending.
+        refreshChecking();
         applySubcategoryAvailability({});
         return;
     }
 
     mapState.subcategoriesKey = key;
-    // Pending categories are unknown (visible) until the background step answers.
+    // Pending categories are unknown (visible, dimmed) until the background step answers.
     const fast = Object.fromEntries(Object.entries(available).filter(([type]) => type === 'airport' || !pending.includes(type)));
+    detailsChecking = new Set(pending);
+    refreshChecking();
     applySubcategoryAvailability(fast);
     if (pending.length > 0) completeSubcategoryAvailability(lat, lon, key, fast, pending);
 }
@@ -447,8 +498,12 @@ async function completeSubcategoryAvailability(lat, lon, key, fast, pending) {
     } catch {
         // The pending categories simply stay visible.
     }
-    // Another location or radius was chosen meanwhile, or nothing came back.
-    if (mapState.subcategoriesKey !== key || !osm || typeof osm !== 'object') return;
+    // Another location or radius was chosen meanwhile: its own check owns the dimming.
+    if (mapState.subcategoriesKey !== key) return;
+    // Answered or not, these categories are no longer being checked.
+    detailsChecking = new Set();
+    refreshChecking();
+    if (!osm || typeof osm !== 'object') return;
 
     const merged = { ...fast };
     pending.forEach((type) => {

@@ -8,6 +8,7 @@ import { fetchJson } from '../http.js';
 import { formatNumber, intlLocale, t } from '../i18n.js';
 import { createInputLocationElement } from './location-element.js';
 import { hidePoiTooltip } from './poi-tooltip.js';
+import { clearAvailabilityChecking, markAvailabilityChecking } from './poi-loading.js';
 import { mapState } from './state.js';
 import { watchTransitCoverage } from './transit-coverage.js';
 import { clearVisibleTransitRoutes } from './transit-routes.js';
@@ -96,6 +97,8 @@ export function bindCitySearch(page) {
         }
 
         window.dispatchEvent(new CustomEvent('symbiot:location-changing', { detail: { mode: 'city' } }));
+        // The categories are dimmed until the new area is checked (or the search ends without a location).
+        markAvailabilityChecking();
         resetPOIs();
         button.disabled = true;
         status.textContent = result ? t('Setting location...') : t('Searching for the city...');
@@ -134,6 +137,8 @@ export function bindCitySearch(page) {
                             index,
                         })) },
                     }));
+                    // Waiting for the choice: nothing is being checked meanwhile.
+                    clearAvailabilityChecking();
                     return;
                 }
 
@@ -217,6 +222,7 @@ export function bindCitySearch(page) {
                 }
             }, Math.min(Number(mapState.app_radius) || 1500, 35000));
         } catch (error) {
+            clearAvailabilityChecking();
             status.textContent = error.message;
             status.className = 'col-12 small text-danger';
             window.dispatchEvent(new CustomEvent('symbiot:location-error', {

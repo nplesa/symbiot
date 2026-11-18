@@ -739,6 +739,12 @@
 .dashboard-route-panel #mobility_card .poi-category-group.poi-category-hidden { display: none !important; }
 /* Categories with nothing in the chosen area (set by updateSubcategoryAvailability in map.js). */
 .dashboard-route-panel #mobility_card .poi-category-group.poi-category-unavailable { display: none; }
+/* Availability still being checked for the area: dimmed, still usable. */
+.dashboard-route-panel #mobility_card .poi-category-group { transition: opacity .2s ease; }
+.dashboard-route-panel #mobility_card .poi-category-group.poi-category-checking { opacity: .45; }
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-route-panel #mobility_card .poi-category-group { transition: none; }
+}
 
 .dashboard-route-panel #mobility_card .poi-filter-row {
     display: flex;

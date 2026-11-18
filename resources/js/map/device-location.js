@@ -9,6 +9,7 @@ import { fetchJson } from '../http.js';
 import { intlLocale, t } from '../i18n.js';
 import { createInputLocationElement } from './location-element.js';
 import { approximateDistanceMeters, bearingBetween } from './poi-helpers.js';
+import { clearAvailabilityChecking, markAvailabilityChecking } from './poi-loading.js';
 import { mapState } from './state.js';
 import { watchTransitCoverage } from './transit-coverage.js';
 
@@ -38,6 +39,7 @@ export function bindDeviceLocation(page) {
         mapState.heading = null;
         mapState.currentUserLocation = null;
         document.getElementById('dashboard-share-location-wrap')?.classList.add('d-none');
+        clearAvailabilityChecking();
     };
 
     /**
@@ -46,6 +48,8 @@ export function bindDeviceLocation(page) {
      */
     const enterGpsMode = () => {
         window.dispatchEvent(new CustomEvent('symbiot:location-changing', { detail: { mode: 'gps' } }));
+        // The categories are dimmed until the first position is checked (or GPS fails).
+        markAvailabilityChecking();
         document.getElementById('dashboard-share-location-wrap')?.classList.add('d-none');
 
         // Switching from a city to GPS starts with a clean set of map filters and POIs.
@@ -359,6 +363,7 @@ export function bindDeviceLocation(page) {
                             await initializeGpsArea(ui, lat, lon);
                         } catch (error) {
                             initialized = false;
+                            clearAvailabilityChecking();
                             console.error('GPS area initialization failed:', error);
 
                             if (ui.status) {
@@ -377,6 +382,7 @@ export function bindDeviceLocation(page) {
                         mapState.tracking = false;
                         toggle.checked = false;
                         clearDeviceWatch();
+                        clearAvailabilityChecking();
                     }
                 },
                 WATCH_OPTIONS
