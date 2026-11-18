@@ -810,14 +810,31 @@ body.dark {
         font-size: 1rem;
     }
 
+    /* Phones: the name on up to 2 lines and the details wrapped, so the point count stays visible. */
+    .trasee-item {
+        gap: .7rem;
+    }
+
     .trasee-item__content {
         strong {
+            display: -webkit-box;
             font-size: .9rem;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
         }
         small {
             font-size: .78rem;
             margin-top: .2rem;
+            white-space: normal;
+            text-overflow: clip;
         }
+    }
+
+    .trasee-item__actions {
+        gap: .35rem;
     }
 
     .trasee-item__delete,

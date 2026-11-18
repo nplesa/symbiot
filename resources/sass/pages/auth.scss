@@ -1,0 +1,239 @@
+/* =========================================================
+   SYMBIOT - pages outside the app shell (login, register, password, pending, verify)
+   Same look as the app: brand, light / dark theme, centred card with labels above the fields.
+   The auth views keep their Bootstrap grid markup; it is laid out as one column here.
+   ========================================================= */
+
+.auth-shell {
+    --auth-bg: #f3f6fb;
+    --auth-surface: #ffffff;
+    --auth-ink: #172033;
+    --auth-muted: #64748b;
+    --auth-line: #e2e8f0;
+    --auth-field: #f8fafc;
+    --auth-blue: #1769e0;
+    --auth-blue-soft: rgba(23, 105, 224, .1);
+
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: var(--auth-bg);
+    color: var(--auth-ink);
+}
+
+.auth-shell[data-theme="dark"] {
+    --auth-bg: #0f172a;
+    --auth-surface: #1e293b;
+    --auth-ink: #e2e8f0;
+    --auth-muted: #94a3b8;
+    --auth-line: #334155;
+    --auth-field: #0f172a;
+    --auth-blue: #4f8ff7;
+    --auth-blue-soft: rgba(79, 143, 247, .16);
+    color-scheme: dark;
+}
+
+/* ---- Top bar: brand on the left, account links on the right ---- */
+.auth-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .9rem clamp(1rem, 4vw, 2rem);
+}
+
+.auth-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: .6rem;
+    color: var(--auth-ink);
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-decoration: none;
+
+    &:hover { color: var(--auth-ink); }
+}
+
+.auth-brand-icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--auth-blue);
+    color: #fff;
+}
+
+.auth-nav {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+}
+
+.auth-nav-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 0 .85rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--auth-muted);
+    font: inherit;
+    font-size: .88rem;
+    font-weight: 700;
+    text-decoration: none;
+
+    &:hover,
+    &.is-active {
+        background: var(--auth-blue-soft);
+        color: var(--auth-blue);
+    }
+}
+
+/* ---- The page: one centred card ---- */
+.auth-main {
+    flex: 1 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: clamp(1rem, 6vh, 4rem) 1rem 2rem;
+
+    > .container {
+        max-width: 440px;
+        padding: 0;
+    }
+
+    // The views' grid (row / col-md-8 / col-md-4 label / col-md-6 field) as a single column.
+    .row { margin: 0; }
+    .row > [class*="col-"] {
+        flex: 0 0 100%;
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+        padding: 0;
+        text-align: left;
+    }
+    .row.mb-3, .row.mb-0 { margin-bottom: 1rem !important; }
+    // Labels above their field, left-aligned (the views right-align them from md up).
+    .text-md-end { text-align: left !important; }
+
+    .card {
+        border: 1px solid var(--auth-line);
+        border-radius: 16px;
+        background: var(--auth-surface);
+        color: var(--auth-ink);
+        box-shadow: 0 18px 48px rgba(15, 23, 42, .1);
+        overflow: hidden;
+    }
+
+    .card-header {
+        padding: 1.4rem 1.5rem .25rem;
+        border: 0;
+        background: transparent;
+        color: var(--auth-ink);
+        font-size: 1.35rem;
+        font-weight: 800;
+    }
+
+    .card-body { padding: 1rem 1.5rem 1.5rem; }
+
+    .col-form-label,
+    .form-label {
+        padding: 0 0 .35rem;
+        color: var(--auth-ink);
+        font-size: .82rem;
+        font-weight: 700;
+    }
+
+    .form-control {
+        min-height: 46px;
+        border: 1px solid var(--auth-line);
+        border-radius: 10px;
+        background: var(--auth-field);
+        color: var(--auth-ink);
+        font-size: .95rem;
+
+        &:focus {
+            border-color: var(--auth-blue);
+            box-shadow: 0 0 0 .2rem var(--auth-blue-soft);
+        }
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        min-height: 36px;
+        padding-left: 0;
+    }
+
+    .form-check-input {
+        width: 1.2rem;
+        height: 1.2rem;
+        margin: 0;
+        float: none;
+        border-color: var(--auth-muted);
+        background-color: var(--auth-field);
+
+        &:checked { border-color: var(--auth-blue); background-color: var(--auth-blue); }
+    }
+
+    .form-check-label { color: var(--auth-ink); font-size: .88rem; }
+
+    // Submit: full width; secondary links ("Forgot your password?") under it.
+    .btn-primary {
+        width: 100%;
+        min-height: 46px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--auth-blue);
+        font-weight: 750;
+    }
+
+    .btn-link {
+        display: block;
+        width: 100%;
+        margin-top: .5rem;
+        padding: .4rem 0;
+        color: var(--auth-blue);
+        font-size: .88rem;
+        text-align: center;
+        text-decoration: none;
+
+        &:hover { text-decoration: underline; }
+    }
+
+    .alert { border-radius: 10px; }
+    .invalid-feedback { font-size: .8rem; }
+    p, .text-muted { color: var(--auth-muted) !important; }
+}
+
+/* ---- Footer: the language flags ---- */
+.auth-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .35rem;
+    padding: 1rem 1rem 1.5rem;
+}
+
+.auth-footer-label {
+    color: var(--auth-muted);
+    font-size: .72rem;
+}
+
+.auth-languages {
+    display: flex;
+    gap: .5rem;
+
+    .dashboard-language-link {
+        display: grid;
+        place-items: center;
+        min-width: 40px;
+        min-height: 32px;
+        border-radius: 8px;
+    }
+}

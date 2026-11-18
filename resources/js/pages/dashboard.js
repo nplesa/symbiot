@@ -5,6 +5,7 @@ import { paintLineBadge } from '../route-colors.js';
 import { flightCard, gtfsMode, gtfsTickets, osmRouteCard } from '../trip-card.js';
 import { createRailBoardView } from '../dashboard/rail-board-view.js';
 import { createTripCardView } from '../dashboard/trip-card-view.js';
+import { scrollPanelTo } from '../dashboard/panel-scroll.js';
 
 /* =========================================================
    SYMBIOT GPS TRACKING
@@ -532,11 +533,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const revealPanelSection = (section) => {
         if (!section) return;
         const wasHidden = section.hidden;
+        // On phones the panel may be closed: it opens on this selection and shows the section, not its top.
+        const panelWasClosed = page.classList.contains('right-panel-collapsed');
         section.hidden = false;
         // Scroll only when the section appears, not on its loading -> loaded refresh.
-        if (wasHidden) {
-            requestAnimationFrame(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-        }
+        if (wasHidden || panelWasClosed) scrollPanelTo(section);
     };
 
     const formatDistance = (meters) => meters < 1000

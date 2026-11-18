@@ -5,6 +5,7 @@
  */
 import { t } from '../i18n.js';
 import { modeInfo } from '../trip-card.js';
+import { scrollPanelTo } from './panel-scroll.js';
 
 /**
  * @param {{stopRoutesPanel: HTMLElement, routeDetails: HTMLElement}} panels the stop list and the GTFS line panel
@@ -179,10 +180,8 @@ export function createTripCardView({ stopRoutesPanel, routeDetails }) {
         stopRoutesPanel.hidden = true;
         routeDetails.hidden = true;
         tripCard.hidden = false;
-        requestAnimationFrame(() => {
-            tripCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            tripCard.focus({ preventScroll: true });
-        });
+        scrollPanelTo(tripCard);
+        requestAnimationFrame(() => tripCard.focus({ preventScroll: true }));
     };
 
     const closeTripCard = () => {
@@ -196,14 +195,12 @@ export function createTripCardView({ stopRoutesPanel, routeDetails }) {
         stopRoutesPanel.hidden = false;
         const trigger = tripCardTrigger;
         tripCardTrigger = null;
-        requestAnimationFrame(() => {
-            if (trigger?.isConnected) {
-                trigger.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                trigger.focus({ preventScroll: true });
-            } else {
-                stopRoutesPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        });
+        if (trigger?.isConnected) {
+            scrollPanelTo(trigger, 'center');
+            requestAnimationFrame(() => trigger.focus({ preventScroll: true }));
+        } else {
+            scrollPanelTo(stopRoutesPanel);
+        }
     });
 
     /** A list row that opens the trip card: a real button, with an arrow that says so. */

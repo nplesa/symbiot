@@ -69,7 +69,8 @@ class AccessibilityMarkupTest extends TestCase
 
     public function test_the_romanian_flag_reads_blue_yellow_red(): void
     {
-        $layout = File::get(resource_path('views/layouts/app.blade.php'));
+        // The flags are in the language links partial (sidebar and guest pages).
+        $layout = File::get(resource_path('views/layouts/partials/language-links.blade.php'));
 
         // Later rects are drawn on top and cover the left part: full width = right stripe, width 1 = left stripe.
         $this->assertMatchesRegularExpression(

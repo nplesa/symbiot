@@ -8,7 +8,8 @@ export function bindCollapsibleCard({ card, toggle, body, storageKey }) {
     if (!card || !toggle || !body) return;
 
     const setOpen = (open, remember) => {
-        card.classList.toggle('is-open', open);
+        // Its own class: the right panel itself is "is-open" when a stop is selected.
+        card.classList.toggle('is-expanded', open);
         toggle.setAttribute('aria-expanded', String(open));
         body.hidden = !open;
         if (remember) {

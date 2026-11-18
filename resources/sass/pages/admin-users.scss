@@ -152,54 +152,95 @@
             border: none;
         }
 
-        tr {
+        /* A compact card per user: name and badges, e-mail, IP and country side by side, actions.
+           ".table > tbody > tr > td": stronger than the table rules above (borders, padding). */
+        .table > tbody > tr {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            column-gap: .75rem;
+            row-gap: .35rem;
             border: 1px solid var(--sym-border, #e5e7eb);
-            border-radius: 16px;
-            margin-bottom: 1.25rem;
-            padding: 1.25rem;
+            border-radius: 14px;
+            margin-bottom: .75rem;
+            padding: .9rem 1rem;
             background: var(--sym-surface, #ffffff);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, .05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .04);
         }
 
-        td {
+        .table > tbody > tr > td {
             border: 0;
-            padding: .5rem 0;
+            box-shadow: none;
+            padding: 0;
             background-color: transparent;
             word-break: break-word;
             display: flex;
-            flex-direction: column;
-            gap: .2rem;
-        }
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: .35rem;
+            min-width: 0;
 
-        td[data-label]::before {
-            content: attr(data-label);
-            display: block;
-            font-size: .7rem;
-            font-weight: 800;
-            letter-spacing: .08em;
-            text-transform: uppercase;
-            color: var(--sym-muted, #6b7280);
+            &[data-label]::before {
+                content: attr(data-label);
+                color: var(--sym-muted, #6b7280);
+                font-size: .62rem;
+                font-weight: 800;
+                letter-spacing: .06em;
+                text-transform: uppercase;
+            }
+
+            /* Name: bold, the badges sized to their text. */
+            &:nth-child(1) {
+                grid-column: 1 / -1;
+                align-items: center;
+                font-size: 1rem;
+                font-weight: 750;
+
+                .badge { width: auto; font-size: .68rem; }
+            }
+
+            /* E-mail: under the name. */
+            &:nth-child(2) {
+                grid-column: 1 / -1;
+                color: var(--sym-muted, #6b7280);
+                font-size: .85rem;
+            }
+
+            /* IP and country: small, on one row. */
+            &:nth-child(3),
+            &:nth-child(4) { font-size: .8rem; }
+
+            &:nth-child(5) {
+                grid-column: 1 / -1;
+                display: block;
+            }
+
+            &:nth-child(1)::before,
+            &:nth-child(2)::before,
+            &:nth-child(5)::before { content: none; }
         }
 
         .admin-users__actions {
-            margin-top: 1rem;
-            padding-top: .85rem;
+            margin-top: .45rem;
+            padding-top: .7rem;
             border-top: 1px solid var(--sym-border, #e5e7eb);
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: .6rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
 
             .btn {
-                width: 100%;
-                flex: none;
-                min-height: 44px;
-                font-size: .82rem;
-                padding: .6rem .5rem;
+                flex: 1 1 0;
+                min-width: 0;
+                min-height: 40px;
+                font-size: .78rem;
+                padding: .5rem .4rem;
                 border-radius: 10px;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
             }
+
+            /* The ghost form wraps its button: the button takes a share of the row like the others. */
+            form { display: contents; }
         }
     }
 }
@@ -209,6 +250,16 @@
    ========================================================= */
 
 @media (max-width: 767.98px) {
+    /* The page card around the list: no second frame around the user cards. */
+    .card:has(> .card-body > .admin-users) {
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+
+        > .card-header { border: 0; border-radius: 12px; }
+        > .card-body { padding: .75rem 0 0; }
+    }
+
     .symbiot-content {
         width: calc(100% - 10px);
         max-width: calc(100% - 10px);
@@ -301,13 +352,15 @@ body.dark {
         }
 
         @media (max-width: 767.98px) {
-            tr {
+            .table > tbody > tr {
                 background-color: var(--sym-surface, #1f2937);
-                border-color: var(--sym-border, #374151);
+                border: 1px solid var(--sym-border, #374151);
             }
 
-            td {
+            /* The card is the frame: no line under each field. */
+            .table > tbody > tr > td {
                 background-color: transparent;
+                border: 0;
             }
 
             .admin-users__actions {

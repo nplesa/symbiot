@@ -20,6 +20,9 @@
     </script>
 
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
+    @unless (auth()->check() && request()->routeIs('app.*'))
+        @vite('resources/sass/pages/auth.scss')
+    @endunless
 
     @livewireStyles
     @stack('css')
@@ -193,33 +196,7 @@
                             <div class="dashboard-sidebar-language-wrap mb-2 text-center">
                                 <span class="dashboard-sidebar-language-label small text-muted d-block mb-1" style="font-size: 0.75rem;">{{ __('Language') }}</span>
                                 <div class="dashboard-sidebar-language-links d-flex justify-content-center align-items-center gap-2">
-                                    <!-- Steag Anglia (EN) -->
-                                    <a href="{{ route('lang.switch', 'en') }}" class="dashboard-language-link btn btn-sm p-1 @if(app()->getLocale() == 'en') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="English" aria-label="English" hreflang="en" lang="en" @if(app()->getLocale() == 'en') aria-current="true" @endif>
-                                        <svg class="dashboard-language-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" width="22" height="13" style="border-radius: 2px;" aria-hidden="true" focusable="false">
-                                            <rect width="600" height="300" fill="#012169"/>
-                                            <path d="M0,0 L600,300 M600,0 L0,300" stroke="#fff" stroke-width="60"/>
-                                            <path d="M0,0 L600,300 M600,0 L0,300" stroke="#C8102E" stroke-width="40"/>
-                                            <path d="M300,0 V300 M0,150 H600" stroke="#fff" stroke-width="100"/>
-                                            <path d="M300,0 V300 M0,150 H600" stroke="#C8102E" stroke-width="60"/>
-                                        </svg>
-                                    </a>
-                                    <!-- Steag România (RO) -->
-                                    <a href="{{ route('lang.switch', 'ro') }}" class="dashboard-language-link btn btn-sm p-1 @if(app()->getLocale() == 'ro') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="Română" aria-label="Română" hreflang="ro" lang="ro" @if(app()->getLocale() == 'ro') aria-current="true" @endif>
-                                        {{-- Blue | yellow | red: each rect covers the stripes to its right. --}}
-                                        <svg class="dashboard-language-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="22" height="13" style="border-radius: 2px;" aria-hidden="true" focusable="false">
-                                            <rect width="3" height="2" fill="#CE1126"/>
-                                            <rect width="2" height="2" fill="#FCD116"/>
-                                            <rect width="1" height="2" fill="#002B7F"/>
-                                        </svg>
-                                    </a>
-                                    <!-- Steag Italia (IT) -->
-                                    <a href="{{ route('lang.switch', 'it') }}" class="dashboard-language-link btn btn-sm p-1 @if(app()->getLocale() == 'it') border border-primary bg-primary bg-opacity-25 @else opacity-50 @endif" title="Italiano" aria-label="Italiano" hreflang="it" lang="it" @if(app()->getLocale() == 'it') aria-current="true" @endif>
-                                        <svg class="dashboard-language-flag" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2" width="22" height="13" style="border-radius: 2px;" aria-hidden="true" focusable="false">
-                                            <rect width="3" height="2" fill="#CE1126"/>
-                                            <rect width="2" height="2" fill="#FFFFFF"/>
-                                            <rect width="1" height="2" fill="#009246"/>
-                                        </svg>
-                                    </a>
+                                    @include('layouts.partials.language-links')
                                 </div>
                             </div>
                         </div>
@@ -305,99 +282,13 @@
 
         @else
 
-            <nav class="navbar navbar-expand-md navbar-dark bg-dark shadow-sm">
-
-                <div class="container">
-
-                    <a class="navbar-brand" href="{{ url('/') }}">
-                        {{ config('app.name', 'Laravel') }}
-                    </a>
-
-                    <button class="navbar-toggler"
-                            type="button"
-                            data-bs-toggle="collapse"
-                            data-bs-target="#navbarSupportedContent">
-
-                        <span class="navbar-toggler-icon"></span>
-
-                    </button>
-
-                    <div class="collapse navbar-collapse"
-                         id="navbarSupportedContent">
-
-                        <ul class="navbar-nav ms-auto">
-
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ route('app.home') }}">
-                                    {{ __('Dashboard') }}
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-
-                                <a class="nav-link"
-                                   href="{{ route('logout') }}"
-                                   onclick="event.preventDefault(); this.nextElementSibling.submit();">
-
-                                    {{ __('Logout') }}
-
-                                </a>
-
-                                <form action="{{ route('logout') }}"
-                                      method="POST"
-                                      class="d-none">
-                                    @csrf
-                                </form>
-
-                            </li>
-
-                        </ul>
-
-                    </div>
-
-                </div>
-
-            </nav>
-
-            <main class="py-4">
-                @yield('content')
-            </main>
+            @include('layouts.partials.auth-shell', ['authenticated' => true])
 
         @endif
 
     @else
 
-        <nav class="navbar navbar-expand-md navbar-dark bg-dark shadow-sm">
-
-            <div class="container">
-
-                <a class="navbar-brand" href="{{ url('/') }}">
-                    {{ config('app.name', 'Laravel') }}
-                </a>
-
-                <div class="navbar-nav ms-auto">
-
-                    @if (Route::has('login'))
-                        <a class="nav-link" href="{{ route('login') }}">
-                            {{ __('Login') }}
-                        </a>
-                    @endif
-
-                    @if (Route::has('register'))
-                        <a class="nav-link" href="{{ route('register') }}">
-                            {{ __('Register') }}
-                        </a>
-                    @endif
-
-                </div>
-
-            </div>
-
-        </nav>
-
-        <main class="py-4">
-            @yield('content')
-        </main>
+        @include('layouts.partials.auth-shell', ['authenticated' => false])
 
     @endauth
 
