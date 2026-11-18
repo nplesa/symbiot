@@ -428,7 +428,6 @@
     "Google Maps link pasted.": "Google Maps link pasted.",
     "Cannot read the clipboard. Use Ctrl+V in the field above.": "Cannot read the clipboard. Use Ctrl+V in the field above.",
     "Could not load the city boundary.": "Could not load the city boundary.",
-    "The whole city is already within the viewport.": "The whole city is already within the viewport.",
     "Map loaded; :count tiles could not be fetched.": "Map loaded; :count tiles could not be fetched.",
     "Point of interest": "Point of interest",
     "Bus stop": "Bus stop",

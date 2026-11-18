@@ -428,7 +428,6 @@
     "Google Maps link pasted.": "Linkul Google Maps a fost lipit.",
     "Cannot read the clipboard. Use Ctrl+V in the field above.": "Nu pot citi clipboardul. Folosește Ctrl+V în câmpul de mai sus.",
     "Could not load the city boundary.": "Nu am putut încărca limita orașului.",
-    "The whole city is already within the viewport.": "Tot orașul este deja cuprins în viewport.",
     "Map loaded; :count tiles could not be fetched.": "Harta s-a încărcat; :count tile-uri nu au putut fi preluate.",
     "Point of interest": "Punct de interes",
     "Bus stop": "Stație de autobuz",

@@ -22,7 +22,6 @@ import Point from 'ol/geom/Point.js';
 import LineString from 'ol/geom/LineString.js';
 
 import { fromLonLat } from 'ol/proj.js';
-import { containsExtent } from 'ol/extent.js';
 
 import Style from 'ol/style/Style.js';
 import Icon from 'ol/style/Icon.js';
@@ -228,26 +227,7 @@ dashboardCitywide?.addEventListener('change', async () => {
         mapState.app_radius = Math.max(100, Math.ceil(mapState.cityBoundaryRadiusMeters / 100) * 100);
         const boundaryMapFeature = new GeoJSON().readFeature(mapState.cityBoundaryFeature, { featureProjection: 'EPSG:3857' });
         const mapSize = map.getSize();
-        const currentViewport = mapSize ? map.getView().calculateExtent(mapSize) : null;
-        if (currentViewport && containsExtent(currentViewport, boundaryMapFeature.getGeometry().getExtent())) {
-            dashboardCitywide.checked = false;
-            mapState.citywideSearch = false;
-            mapState.cityBoundaryFeature = null;
-            mapState.cityBoundaryRadiusMeters = null;
-            mapState.app_radius = mapState.cityRadiusMeters;
-            syncDashboardRadius(mapState.app_radius, true);
-            if (radiusStatus) radiusStatus.textContent = '';
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'info',
-                title: t('The whole city is already within the viewport.'),
-                showConfirmButton: false,
-                timer: 2800,
-                timerProgressBar: true,
-            });
-            return;
-        }
+        // "Whole city" always applies, even when the city already fits in the current view.
         mapState.citywideSearch = true;
         cityBoundarySource.clear();
         cityBoundarySource.addFeature(boundaryMapFeature);

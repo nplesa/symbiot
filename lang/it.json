@@ -428,7 +428,6 @@
     "Google Maps link pasted.": "Link di Google Maps incollato.",
     "Cannot read the clipboard. Use Ctrl+V in the field above.": "Impossibile leggere gli appunti. Usa Ctrl+V nel campo qui sopra.",
     "Could not load the city boundary.": "Impossibile caricare il confine della città.",
-    "The whole city is already within the viewport.": "L'intera città è già visibile nella mappa.",
     "Map loaded; :count tiles could not be fetched.": "Mappa caricata; non è stato possibile scaricare :count tile.",
     "Point of interest": "Punto di interesse",
     "Bus stop": "Fermata dell'autobus",
