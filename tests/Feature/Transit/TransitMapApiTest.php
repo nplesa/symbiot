@@ -245,6 +245,43 @@ class TransitMapApiTest extends TestCase
         }
     }
 
+    public function test_a_departure_after_midnight_is_flagged_as_tomorrow(): void
+    {
+        $feed = $this->seedFeed();
+        // 23:21 in Bucharest; the only trips leave at 05:30 and 05:45: the next one is tomorrow, 369 min away.
+        Carbon::setTestNow('2026-10-05 20:21:00');
+        DB::table('transit_agencies')->insert([
+            'feed_id' => $feed->id, 'agency_id' => 'agency', 'name' => 'Agency', 'timezone' => 'Europe/Bucharest',
+        ]);
+        DB::table('transit_calendars')->insert([
+            'feed_id' => $feed->id,
+            'service_id' => 's',
+            'days_mask' => 127,
+            'start_date' => '2026-10-01',
+            'end_date' => '2026-10-10',
+        ]);
+        DB::table('transit_stop_times')->where('trip_id', 't1')->update([
+            'arrival_seconds' => 5 * 3600 + 30 * 60,
+            'departure_seconds' => 5 * 3600 + 30 * 60,
+        ]);
+        DB::table('transit_stop_times')->where('trip_id', 't2')->update([
+            'arrival_seconds' => 5 * 3600 + 45 * 60,
+            'departure_seconds' => 5 * 3600 + 45 * 60,
+        ]);
+
+        try {
+            $this->actingAs(User::factory()->create())
+                ->getJson("/api/transit/stops/{$feed->id}/A%2F1/next-departure?route_id=M1")
+                ->assertOk()
+                ->assertJsonPath('departure.time', '05:30')
+                ->assertJsonPath('departure.minutes_until', 369)
+                ->assertJsonPath('departure.days_ahead', 1)
+                ->assertJsonPath('departure.date', '2026-10-06');
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
     public function test_route_shape_returns_one_line_per_direction(): void
     {
         $feed = $this->seedFeed();

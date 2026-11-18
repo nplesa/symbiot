@@ -221,6 +221,18 @@
         </div>
     </div>
     
+    {{-- "Location" pressed: shown until the first GPS position (or an error, or Cancel); device-location.js. --}}
+    <div class="dashboard-location-wait" id="dashboard-location-wait" hidden>
+        <div class="dashboard-location-wait-card" role="status" aria-live="polite">
+            <i class="fa-solid fa-location-crosshairs dashboard-location-wait-icon" aria-hidden="true"></i>
+            <p class="dashboard-location-wait-text">{{ __('Waiting for the location…') }}</p>
+            <div class="progress dashboard-location-wait-progress" role="progressbar" aria-label="{{ __('Waiting for the location…') }}">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+            </div>
+            <button type="button" class="btn btn-outline-secondary btn-sm dashboard-location-wait-cancel" id="dashboard-location-wait-cancel">{{ __('Cancel') }}</button>
+        </div>
+    </div>
+
     <button type="button" class="dashboard-mobile-panel-backdrop" id="dashboard-mobile-panel-backdrop" aria-label="{{ __('Close') }}" hidden></button>
     <button type="button" class="dashboard-mobile-panel-open" id="dashboard-mobile-panel-open" aria-controls="dashboard-route-panel" aria-expanded="false">
         <i class="fa-solid fa-sliders" aria-hidden="true"></i><span>{{ __('Explore') }}</span>

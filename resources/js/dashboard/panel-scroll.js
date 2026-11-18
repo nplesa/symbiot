@@ -1,3 +1,15 @@
+/** The empty block at the end of the panel that scrollPanelTo() sizes. */
+function panelSpacer(panel) {
+    let spacer = panel.querySelector(':scope > .dashboard-panel-spacer');
+    if (!spacer) {
+        spacer = document.createElement('div');
+        spacer.className = 'dashboard-panel-spacer';
+        spacer.setAttribute('aria-hidden', 'true');
+        panel.append(spacer);
+    }
+    return spacer;
+}
+
 /**
  * Scrolls the right panel (.dashboard-route-panel) so that one of its sections is in view.
  *
@@ -25,6 +37,11 @@ export function scrollPanelTo(element, block = 'start') {
         const top = block === 'center'
             ? panel.scrollTop + box.top - panelBox.top - (panel.clientHeight - box.height) / 2
             : panel.scrollTop + box.top - panelBox.top - covered - 8;
+        // A short section at the end (a line's card under a short list) cannot reach the top on a tall
+        // screen: the list would stay visible above it. A spacer at the end of the panel gives the room.
+        const spacer = panelSpacer(panel);
+        const missing = Math.ceil(top - (panel.scrollHeight - spacer.offsetHeight - panel.clientHeight));
+        spacer.style.height = `${Math.max(0, missing)}px`;
         if (Math.abs(top - panel.scrollTop) < 2) return;
         panel.scrollTo({ top: Math.max(0, top), behavior: reduceMotion ? 'auto' : behavior });
     };

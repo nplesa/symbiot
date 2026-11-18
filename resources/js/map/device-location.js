@@ -19,6 +19,15 @@ const WATCH_OPTIONS = {
     maximumAge: 0
 };
 
+const locationWait = document.getElementById('dashboard-location-wait');
+
+/** The centred "Waiting for the location…" message (with its Cancel button). */
+function showLocationWait(visible) {
+    if (!locationWait) return;
+    locationWait.hidden = !visible;
+    if (visible) document.getElementById('dashboard-location-wait-cancel')?.focus({ preventScroll: true });
+}
+
 /** Binds the device location switch; page: the map, its styles and the page functions it needs. */
 export function bindDeviceLocation(page) {
     const { map, transitStops, userStyle, userArrowStyle, csrfToken, deviceRadiusMeters, HEADING_MIN_MOVE_METERS, syncDashboardRadius, resetPOIs, scheduleMapSizeUpdate, initLocalFeatures, loadNearby, selectedPoiFilterTokens } = page;
@@ -33,6 +42,7 @@ export function bindDeviceLocation(page) {
     /** The switch was turned off: stop following the device. */
     const stopDeviceLocation = () => {
         clearDeviceWatch();
+        showLocationWait(false);
 
         mapState.tracking = false;
         mapState.lastPosition = null;
@@ -73,7 +83,6 @@ export function bindDeviceLocation(page) {
         document.getElementById('city-location-form')?.classList.add('d-none');
 
         mapCard?.classList.remove('d-none');
-        mobilityCard?.classList.remove('d-none');
 
         mobilityCard?.querySelector('.row')?.classList.remove('mt-3');
 
@@ -286,18 +295,20 @@ export function bindDeviceLocation(page) {
         }
     };
 
+    /** The GPS error text, in the (hidden) city form status; returned for the visible search status. */
     const showGpsError = (status, error) => {
         console.error('GPS error:', error);
 
+        const message = error.code === 1
+            ? t('Location access was denied.')
+            : error.code === 2
+                ? t('The GPS position is not available.')
+                : t('Determining the GPS position timed out.');
         if (status) {
-            status.textContent =
-                error.code === 1
-                    ? t('Location access was denied.')
-                    : error.code === 2
-                        ? t('The GPS position is not available.')
-                        : t('Determining the GPS position timed out.');
+            status.textContent = message;
             status.className = 'col-12 small text-danger';
         }
+        return message;
     };
 
     document
@@ -323,6 +334,7 @@ export function bindDeviceLocation(page) {
             }
 
             const ui = enterGpsMode();
+            showLocationWait(true);
             await registerLocationOn();
 
             // Set before the first position's setup starts, so a second position does not set it up again.
@@ -359,6 +371,7 @@ export function bindDeviceLocation(page) {
                     // Prima poziție inițializează întreaga zonă.
                     if (!initialized) {
                         initialized = true;
+                        showLocationWait(false);
                         try {
                             await initializeGpsArea(ui, lat, lon);
                         } catch (error) {
@@ -376,7 +389,12 @@ export function bindDeviceLocation(page) {
                     sendPosition(lat, lon);
                 },
                 error => {
-                    showGpsError(ui.status, error);
+                    if (!initialized) showLocationWait(false);
+                    const message = showGpsError(ui.status, error);
+                    // Before the first position the user is waiting for it: the error is shown under the search.
+                    if (!initialized) {
+                        window.dispatchEvent(new CustomEvent('symbiot:location-error', { detail: { message } }));
+                    }
 
                     if (!initialized) {
                         mapState.tracking = false;
@@ -388,4 +406,23 @@ export function bindDeviceLocation(page) {
                 WATCH_OPTIONS
             );
         });
+
+    // Cancel while waiting: the GPS is stopped and turned off on the server; the page stays without a location.
+    document.getElementById('dashboard-location-wait-cancel')?.addEventListener('click', () => {
+        const toggle = document.getElementById('toggleLocation');
+        if (toggle) toggle.checked = false;
+        stopDeviceLocation();
+        fetchJson('/location/toggle', {
+            method: 'POST',
+            body: JSON.stringify({ location: false }),
+        }).catch((error) => console.error('Turning off device location failed:', error));
+        window.dispatchEvent(new CustomEvent('symbiot:location-error', {
+            detail: { message: t('Waiting for the location was cancelled.') },
+        }));
+    });
+
+    // A city chosen meanwhile replaces the GPS: no more waiting.
+    window.addEventListener('symbiot:location-changing', (event) => {
+        if (event.detail?.mode !== 'gps') showLocationWait(false);
+    });
 }

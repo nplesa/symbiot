@@ -680,6 +680,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.addEventListener('symbiot:location-set', (event) => {
+        // Phones: the panel opens on the new area (weather, radius, POI categories), city or GPS alike.
+        if (routePanelMedia.matches) setRoutePanelCollapsed(false);
         setPanelTitle(event.detail?.place ?? null, event.detail?.label ?? null);
         searchStatus.textContent = t('Map centered on :place.', { place: event.detail?.label ?? t('the selected locality') });
         resetDashboardLocationState();
@@ -703,6 +705,8 @@ document.addEventListener('DOMContentLoaded', () => {
             : t('Changing the locality...');
     });
     window.addEventListener('symbiot:location-error', (event) => {
+        // Phones: the status is in the panel's heading; the panel opens so the message is seen.
+        if (routePanelMedia.matches) setRoutePanelCollapsed(false);
         if(searchStatus.parentNode.classList.contains('d-none')) {
             searchStatus.parentNode.classList.remove('d-none');
         }
@@ -1089,6 +1093,27 @@ document.addEventListener('DOMContentLoaded', () => {
         setText('dashboard-route-headsign', '');
     };
 
+    /** "12 min", or "6 h 9 min" from an hour on. */
+    const waitText = (minutes) => {
+        const total = Math.max(0, Math.round(Number(minutes) || 0));
+        if (total < 60) return t(':minutes min', { minutes: total });
+        const hours = Math.floor(total / 60);
+        const rest = total % 60;
+        return rest === 0 ? t(':hours h', { hours }) : t(':hours h :minutes min', { hours, minutes: rest });
+    };
+
+    /** The departure time with its day when it is not today: "tomorrow, 05:30" or "Fri 21 Nov, 05:30". */
+    const departureDayTime = (departure) => {
+        const days = Number(departure.days_ahead) || 0;
+        if (days === 0) return departure.time;
+        if (days === 1) return t('tomorrow, :time', { time: departure.time });
+        const date = departure.date ? new Date(`${departure.date}T12:00:00`) : null;
+        const day = date && !Number.isNaN(date.getTime())
+            ? new Intl.DateTimeFormat(intlLocale, { weekday: 'short', day: 'numeric', month: 'short' }).format(date)
+            : null;
+        return day ? `${day}, ${departure.time}` : departure.time;
+    };
+
     window.addEventListener('symbiot:transit-route-selected', (event) => showRoute(event.detail));
     // Another stop of the selected line: only the card changes, the list and the line stay.
     window.addEventListener('symbiot:transit-route-stop', (event) => {
@@ -1109,9 +1134,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 : t('There are no departures scheduled in the coming period.'));
             return;
         }
-        setText('dashboard-route-departure', departure.time);
+        setText('dashboard-route-departure', departureDayTime(departure));
         renderItinerary(byId('dashboard-route-itinerary'), departure.origin || null, departure.destination || departure.headsign || null);
-        setText('dashboard-route-countdown', departure.minutes_until === 0 ? t('Leaving now') : t(':minutes min', { minutes: departure.minutes_until }));
+        setText('dashboard-route-countdown', departure.minutes_until === 0 ? t('Leaving now') : waitText(departure.minutes_until));
         setText('dashboard-route-headsign', departure.headsign ? t('Direction: :headsign', { headsign: departure.headsign }) : t('Scheduled timetable'));
     });
     window.addEventListener('symbiot:transit-route-shape', (event) => {

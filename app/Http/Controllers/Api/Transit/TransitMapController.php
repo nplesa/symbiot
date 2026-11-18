@@ -547,6 +547,9 @@ class TransitMapController extends Controller
                 // Whole clock minutes between now and the shown time, both cut to the minute: two trains shown
                 // at 15:58 always say the same "in N min" (and the same minute as now is "now").
                 'minutes_until' => max(0, intdiv($next['at']->getTimestamp(), 60) - intdiv($now->getTimestamp(), 60)),
+                // Calendar days from today to the departure, in the feed's time zone: 05:30 after midnight is "tomorrow".
+                'days_ahead' => max(0, (int) $now->copy()->startOfDay()->diffInDays($next['at']->copy()->setTimezone($now->getTimezone())->startOfDay())),
+                'date' => $next['at']->copy()->setTimezone($now->getTimezone())->format('Y-m-d'),
                 'headsign' => $next['headsign'],
                 'timezone' => $timezone,
                 'estimated' => $next['estimated'],
