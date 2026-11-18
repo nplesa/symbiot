@@ -262,7 +262,7 @@
                     <span class="dashboard-weather-name">{{ __('Weather forecast') }}</span>
                     <span class="dashboard-weather-summary" id="dashboard-weather-summary"></span>
                     <span class="dashboard-weather-range">{{ __('3 days') }}</span>
-                    <i class="fa-solid fa-chevron-down dashboard-weather-chevron" aria-hidden="true"></i>
+                    <i class="fa-solid fa-chevron-down dashboard-collapse-chevron" aria-hidden="true"></i>
                 </button>
             </h2>
             <div class="dashboard-weather-body" id="dashboard-weather-body" hidden>
@@ -273,17 +273,25 @@
             </div>
         </section>
 
-        <section class="dashboard-radius-control d-none" id="dashboard-radius-control" aria-labelledby="dashboard-radius-label">
-            <div class="dashboard-radius-heading">
-                <label id="dashboard-radius-label" for="dashboard-search-radius">{{ __('Search radius (meters)') }}</label>
-                <output id="dashboard-radius-value" for="dashboard-search-radius">5 km</output>
+        {{-- Collapsed by default: "Radius" and its value in the heading; opened, the radius can be changed. --}}
+        <section class="dashboard-radius-control d-none" id="dashboard-radius-control" aria-labelledby="dashboard-radius-title">
+            <h2 class="dashboard-radius-heading" id="dashboard-radius-title">
+                <button type="button" class="dashboard-radius-toggle" id="dashboard-radius-toggle" aria-expanded="false" aria-controls="dashboard-radius-body">
+                    <i class="fa-solid fa-bullseye" aria-hidden="true"></i>
+                    <span class="dashboard-radius-name">{{ __('Radius') }}</span>
+                    <output id="dashboard-radius-value" for="dashboard-search-radius">5 km</output>
+                    <i class="fa-solid fa-chevron-down dashboard-collapse-chevron" aria-hidden="true"></i>
+                </button>
+            </h2>
+            <div class="dashboard-radius-body" id="dashboard-radius-body" hidden>
+                <label class="dashboard-citywide-choice d-none" id="dashboard-citywide-wrap" for="dashboard-citywide">
+                    <input class="form-check-input" type="checkbox" id="dashboard-citywide">
+                    <span>{{ __('Whole city') }}</span>
+                </label>
+                <input class="form-range" id="dashboard-search-radius" type="range" min="100" max="35000" step="100" value="5000" aria-label="{{ __('Search radius (meters)') }}">
+                <div class="dashboard-radius-scale"><span>100 m</span><span>35 km</span></div>
             </div>
-            <label class="dashboard-citywide-choice d-none" id="dashboard-citywide-wrap" for="dashboard-citywide">
-                <input class="form-check-input" type="checkbox" id="dashboard-citywide">
-                <span>{{ __('Whole city') }}</span>
-            </label>
-            <input class="form-range" id="dashboard-search-radius" type="range" min="100" max="35000" step="100" value="5000" aria-label="{{ __('Search radius (meters)') }}">
-            <div class="dashboard-radius-scale"><span>100 m</span><span>35 km</span></div>
+            {{-- Outside the body: an error (city boundary) is seen even when the card is collapsed. --}}
             <div class="dashboard-radius-status" id="dashboard-radius-status" role="status" aria-live="polite"></div>
         </section>
 

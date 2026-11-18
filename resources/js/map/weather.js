@@ -1,15 +1,12 @@
 /** The 3-day weather forecast of the right panel (#dashboard-weather, WeatherAPI.com through the app). */
+import { bindCollapsibleCard } from '../collapsible-card.js';
 import { formatNumber, intlLocale, t } from '../i18n.js';
 
 const dashboardWeather = document.getElementById('dashboard-weather');
 const dashboardWeatherCurrent = document.getElementById('dashboard-weather-current');
 const dashboardWeatherStatus = document.getElementById('dashboard-weather-status');
 const dashboardWeatherDays = document.getElementById('dashboard-weather-days');
-const dashboardWeatherToggle = document.getElementById('dashboard-weather-toggle');
-const dashboardWeatherBody = document.getElementById('dashboard-weather-body');
 const dashboardWeatherSummary = document.getElementById('dashboard-weather-summary');
-// Collapsed unless the user opened it (remembered in this browser).
-const WEATHER_OPEN_KEY = 'symbiot-weather-open';
 let weatherRequestId = 0;
 let weatherRequestController = null;
 
@@ -22,21 +19,12 @@ function appendWeatherIcon(container, iconUrl, description) {
     container.appendChild(image);
 }
 
-function setWeatherOpen(open, remember = false) {
-    if (!dashboardWeather || !dashboardWeatherToggle || !dashboardWeatherBody) return;
-    dashboardWeather.classList.toggle('is-open', open);
-    dashboardWeatherToggle.setAttribute('aria-expanded', String(open));
-    dashboardWeatherBody.hidden = !open;
-    if (remember) {
-        try { localStorage.setItem(WEATHER_OPEN_KEY, open ? '1' : '0'); } catch { /* the choice is just not kept */ }
-    }
-}
-
-let weatherOpen = false;
-try { weatherOpen = localStorage.getItem(WEATHER_OPEN_KEY) === '1'; } catch { /* collapsed */ }
-setWeatherOpen(weatherOpen);
-dashboardWeatherToggle?.addEventListener('click', () => {
-    setWeatherOpen(dashboardWeatherToggle.getAttribute('aria-expanded') !== 'true', true);
+// Collapsed unless the user opened it; the heading shows the current temperature meanwhile.
+bindCollapsibleCard({
+    card: dashboardWeather,
+    toggle: document.getElementById('dashboard-weather-toggle'),
+    body: document.getElementById('dashboard-weather-body'),
+    storageKey: 'symbiot-weather-open',
 });
 
 function renderWeatherForecast(data) {

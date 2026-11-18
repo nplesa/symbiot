@@ -386,10 +386,11 @@
 /* Collapsed: the current temperature next to the title; open: "3 days". */
 .dashboard-weather-summary { margin-left: auto; color: var(--dashboard-muted); font-size: .74rem; font-weight: 650; white-space: nowrap; }
 .dashboard-weather-range { display: none; margin-left: auto; color: var(--dashboard-muted); font-size: .7rem; font-weight: 500; }
-.dashboard-weather-chevron { flex: 0 0 auto; font-size: .8rem; transition: transform .2s ease; }
+/* The open/closed arrow of a collapsible card (weather, radius): text colour, turned when open. */
+.dashboard-collapse-chevron { flex: 0 0 auto; font-size: .8rem; transition: transform .2s ease; }
+.is-open .dashboard-collapse-chevron { transform: rotate(180deg); }
 .dashboard-weather.is-open .dashboard-weather-summary { display: none; }
 .dashboard-weather.is-open .dashboard-weather-range { display: inline; }
-.dashboard-weather.is-open .dashboard-weather-chevron { transform: rotate(180deg); }
 .dashboard-weather-current { display: flex; align-items: center; gap: .45rem; min-height: 38px; margin-top: .35rem; }
 .dashboard-weather-current img { width: 36px; height: 36px; }
 .dashboard-weather-current strong { color: var(--dashboard-ink); font-size: 1.35rem; line-height: 1; }
@@ -416,27 +417,32 @@
     background: var(--dashboard-panel-bg);
 }
 
-.dashboard-radius-heading {
+.dashboard-radius-heading { margin: 0; color: var(--dashboard-ink); font-size: .82rem; font-weight: 750; }
+.dashboard-radius-toggle {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: .75rem;
-    margin-bottom: .15rem;
+    gap: .45rem;
+    width: 100%;
+    padding: 0 0 .25rem;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
 
-    label {
-        margin: 0;
-        color: var(--dashboard-ink);
-        font-size: .82rem;
-        font-weight: 750;
-    }
+    &:focus-visible { outline: 2px solid var(--dashboard-blue); outline-offset: 3px; border-radius: 6px; }
+    > .fa-bullseye { color: var(--dashboard-blue); }
 
     output {
+        margin-left: auto;
         color: var(--dashboard-blue);
         font-size: .8rem;
         font-weight: 800;
         white-space: nowrap;
     }
 }
+.dashboard-radius-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .dashboard-citywide-choice {
     display: flex;

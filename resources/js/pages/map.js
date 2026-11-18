@@ -1,4 +1,5 @@
 import 'ol/ol.css';
+import { bindCollapsibleCard } from '../collapsible-card.js';
 import { watchTransitCoverage } from '../map/transit-coverage.js';
 import { createTransitLayer } from '../map/transit-stops-layer.js';
 import { fetchJson } from '../http.js';
@@ -85,6 +86,13 @@ const deviceRadiusMeters = mapState.app_radius;
 const dashboardRadiusInput = document.getElementById('dashboard-search-radius');
 const dashboardRadiusControl = document.getElementById('dashboard-radius-control');
 const dashboardRadiusOutput = document.getElementById('dashboard-radius-value');
+// Collapsed unless the user opened it; the heading shows the radius meanwhile.
+bindCollapsibleCard({
+    card: dashboardRadiusControl,
+    toggle: document.getElementById('dashboard-radius-toggle'),
+    body: document.getElementById('dashboard-radius-body'),
+    storageKey: 'symbiot-radius-open',
+});
 const dashboardCitywide = document.getElementById('dashboard-citywide');
 const dashboardCitywideWrap = document.getElementById('dashboard-citywide-wrap');
 
