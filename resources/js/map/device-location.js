@@ -241,7 +241,8 @@ export function bindDeviceLocation(page) {
         requestAnimationFrame(() => {
             mapState.userFeature.getGeometry().setCoordinates(currentCenter);
 
-            if (mapState.radiusFeature) {
+            // Not while "Whole city" is shown: the boundary replaces the circle.
+            if (mapState.radiusFeature && !mapState.citywideSearch) {
                 mapState.radiusFeature.setGeometry(
                     circular(
                         [lon, lat],

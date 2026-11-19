@@ -114,7 +114,8 @@ function syncDashboardRadius(meters, visible = true) {
         legacyRadiusInput.disabled = mapState.citywideSearch;
     }
     dashboardRadiusControl?.classList.toggle('d-none', !visible);
-    dashboardCitywideWrap?.classList.toggle('d-none', !mapState.fixedCityLocation);
+    // A searched city or the GPS location (its locality): both have a "whole city".
+    dashboardCitywideWrap?.classList.toggle('d-none', !(mapState.fixedCityLocation || mapState.currentUserLocation));
 }
 
 window.addEventListener('symbiot:location-changing', () => {
@@ -187,8 +188,9 @@ dashboardRadiusInput?.addEventListener('change', () => {
 });
 
 dashboardCitywide?.addEventListener('change', async () => {
-    if (!mapState.fixedCityLocation) return;
-    const center = mapState.fixedCityLocation;
+    // The searched city, else the locality of the GPS position (found by the point alone, see CityBoundaries::pick).
+    const center = mapState.fixedCityLocation ?? mapState.currentUserLocation;
+    if (!center) return;
     const radiusStatus = document.getElementById('dashboard-radius-status');
     if (radiusStatus) radiusStatus.textContent = '';
     if (!dashboardCitywide.checked) {
@@ -216,8 +218,10 @@ dashboardCitywide?.addEventListener('change', async () => {
     dashboardCitywide.disabled = true;
     try {
         const params = new URLSearchParams({ lat: String(center.lat), lon: String(center.lon) });
-        if (center.placeId) params.set('id', center.placeId);
-        if (center.name) params.set('name', center.name);
+        if (mapState.fixedCityLocation) {
+            if (center.placeId) params.set('id', center.placeId);
+            if (center.name) params.set('name', center.name);
+        }
         const payload = await fetchJson(`/api/location/city-boundary?${params}`);
         if (!payload?.feature?.geometry) throw new Error(t('Could not load the city boundary.'));
 

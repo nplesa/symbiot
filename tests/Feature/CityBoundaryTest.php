@@ -224,6 +224,67 @@ class CityBoundaryTest extends TestCase
         $this->boundary(44.47, 26.08, ['name' => 'Bucuresti'])->assertOk()->assertJsonPath('feature.properties.name', 'București');
     }
 
+    /** The same unit with its names in other languages (Geoapify's datasource.raw). */
+    private function translated(array $unit, array $names): array
+    {
+        $unit['properties']['datasource']['raw'] = [...$unit['properties']['datasource']['raw'], ...$names];
+
+        return $unit;
+    }
+
+    public function test_a_city_searched_by_its_romanian_name_is_found_by_its_translation(): void
+    {
+        // Searched as "Viena" (the search answers in Romanian); the boundary is named "Wien" (2026-11-19).
+        Http::fake(['api.geoapify.com/v1/boundaries/part-of*' => Http::response(['features' => [
+            $this->unit('Katastralgemeinde Innere Stadt', 'Viena', [48.2, 16.36, 48.217, 16.385], 10),
+            $this->unit('Innere Stadt', 'Viena', [48.198, 16.355, 48.22, 16.39], 9),
+            $this->translated($this->unit('Wien', 'Viena', [48.118, 16.182, 48.323, 16.578], 4), ['name:en' => 'Vienna', 'name:ro' => 'Viena']),
+            $this->unit('Österreich', null, [46.372, 9.531, 49.021, 17.161], 2),
+        ]])]);
+
+        $this->boundary(48.2085, 16.3721, ['name' => 'Viena'])->assertOk()->assertJsonPath('feature.properties.name', 'Wien');
+        // Then read from the database by the same Romanian name, without asking Geoapify again.
+        $this->boundary(48.15, 16.3, ['name' => 'Viena'])->assertOk()->assertJsonPath('feature.properties.name', 'Wien');
+        Http::assertSentCount(1);
+    }
+
+    public function test_london_is_greater_london_by_its_place_name(): void
+    {
+        Http::fake(['api.geoapify.com/v1/boundaries/part-of*' => Http::response(['features' => [
+            $this->unit('City of Westminster', 'City of Westminster', [51.484, -0.216, 51.54, -0.111], 8),
+            $this->translated($this->unit('Greater London', 'Londra', [51.286, -0.51, 51.692, 0.334], 5), ['_place_name:ro' => 'Londra']),
+            $this->unit('England', null, [49.86, -6.42, 55.81, 1.77], 4),
+        ]])]);
+
+        $this->boundary(51.5074, -0.1278, ['name' => 'Londra'])->assertOk()->assertJsonPath('feature.properties.name', 'Greater London');
+    }
+
+    public function test_without_a_translation_the_largest_unit_of_the_searched_city_is_taken(): void
+    {
+        // Praga: no unit carries the Romanian name, all of them say city = "Praga"; the districts are smaller.
+        Http::fake(['api.geoapify.com/v1/boundaries/part-of*' => Http::response(['features' => [
+            $this->unit('SO Praha 1', 'Praga', [50.07, 14.4, 50.1, 14.44], 6),
+            $this->unit('Praha 1', 'Praga', [50.07, 14.4, 50.1, 14.44], 9),
+            $this->unit('obvod Praha 1', 'Praga', [50.07, 14.4, 50.1, 14.44], 5),
+            $this->unit('Praha', 'Praga', [49.942, 14.224, 50.177, 14.707], 4),
+            $this->unit('Česko', null, [48.55, 12.09, 51.06, 18.86], 2),
+        ]])]);
+
+        $this->boundary(50.0875, 14.4213, ['name' => 'Praga'])->assertOk()->assertJsonPath('feature.properties.name', 'Praha');
+    }
+
+    public function test_a_gps_point_takes_the_city_of_its_smallest_unit(): void
+    {
+        // In the centre of Vienna, without a name: the smallest unit says city = "Viena" → Wien.
+        Http::fake(['api.geoapify.com/v1/boundaries/part-of*' => Http::response(['features' => [
+            $this->unit('Katastralgemeinde Innere Stadt', 'Viena', [48.2, 16.36, 48.217, 16.385], 10),
+            $this->unit('Innere Stadt', 'Viena', [48.198, 16.355, 48.22, 16.39], 9),
+            $this->translated($this->unit('Wien', 'Viena', [48.118, 16.182, 48.323, 16.578], 4), ['name:ro' => 'Viena']),
+        ]])]);
+
+        $this->boundary(48.2085, 16.3721)->assertOk()->assertJsonPath('feature.properties.name', 'Wien');
+    }
+
     public function test_only_a_metropolitan_area_or_a_county_is_no_city_boundary(): void
     {
         Http::fake(['api.geoapify.com/v1/boundaries/part-of*' => Http::response(['features' => [

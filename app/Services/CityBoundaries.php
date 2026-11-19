@@ -85,7 +85,9 @@ class CityBoundaries
         // Berlin (Mitte) is not Berlin. Anything else containing the point is not that city: it is fetched.
         $wanted = self::nameKey($name);
         if ($wanted !== '') {
-            return $containing->first(fn (CityBoundary $boundary): bool => self::nameKey($boundary->name) === $wanted);
+            // Also by its "city" (stored in the search's language): Wien is found again as "Viena".
+            return $containing->first(fn (CityBoundary $boundary): bool => self::nameKey($boundary->name) === $wanted
+                || self::nameKey($boundary->city) === $wanted);
         }
 
         return $containing->first();
@@ -233,10 +235,12 @@ class CityBoundaries
 
     /**
      * The city among the administrative units containing its point:
-     * - with the searched name: the units of exactly that name (diacritics aside), the smallest one.
-     *   Brașov the municipality, not Brașov the county (Romanian counties carry their seat's name);
-     *   Berlin the city-state, not the district Mitte whose "city" is Berlin; București, not a sector.
-     * - without a name: the smallest unit named like its own city.
+     * 1. the units named so, in any language Geoapify gives (Wien is also "Viena", Praha "Praga", Greater
+     *    London "Londra"), diacritics aside, the smallest one: Brașov the municipality, not Brașov the county
+     *    (Romanian counties carry their seat's name); Berlin, not the district Mitte; București, not a sector;
+     * 2. else the largest unit whose "city" is that name: Geoapify writes it in the search's language, like
+     *    the searched name, and the districts share it, so the largest is the whole city.
+     * Without a name (GPS), the name is the "city" of the smallest unit that has one: its own locality.
      * Nothing else: a metropolitan area or a county is not the city, so null (no boundary shown).
      *
      * @param  array<int, mixed>  $features
@@ -249,27 +253,66 @@ class CityBoundaries
         ));
 
         $wanted = self::nameKey($name);
-        $candidates = array_filter($polygons, static function (array $item) use ($wanted): bool {
-            $properties = $item['properties'] ?? [];
-            $own = self::nameKey($properties['name'] ?? null);
-            if ($own === '') {
-                return false;
+        if ($wanted === '') {
+            $withCity = array_values(array_filter($polygons, static fn (array $item): bool => self::nameKey($item['properties']['city'] ?? null) !== ''));
+            if ($withCity === []) {
+                return null;
             }
-
-            return $wanted !== '' ? $own === $wanted : $own === self::nameKey($properties['city'] ?? null);
-        });
-        if ($candidates === []) {
-            return null;
+            $wanted = self::nameKey(self::byArea($withCity)[0]['properties']['city']);
         }
 
-        usort($candidates, static function (array $a, array $b): int {
+        $named = array_values(array_filter($polygons, static fn (array $item): bool => in_array($wanted, self::namesOf($item), true)));
+        if ($named !== []) {
+            return self::byArea($named)[0];
+        }
+
+        $ofCity = array_values(array_filter($polygons, static fn (array $item): bool => self::nameKey($item['properties']['city'] ?? null) === $wanted));
+        if ($ofCity !== []) {
+            return self::byArea($ofCity, largestFirst: true)[0];
+        }
+
+        return null;
+    }
+
+    /**
+     * Every name of a unit, as compared: its name and its names in other languages (OSM name:xx,
+     * Geoapify's _place_name:xx, the international and official names).
+     *
+     * @param  array<string, mixed>  $feature
+     * @return list<string>
+     */
+    private static function namesOf(array $feature): array
+    {
+        $properties = $feature['properties'] ?? [];
+        $raw = is_array($properties['datasource']['raw'] ?? null) ? $properties['datasource']['raw'] : [];
+        $names = [$properties['name'] ?? null];
+        foreach ($raw as $key => $value) {
+            if (is_string($value) && ($key === 'name' || $key === 'int_name' || $key === 'official_name'
+                || str_starts_with((string) $key, 'name:') || str_starts_with((string) $key, '_place_name:'))) {
+                $names[] = $value;
+            }
+        }
+
+        return array_values(array_unique(array_filter(array_map(self::nameKey(...), $names), static fn (string $key): bool => $key !== '')));
+    }
+
+    /**
+     * Units ordered by the area of their bounding box, smallest first (or largest first).
+     *
+     * @param  list<array<string, mixed>>  $features
+     * @return list<array<string, mixed>>
+     */
+    private static function byArea(array $features, bool $largestFirst = false): array
+    {
+        usort($features, static function (array $a, array $b) use ($largestFirst): int {
             [$aMinLat, $aMaxLat, $aMinLon, $aMaxLon] = self::bounds($a['geometry']);
             [$bMinLat, $bMaxLat, $bMinLon, $bMaxLon] = self::bounds($b['geometry']);
+            $order = ($aMaxLat - $aMinLat) * ($aMaxLon - $aMinLon) <=> ($bMaxLat - $bMinLat) * ($bMaxLon - $bMinLon);
 
-            return ($aMaxLat - $aMinLat) * ($aMaxLon - $aMinLon) <=> ($bMaxLat - $bMinLat) * ($bMaxLon - $bMinLon);
+            return $largestFirst ? -$order : $order;
         });
 
-        return $candidates[0];
+        return $features;
     }
 
     /** A place name to compare: lowercase, without diacritics or surrounding spaces ("Brașov" = "brasov"). */
