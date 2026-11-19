@@ -158,6 +158,84 @@ class CityBoundaryTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    /** An administrative unit as Geoapify "part-of" lists it: a rectangle [min lat, min lon, max lat, max lon]. */
+    private function unit(string $name, ?string $city, array $box, int $adminLevel): array
+    {
+        [$minLat, $minLon, $maxLat, $maxLon] = $box;
+
+        return [
+            'type' => 'Feature',
+            'properties' => array_filter([
+                'name' => $name, 'city' => $city, 'place_id' => "pid-{$name}-{$adminLevel}", 'country_code' => 'xx',
+                'datasource' => ['raw' => ['admin_level' => $adminLevel]],
+            ], fn ($value) => $value !== null),
+            'geometry' => ['type' => 'Polygon', 'coordinates' => [[
+                [$minLon, $minLat], [$maxLon, $minLat], [$maxLon, $maxLat], [$minLon, $maxLat], [$minLon, $minLat],
+            ]]],
+        ];
+    }
+
+    public function test_brasov_is_the_municipality_not_the_county_nor_the_metropolitan_area(): void
+    {
+        // What Geoapify listed for the centre of Brașov (2026-11-19).
+        Http::fake(['api.geoapify.com/v1/boundaries/part-of*' => Http::response(['features' => [
+            $this->unit('Brașov', 'Brașov', [45.5, 25.504, 45.752, 25.689], 8),
+            $this->unit('Zona Metropolitană Brașov', 'Zona Metropolitană Brașov', [45.422, 25.103, 45.884, 25.994], 7),
+            $this->unit('Brașov', null, [45.381, 24.639, 46.19, 26.105], 4),
+            $this->unit('România', null, [43.619, 20.262, 48.265, 30.045], 2),
+        ]])]);
+
+        // The search's name without diacritics, and its place id (which is not asked for).
+        $this->boundary(45.6525, 25.6106, ['name' => 'Brasov', 'id' => 'search-place-id'])
+            ->assertOk()
+            ->assertJsonPath('feature.properties.datasource.raw.admin_level', 8);
+
+        Http::assertSent(fn ($request) => isset($request['lat'], $request['lon']) && ! isset($request['id']));
+        $this->assertSame(8, CityBoundary::query()->sole()->feature['properties']['datasource']['raw']['admin_level']);
+    }
+
+    public function test_berlin_is_the_whole_city_not_the_district_whose_city_is_berlin(): void
+    {
+        Http::fake(['api.geoapify.com/v1/boundaries/part-of*' => Http::response(['features' => [
+            $this->unit('Mitte', 'Berlin', [52.504, 13.366, 52.54, 13.429], 10),
+            $this->unit('Mitte', 'Berlin', [52.499, 13.302, 52.568, 13.429], 9),
+            $this->unit('Berlin', 'Berlin', [52.338, 13.088, 52.676, 13.761], 4),
+            $this->unit('Deutschland', null, [47.27, 5.866, 55.099, 15.042], 2),
+        ]])]);
+
+        $this->boundary(52.5174, 13.3951, ['name' => 'Berlin'])
+            ->assertOk()
+            ->assertJsonPath('feature.properties.name', 'Berlin')
+            ->assertJsonPath('feature.properties.datasource.raw.admin_level', 4);
+
+        // Another point of Berlin, already stored: the district is not taken for Berlin either.
+        $this->boundary(52.45, 13.6, ['name' => 'Berlin'])->assertJsonPath('feature.properties.name', 'Berlin');
+        Http::assertSentCount(1);
+    }
+
+    public function test_bucharest_is_the_city_not_its_sector(): void
+    {
+        Http::fake(['api.geoapify.com/v1/boundaries/part-of*' => Http::response(['features' => [
+            $this->unit('Sector 1', 'București', [44.45, 26.0, 44.55, 26.12], 9),
+            $this->unit('București', 'București', [44.33, 25.96, 44.55, 26.23], 4),
+            $this->unit('România', null, [43.619, 20.262, 48.265, 30.045], 2),
+        ]])]);
+
+        $this->boundary(44.47, 26.08, ['name' => 'Bucuresti'])->assertOk()->assertJsonPath('feature.properties.name', 'București');
+    }
+
+    public function test_only_a_metropolitan_area_or_a_county_is_no_city_boundary(): void
+    {
+        Http::fake(['api.geoapify.com/v1/boundaries/part-of*' => Http::response(['features' => [
+            $this->unit('Zona Metropolitană Brașov', 'Zona Metropolitană Brașov', [45.422, 25.103, 45.884, 25.994], 7),
+            $this->unit('Brașov', null, [45.381, 24.639, 46.19, 26.105], 4),
+        ]])]);
+
+        // Named Codlea: none of them is Codlea.
+        $this->boundary(45.7, 25.45, ['name' => 'Codlea'])->assertNotFound();
+        $this->assertSame(0, CityBoundary::query()->count());
+    }
+
     public function test_points_in_a_hole_are_outside_the_city(): void
     {
         $withHole = ['type' => 'Polygon', 'coordinates' => [

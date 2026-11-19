@@ -6,6 +6,7 @@ use App\Models\CityBoundary;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -45,7 +46,7 @@ class CityBoundaries
         }
         RateLimiter::hit($limiter, 60);
 
-        $feature = $this->fetch($geoapifyId, $lat, $lon, $name);
+        $feature = $this->fetch($lat, $lon, $name);
         if ($feature === null) {
             Cache::put($missKey, true, now()->addMinutes(self::NOT_FOUND_MINUTES));
 
@@ -79,15 +80,12 @@ class CityBoundaries
             ->sortBy(fn (CityBoundary $boundary): float => ($boundary->max_lat - $boundary->min_lat) * ($boundary->max_lon - $boundary->min_lon))
             ->values();
 
-        // A named city (from the search) only matches a boundary of that name: a larger unit that
-        // happens to contain the point (e.g. the county) is not that city, so it is fetched instead.
-        $wanted = mb_strtolower(trim((string) $name));
+        // A named city (from the search) only matches a boundary of that very name, diacritics aside, the
+        // smallest first: Brașov the municipality before Brașov the county; a district whose "city" is
+        // Berlin (Mitte) is not Berlin. Anything else containing the point is not that city: it is fetched.
+        $wanted = self::nameKey($name);
         if ($wanted !== '') {
-            return $containing->first(fn (CityBoundary $boundary): bool => in_array(
-                $wanted,
-                [mb_strtolower(trim($boundary->name)), mb_strtolower(trim((string) $boundary->city))],
-                true
-            ));
+            return $containing->first(fn (CityBoundary $boundary): bool => self::nameKey($boundary->name) === $wanted);
         }
 
         return $containing->first();
@@ -202,84 +200,81 @@ class CityBoundaries
     }
 
     /**
-     * The city boundary from Geoapify: the named city first, else the feature whose name is its city,
-     * else Geoapify's city-level category.
+     * The city boundary from Geoapify: every administrative unit containing the city's point, then
+     * pick(). Asked by the point, not by the search result's id: by id Geoapify lists only the units
+     * containing that place, never the city's own boundary (Brașov gave the metropolitan area, the county
+     * and the country; Berlin only Germany).
      *
      * @return array<string, mixed>|null
      */
-    private function fetch(?string $geoapifyId, ?float $lat, ?float $lon, ?string $name): ?array
+    private function fetch(?float $lat, ?float $lon, ?string $name): ?array
     {
-        $baseParams = [
-            'boundaries' => 'administrative',
-            'geometry' => 'geometry_1000',
-            'lang' => substr((string) app()->getLocale(), 0, 2),
-            'apiKey' => config('services.geoapify.key'),
-        ];
-
-        $queries = [];
-        if ($geoapifyId !== null && $geoapifyId !== '') {
-            $queries[] = [...$baseParams, 'id' => $geoapifyId];
-        }
-        if ($lat !== null && $lon !== null) {
-            $queries[] = [...$baseParams, 'lat' => $lat, 'lon' => $lon];
+        if ($lat === null || $lon === null) {
+            return null;
         }
 
-        $reached = false;
-        foreach ($queries as $params) {
-            $response = Http::timeout(15)->retry(1, 250, throw: false)->acceptJson()
-                ->get('https://api.geoapify.com/v1/boundaries/part-of', $params);
-            if (! $response->successful()) {
-                continue;
-            }
-            $reached = true;
-
-            $features = $response->json('features', []);
-            $polygonFeatures = array_values(array_filter(is_array($features) ? $features : [], static fn (mixed $item): bool =>
-                is_array($item) && in_array($item['geometry']['type'] ?? null, ['Polygon', 'MultiPolygon'], true)
-            ));
-            $requestedName = mb_strtolower(trim((string) $name));
-            if ($requestedName !== '') {
-                $cityBoundary = collect($polygonFeatures)->first(static function (array $item) use ($requestedName): bool {
-                    $properties = $item['properties'] ?? [];
-
-                    return in_array($requestedName, array_map(
-                        static fn (mixed $value): string => mb_strtolower(trim((string) $value)),
-                        [$properties['name'] ?? '', $properties['city'] ?? '']
-                    ), true);
-                });
-
-                if ($cityBoundary !== null) {
-                    return $cityBoundary;
-                }
-            }
-
-            $cityBoundary = collect($polygonFeatures)->first(static function (array $item): bool {
-                $properties = $item['properties'] ?? [];
-
-                return isset($properties['name'], $properties['city'])
-                    && mb_strtolower(trim((string) $properties['name'])) === mb_strtolower(trim((string) $properties['city']));
-            });
-
-            if ($cityBoundary !== null) {
-                return $cityBoundary;
-            }
-
-            // Some cities, including municipality-style capitals, don't
-            // populate the `city` field on their boundary feature. Use
-            // Geoapify's explicit city-level category as a safe fallback.
-            $cityBoundary = collect($polygonFeatures)->first(static fn (array $item): bool =>
-                in_array('administrative.city_level', $item['properties']['categories'] ?? [], true)
-            );
-
-            if ($cityBoundary !== null) {
-                return $cityBoundary;
-            }
-        }
-
-        if (! $reached) {
+        $response = Http::timeout(15)->retry(1, 250, throw: false)->acceptJson()
+            ->get('https://api.geoapify.com/v1/boundaries/part-of', [
+                'boundaries' => 'administrative',
+                'geometry' => 'geometry_1000',
+                'lang' => substr((string) app()->getLocale(), 0, 2),
+                'lat' => $lat,
+                'lon' => $lon,
+                'apiKey' => config('services.geoapify.key'),
+            ]);
+        if (! $response->successful()) {
             throw new RuntimeException('Geoapify boundaries could not be reached.');
         }
 
-        return null;
+        $features = $response->json('features', []);
+
+        return self::pick(is_array($features) ? $features : [], $name);
+    }
+
+    /**
+     * The city among the administrative units containing its point:
+     * - with the searched name: the units of exactly that name (diacritics aside), the smallest one.
+     *   Brașov the municipality, not Brașov the county (Romanian counties carry their seat's name);
+     *   Berlin the city-state, not the district Mitte whose "city" is Berlin; București, not a sector.
+     * - without a name: the smallest unit named like its own city.
+     * Nothing else: a metropolitan area or a county is not the city, so null (no boundary shown).
+     *
+     * @param  array<int, mixed>  $features
+     * @return array<string, mixed>|null
+     */
+    public static function pick(array $features, ?string $name): ?array
+    {
+        $polygons = array_values(array_filter($features, static fn (mixed $item): bool =>
+            is_array($item) && in_array($item['geometry']['type'] ?? null, ['Polygon', 'MultiPolygon'], true)
+        ));
+
+        $wanted = self::nameKey($name);
+        $candidates = array_filter($polygons, static function (array $item) use ($wanted): bool {
+            $properties = $item['properties'] ?? [];
+            $own = self::nameKey($properties['name'] ?? null);
+            if ($own === '') {
+                return false;
+            }
+
+            return $wanted !== '' ? $own === $wanted : $own === self::nameKey($properties['city'] ?? null);
+        });
+        if ($candidates === []) {
+            return null;
+        }
+
+        usort($candidates, static function (array $a, array $b): int {
+            [$aMinLat, $aMaxLat, $aMinLon, $aMaxLon] = self::bounds($a['geometry']);
+            [$bMinLat, $bMaxLat, $bMinLon, $bMaxLon] = self::bounds($b['geometry']);
+
+            return ($aMaxLat - $aMinLat) * ($aMaxLon - $aMinLon) <=> ($bMaxLat - $bMinLat) * ($bMaxLon - $bMinLon);
+        });
+
+        return $candidates[0];
+    }
+
+    /** A place name to compare: lowercase, without diacritics or surrounding spaces ("Brașov" = "brasov"). */
+    private static function nameKey(mixed $name): string
+    {
+        return Str::lower(Str::ascii(trim((string) $name)));
     }
 }
