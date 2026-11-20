@@ -538,6 +538,8 @@
     ":hours h": ":hours h",
     ":hours h :minutes min": ":hours h :minutes min",
     "tomorrow, :time": "domani, :time",
+    "Looking for the categories available in this area…": "Ricerca delle categorie disponibili in questa zona…",
+    "Could not check what is in this area; all categories are shown.": "Impossibile verificare cosa c’è in questa zona; sono mostrate tutte le categorie.",
     "Location access was denied.": "L'accesso alla posizione è stato negato.",
     "The GPS position is not available.": "La posizione GPS non è disponibile.",
     "Determining the GPS position timed out.": "Il rilevamento della posizione GPS è scaduto.",

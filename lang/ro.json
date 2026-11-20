@@ -545,6 +545,8 @@
     ":hours h": ":hours h",
     ":hours h :minutes min": ":hours h :minutes min",
     "tomorrow, :time": "mâine, :time",
+    "Looking for the categories available in this area…": "Caut categoriile disponibile în această zonă…",
+    "Could not check what is in this area; all categories are shown.": "Nu am putut verifica ce există în zonă; sunt afișate toate categoriile.",
     "Location access was denied.": "Accesul la locație a fost refuzat.",
     "The GPS position is not available.": "Poziția GPS nu este disponibilă.",
     "Determining the GPS position timed out.": "Determinarea poziției GPS a expirat.",

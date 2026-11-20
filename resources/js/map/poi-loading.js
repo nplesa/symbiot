@@ -386,10 +386,23 @@ let detailsChecking = new Set();
 // A new location is being determined (GPS fix, city search) and has not been checked yet.
 let awaitingLocation = false;
 
-/** Dims what is unknown right now: everything while a location or the fast step is pending, else the details. */
+/**
+ * While anything is still being checked (a location being determined, the fast step, the details step),
+ * the category list is replaced by a progress bar: the categories appear only once the area's are known.
+ */
 function refreshChecking() {
     const fastRunning = mapState.subcategoriesPendingKey !== null;
     setCategoriesChecking(type => awaitingLocation || fastRunning || detailsChecking.has(type));
+    const checking = awaitingLocation || fastRunning || detailsChecking.size > 0;
+    document.getElementById('mobility_card')?.classList.toggle('poi-availability-checking', checking);
+    const progress = document.getElementById('poi-availability-progress');
+    if (progress) progress.hidden = !checking;
+}
+
+/** The check could not answer: every category is shown, and says why. */
+function showAvailabilityNote(visible) {
+    const note = document.getElementById('poi-availability-note');
+    if (note) note.hidden = !visible;
 }
 
 function setCategoriesChecking(isChecking) {
@@ -436,6 +449,7 @@ export async function updateSubcategoryAvailability(lat, lon, signal = null) {
     mapState.subcategoriesPendingKey = key;
     awaitingLocation = false;
     detailsChecking = new Set();
+    showAvailabilityNote(false);
     refreshChecking();
     setSubcategoryButtonsLoading(true);
 
@@ -473,6 +487,7 @@ export async function updateSubcategoryAvailability(lat, lon, signal = null) {
         // Simply unknown now (visible, not dimmed), unless a newer location or check is pending.
         refreshChecking();
         applySubcategoryAvailability({});
+        showAvailabilityNote(true);
         return;
     }
 

@@ -319,6 +319,14 @@
                 </h2>
                 <div id="dashboard-poi-collapse" class="accordion-collapse collapse show" aria-labelledby="dashboard-poi-heading">
                     <div class="accordion-body">
+                        {{-- While the area's categories are being checked (both steps), instead of the list (poi-loading.js). --}}
+                        <div class="poi-availability-progress" id="poi-availability-progress" role="status" aria-live="polite" hidden>
+                            <p>{{ __('Looking for the categories available in this area…') }}</p>
+                            <div class="progress" role="progressbar" aria-label="{{ __('Looking for the categories available in this area…') }}">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                            </div>
+                        </div>
+                        <p class="poi-availability-note" id="poi-availability-note" hidden>{{ __('Could not check what is in this area; all categories are shown.') }}</p>
                         <div class="poi-filter-toolbar">
                             <p>{{ __('Select the categories you want to see on the map.') }}</p>
                             <label class="poi-filter-search">

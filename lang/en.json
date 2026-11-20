@@ -545,6 +545,8 @@
     ":hours h": ":hours h",
     ":hours h :minutes min": ":hours h :minutes min",
     "tomorrow, :time": "tomorrow, :time",
+    "Looking for the categories available in this area…": "Looking for the categories available in this area…",
+    "Could not check what is in this area; all categories are shown.": "Could not check what is in this area; all categories are shown.",
     "Location access was denied.": "Location access was denied.",
     "The GPS position is not available.": "The GPS position is not available.",
     "Determining the GPS position timed out.": "Determining the GPS position timed out.",

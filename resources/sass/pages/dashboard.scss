@@ -804,6 +804,20 @@
 /* Availability still being checked for the area: dimmed, still usable. */
 .dashboard-route-panel #mobility_card .poi-category-group { transition: opacity .2s ease; }
 .dashboard-route-panel #mobility_card .poi-category-group.poi-category-checking { opacity: .45; }
+/* Until the area's categories are known (both steps), the progress bar replaces the list. */
+.dashboard-route-panel #mobility_card.poi-availability-checking .poi-filter-toolbar,
+.dashboard-route-panel #mobility_card.poi-availability-checking .poi-category-filters { display: none; }
+.poi-availability-progress {
+    padding: .25rem 0 .75rem;
+
+    p { margin: 0 0 .5rem; color: var(--dashboard-muted); font-size: .82rem; }
+    .progress { height: 8px; background: var(--dashboard-line); }
+    .progress-bar { background-color: var(--dashboard-blue); }
+}
+.poi-availability-note { margin: 0 0 .5rem; color: #b45309; font-size: .78rem; }
+@media (prefers-reduced-motion: reduce) {
+    .poi-availability-progress .progress-bar { animation: none; }
+}
 @media (prefers-reduced-motion: reduce) {
     .dashboard-route-panel #mobility_card .poi-category-group { transition: none; }
 }
