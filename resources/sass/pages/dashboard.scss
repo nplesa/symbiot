@@ -635,7 +635,9 @@
 .dashboard-rail-status { flex: 0 0 auto; max-width: 9rem; color: var(--dashboard-muted); font-size: .72rem; font-weight: 700; text-align: right; }
 .dashboard-rail-status.is-on_time { color: #198754; }
 .dashboard-rail-status.is-late { color: #d63384; }
-.dashboard-rail-status.is-cancelled { color: #dc3545; }
+.dashboard-rail-status.is-cancelled,
+.dashboard-rail-status.is-diverted { color: #dc3545; }
+.dashboard-rail-status.is-early { color: #198754; }
 .dashboard-rail-entry.is-cancelled .dashboard-stop-route-copy strong { text-decoration: line-through; }
 .dashboard-train-services-source a { color: inherit; text-decoration: underline; }
 /* Trip details card: a train, flight or line picked from the stop list (trip-card.js). */

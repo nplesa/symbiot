@@ -7,6 +7,7 @@ import { intlLocale, t } from '../i18n.js';
 import { boardTime, delayStatus, trainLabel } from '../rail-board.js';
 import { safeExternalUrl } from '../safe-url.js';
 import { annualTrainCard, trainCard } from '../trip-card.js';
+import { createBoardTabs } from './board-tabs.js';
 
 /**
  * @param {{list: HTMLElement, tripRow: Function, tripRowArrow: Function}} view the stop list and the row helpers of the trip card
@@ -111,17 +112,13 @@ export function createRailBoardView({ list, tripRow, tripRowArrow }) {
         board.className = 'dashboard-rail-board';
         board.setAttribute('aria-label', t('Trains at :station', { station: stationName || t('the station') }));
 
-        const toolbar = document.createElement('div');
-        toolbar.className = 'dashboard-rail-tabs';
-        toolbar.setAttribute('role', 'tablist');
         const results = document.createElement('div');
         results.className = 'dashboard-rail-results';
         results.setAttribute('aria-live', 'polite');
 
-        const tabs = {};
         const load = async (type) => {
             const run = ++railBoardRun;
-            Object.entries(tabs).forEach(([key, tab]) => tab.setAttribute('aria-selected', String(key === type)));
+            tabs.select(type);
             const loading = document.createElement('p');
             loading.className = 'dashboard-stop-routes-empty';
             loading.textContent = t('Loading trains...');
@@ -184,33 +181,13 @@ export function createRailBoardView({ list, tripRow, tripRowArrow }) {
             }
         };
 
-        [['departures', t('Departures')], ['arrivals', t('Arrivals')]].forEach(([type, label]) => {
-            const tab = document.createElement('button');
-            tab.type = 'button';
-            tab.className = 'dashboard-rail-tab';
-            tab.setAttribute('role', 'tab');
-            tab.textContent = label;
-            tab.addEventListener('click', () => load(type));
-            tabs[type] = tab;
-            toolbar.append(tab);
+        const tabs = createBoardTabs({
+            tabs: [['departures', t('Departures')], ['arrivals', t('Arrivals')]],
+            onSelect: load,
+            onRefresh: load,
         });
 
-        const refresh = document.createElement('button');
-        refresh.type = 'button';
-        refresh.className = 'dashboard-rail-refresh';
-        refresh.setAttribute('aria-label', t('Refresh'));
-        refresh.title = t('Refresh');
-        const refreshIcon = document.createElement('i');
-        refreshIcon.className = 'fa-solid fa-rotate-right';
-        refreshIcon.setAttribute('aria-hidden', 'true');
-        refresh.append(refreshIcon);
-        refresh.addEventListener('click', () => {
-            const selected = Object.keys(tabs).find((key) => tabs[key].getAttribute('aria-selected') === 'true') || 'departures';
-            load(selected);
-        });
-        toolbar.append(refresh);
-
-        board.append(toolbar, results);
+        board.append(tabs.element, results);
         list.append(board);
         load('departures');
     };

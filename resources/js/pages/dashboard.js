@@ -2,8 +2,10 @@ import { notify } from '../notify.js';
 import { formatNumber, intlLocale, t } from '../i18n.js';
 import { haversineMeters } from '../geo.js';
 import { paintLineBadge } from '../route-colors.js';
-import { flightCard, gtfsMode, gtfsTickets, osmRouteCard } from '../trip-card.js';
+import { gtfsMode, gtfsTickets, osmRouteCard } from '../trip-card.js';
 import { createRailBoardView } from '../dashboard/rail-board-view.js';
+import { createFlightBoardView } from '../dashboard/flight-board-view.js';
+import { upcomingFlights } from '../flight-board.js';
 import { createTripCardView } from '../dashboard/trip-card-view.js';
 import { scrollPanelTo } from '../dashboard/panel-scroll.js';
 
@@ -826,6 +828,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const { renderRailBoard } = createRailBoardView({ list: stopRoutesList, tripRow, tripRowArrow });
+    const { renderFlightBoard } = createFlightBoardView({ list: stopRoutesList, tripRow, tripRowArrow });
 
     window.addEventListener('symbiot:osm-stop-routes', (event) => {
         const {
@@ -841,6 +844,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loading = false,
             isAirport = false,
             airportFlights = null,
+            airportCode = '',
             coordinates = null,
         } = event.detail ?? {};
         closePoiAccordion();
@@ -852,7 +856,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (routePanelMedia.matches) setRoutePanelCollapsed(false);
         setText('dashboard-stop-routes-title', isAirport ? t('Flights at the airport') : t('Lines at stop'));
         setText('dashboard-stop-routes-stop', stopName || (isAirport ? t('Airport selected on the map') : t('Stop selected on the map')));
-        const flightCount = (airportFlights?.arrivals?.length ?? 0) + (airportFlights?.departures?.length ?? 0);
+        // The flights still to come, as the lists show them (not the ones already gone).
+        const flightCount = upcomingFlights(airportFlights?.arrivals).length + upcomingFlights(airportFlights?.departures).length;
         setText('dashboard-stop-routes-count', loading
             ? t('Loading...')
             : isAirport
@@ -869,100 +874,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (isAirport) {
-            if (!airportFlights?.available) {
-                const unavailable = document.createElement('p');
-                unavailable.className = 'dashboard-stop-routes-empty';
-                unavailable.textContent = airportFlights?.message
-                    || t('Flight data is not available for this airport.');
-                stopRoutesList.append(unavailable);
-            } else {
-                const formatFlightTime = (value, timeZone = undefined) => {
-                    if (!value) return '—';
-                    const date = new Date(value);
-                    if (Number.isNaN(date.getTime())) return '—';
-                    try {
-                        return new Intl.DateTimeFormat(intlLocale, {
-                            hour: '2-digit', minute: '2-digit',
-                            hour12: false, // <-- Forțează formatul de 24 de ore
-                            ...(timeZone ? { timeZone } : {}),
-                        }).format(date);
-                    } catch {
-                        return new Intl.DateTimeFormat(intlLocale, { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: false // <-- Și aici pentru siguranță
-                        }).format(date);
-                    }
-                };
-                const renderFlightGroup = (title, flights, direction) => {
-                    const heading = document.createElement('p');
-                    heading.className = 'dashboard-stop-routes-stop dashboard-train-services-heading';
-                    heading.textContent = title;
-                    stopRoutesList.append(heading);
-                    const upcomingFlights = (Array.isArray(flights) ? flights : [])
-                        .filter((flight) => {
-                            const timestamp = Date.parse(flight.estimated_time || flight.scheduled_time || flight.actual_time || '');
-                            return Number.isFinite(timestamp) && timestamp >= Date.now();
-                        })
-                        .sort((a, b) => Date.parse(a.estimated_time || a.scheduled_time || a.actual_time)
-                            - Date.parse(b.estimated_time || b.scheduled_time || b.actual_time));
-                    if (upcomingFlights.length === 0) {
-                        const empty = document.createElement('p');
-                        empty.className = 'dashboard-stop-routes-empty';
-                        empty.textContent = t('No flights scheduled after the current time in the next 24 hours.');
-                        stopRoutesList.append(empty);
-                        return;
-                    }
-                    upcomingFlights.forEach((flight) => {
-                        const item = tripRow('dashboard-stop-route-option dashboard-train-service', () => flightCard(
-                            flight, direction, stopName || t('Airport'), (iso) => formatFlightTime(iso, flight.airport_timezone || undefined),
-                        ));
-                        
-                        const badge = document.createElement('span');
-                        badge.className = 'dashboard-stop-route-badge';
-                        badge.textContent = formatFlightTime(
-                            flight.estimated_time || flight.scheduled_time || flight.actual_time,
-                            flight.airport_timezone || undefined,
-                        );
-                        const copy = document.createElement('span');
-                        copy.className = 'dashboard-stop-route-copy';
-                        const name = document.createElement('strong');
-                        name.textContent = flight.number || t('Flight');
-                        const endpoint = direction === 'arrival'
-                            ? (flight.origin_name || flight.origin || t('Origin unavailable'))
-                            : (flight.destination_name || flight.destination || t('Destination unavailable'));
-                        const details = [
-                            endpoint,
-                            flight.operator_name || flight.operator,
-                            flight.terminal ? t('Terminal :terminal', { terminal: flight.terminal }) : null,
-                            flight.gate ? t('Gate :gate', { gate: flight.gate }) : null,
-                            direction === 'arrival' && flight.baggage_claim ? t('Baggage belt :belt', { belt: flight.baggage_claim }) : null,
-                        ].filter(Boolean);
-                        const description = document.createElement('small');
-                        description.textContent = details.join(' · ');
-                        copy.append(name, description);
-                        item.append(badge, copy);
-                        const statusText = flight.cancelled ? t('Cancelled')
-                            : flight.diverted ? t('Diverted')
-                                : flight.status || (flight.estimated_time ? t('Estimated') : t('Scheduled'));
-                        const status = document.createElement('small');
-                        status.className = 'dashboard-train-services-source';
-                        status.textContent = statusText;
-                        item.append(status);
-                        item.append(tripRowArrow());
-                        stopRoutesList.append(item);
-                    });
-                };
-                renderFlightGroup(t('Arrivals from now on'), airportFlights.arrivals || [], 'arrival');
-                renderFlightGroup(t('Departures from now on'), airportFlights.departures || [], 'departure');
-                const source = document.createElement('small');
-                source.className = 'dashboard-train-services-source';
-                source.textContent = t('Source: :source · updated :time', {
-                    source: airportFlights.source || t('Flight data'),
-                    time: airportFlights.updated_at ? formatFlightTime(airportFlights.updated_at) : t('recently'),
-                });
-                stopRoutesList.append(source);
-            }
+            // Like a railway station: Departures / Arrivals tabs, one list at a time (flight-board-view.js).
+            renderFlightBoard(airportFlights, stopName, airportCode);
             return;
         }
 

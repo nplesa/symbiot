@@ -296,6 +296,7 @@ export function showPoiTooltip(feature, coordinate) {
             stopName: airportName,
             routes: [],
             isAirport: true,
+            airportCode,
             loading: true,
             airportFlights: null,
         };
